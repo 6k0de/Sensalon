@@ -1,0 +1,37 @@
+services:
+  mariadb:
+    image: mariadb:11.4
+    container_name: mariadb-dev
+    ports:
+      - "127.0.0.1:3307:3306"
+    environment:
+      MARIADB_ROOT_PASSWORD: dev1!
+      MARIADB_DATABASE: dev_sensalon
+      MARIADB_USER: dev_sensalon
+      MARIADB_PASSWORD: D3vSensalon
+      TZ: "America/Monterrey"
+    volumes:
+      - mariadb_data:/var/lib/mysql   # ← volumen NUEVO
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -prootpass_seguro || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:latest
+    container_name: pma-dev
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    environment:
+      PMA_HOST: mariadb
+      PMA_PORT: 3306
+      PMA_ARBITRARY: 1
+      UPLOAD_LIMIT: 6G
+      TZ: "America/Monterrey"
+    ports:
+      - "127.0.0.1:8081:80"
+
+volumes:
+  mariadb_data:   # ← define el volumen nuevo

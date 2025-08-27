@@ -1,0 +1,28 @@
+# Ignorar node_modules en todas las carpetas
+**/node_modules/
+*.zip
+
+# Ignorar dist y build (frontend/backend)
+**/dist/
+**/build/
+
+# Ignorar .env y llaves
+**/.env
+*.key
+*.pem
+*.cert
+
+# Ignorar carpetas temporales
+*.log
+logs/
+tmp/
+.cache/
+.vscode/
+.env.*
+
+# Ignorar dependencias y compilados Python o PHP (si aplica)
+__pycache__/
+vendor/
+
+# Docker archivos intermedios si los generas
+docker-compose.override.yml

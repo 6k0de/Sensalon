@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",           // Especifica la versión de ECMAScript que se utilizará
+    "module": "commonjs",          // Módulos comunes para Node.js
+    "rootDir": "./src",            // Directorio de archivos fuente
+    "outDir": "./dist",            // Directorio de salida para archivos compilados
+    "esModuleInterop": true,       // Interoperabilidad con módulos ES
+    "strict": true,                // Activa todas las comprobaciones estrictas
+    "skipLibCheck": true           // Omite la verificación de tipos de las dependencias
+  },
+  "include": ["src/**/*.ts"],      // Incluye todos los archivos .ts en la carpeta src
+  "exclude": ["node_modules"]      // Excluye node_modules
+}
