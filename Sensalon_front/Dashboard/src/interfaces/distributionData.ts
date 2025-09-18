@@ -1,5 +1,5 @@
 export interface DistributorData {
-  empresasRelacionadas?:string
+  empresasRelacionadas?: string;
   nombres?: string;
   apellidos?: string;
   telefono?: string;
@@ -10,5 +10,6 @@ export interface DistributorData {
   codigoPostal?: string;
   direccion?: string;
   rfc?: string;
+  razonSocial?: string;
   constanciaFiscal?: File;
 }

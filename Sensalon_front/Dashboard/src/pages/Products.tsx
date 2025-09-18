@@ -8,17 +8,28 @@ import axios from "axios";
 
 export const Products = () => {
   const [showModal, setShowModal] = useState(false);
-  let [products, SetProducts] = useState<Product[]>([]);
+  const [products, SetProducts] = useState<Product[]>([]);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [toastType, setToastType] = useState<"success" | "error" | null>(null);
   const [mode, setMode] = useState(0);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null); // Estado para el producto seleccionado
   const [showToast, setShowToast] = useState(true);
 
-  const headers: string[] = ['Producto', 'Detalle', 'Peso', 'Cant', 'PrecioD', 'PrecioS', 'PrecioP', 'Stock', 'Stock min.', 'Creado'];
+  const headers: string[] = [
+    "Producto",
+    "Detalle",
+    "Peso",
+    "Cant",
+    "PrecioD",
+    "PrecioS",
+    "PrecioP",
+    "Stock",
+    "Stock min.",
+    "Creado",
+  ];
   const fetchProducts = async () => {
     try {
-      const response = await axios.get('http://localhost:3000/api/productos');
+      const response = await axios.get("http://localhost:3000/api/productos");
       SetProducts(response.data);
     } catch (error) {
       console.error("Error fetching products:", error);
@@ -26,15 +37,17 @@ export const Products = () => {
   };
 
   useEffect(() => {
-    fetchProducts()
+    fetchProducts();
   }, []);
 
-  const handleModalClose = async (message: string, type: "success" | "error" | null) => {
+  const handleModalClose = async (
+    message: string,
+    type: "success" | "error" | null,
+  ) => {
     setShowModal(false);
     setToastMessage(message);
     setToastType(type);
     setShowToast(true);
-    
 
     if (type == "success") {
       await fetchProducts();
@@ -76,25 +89,69 @@ export const Products = () => {
         <section className="mt-5 h-[620px]">
           <div className="flex items-center justify-between bg-white shadow-sm w-full p-4 rounded-xl ">
             <div>
-              <label className="mb-2 text-sm font-medium text-[#1d1d1b] sr-only dark:text-white">Search</label>
+              <label className="mb-2 text-sm font-medium text-[#1d1d1b] sr-only dark:text-white">
+                Search
+              </label>
               <div className="relative">
                 <div className="absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none">
-                  <svg className="w-4 h-4 text-gray-500 dark:text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
-                    <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z" />
+                  <svg
+                    className="w-4 h-4 text-gray-500 dark:text-gray-400"
+                    aria-hidden="true"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      stroke="currentColor"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z"
+                    />
                   </svg>
                 </div>
-                <input type="search" id="search" className="block w-96 p-2 ps-10 text-sm text-[#1d1d1b] border border-gray-300 rounded-xl bg-gray-50 dark:placeholder-gray-400 dark:text-white" placeholder="Search" required />
+                <input
+                  type="search"
+                  id="search"
+                  className="block w-96 p-2 ps-10 text-sm text-[#1d1d1b] border border-gray-300 rounded-xl bg-gray-50 dark:placeholder-gray-400 dark:text-white"
+                  placeholder="Search"
+                  required
+                />
               </div>
             </div>
             <div>
-              <button data-modal-target="crud-modal" onClick={handleCreateNewProduct} data-modal-toggle="crud-modal" type="button" className=" text-white bg-[#1d1d1b] hover:bg-gray-900 focus:outline-none focus:ring-4 focus:ring-[#c9c9c6] font-medium rounded-xl text-sm px-5 py-2 me-2 mb-2">Nuevo producto</button>
+              <button
+                data-modal-target="crud-modal"
+                onClick={handleCreateNewProduct}
+                data-modal-toggle="crud-modal"
+                type="button"
+                className=" text-white bg-[#1d1d1b] hover:bg-gray-900 focus:outline-none focus:ring-4 focus:ring-[#c9c9c6] font-medium rounded-xl text-sm px-5 py-2 me-2 mb-2"
+              >
+                Nuevo producto
+              </button>
               {showModal && (
-                <ModalProduct mode={mode} data={selectedProduct || []} show={showModal} onClose={(message: string, type: "success" | "error" | null) => handleModalClose(message, type)} />
+                <ModalProduct
+                  mode={mode}
+                  data={selectedProduct || []}
+                  show={showModal}
+                  onClose={(
+                    message: string,
+                    type: "success" | "error" | null,
+                  ) => handleModalClose(message, type)}
+                />
               )}
             </div>
           </div>
           <div className="mt-5 bg-white shadow-sm p-4 rounded-xl h-full w-full">
-            <TableProducts setShowModal={setShowModal} showModal={showModal} handleEdit={handleEditProduct} encabezados={headers} data={products} fetch={fetchProducts} outofstock="No se tiene productos registrados" />
+            <TableProducts
+              setShowModal={setShowModal}
+              showModal={showModal}
+              handleEdit={handleEditProduct}
+              encabezados={headers}
+              data={products}
+              fetch={fetchProducts}
+              outofstock="No se tiene productos registrados"
+            />
           </div>
         </section>
       </div>

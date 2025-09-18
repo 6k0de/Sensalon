@@ -7,63 +7,96 @@ import { Users } from "../pages/Users";
 import { Categories } from "../pages/Categories";
 import { ProtectedRoute } from "./ProtectedRoute"; // Importar el componente de ruta protegida
 import { LoginAuth } from "../pages/Auth";
+import { Transactions } from "../pages/Transactions";
+import { Slider } from "../pages/Slider";
+import { BankConfiguration } from "../pages/BankConfiguration";
 
 export const AppRoutes = () => {
-    return (
-        <Router>
-            <Routes>
-                <Route path="/login" element={<LoginAuth />} />
-                <Route
-                    path="/"
-                    element={
-                        <ProtectedRoute>
-                            <Layout>
-                                <Home />
-                            </Layout>
-                        </ProtectedRoute>
-                    }
-                />
-                <Route
-                    path="/productos"
-                    element={
-                        <ProtectedRoute>
-                            <Layout>
-                                <Products />
-                            </Layout>
-                        </ProtectedRoute>
-                    }
-                />
-                <Route
-                    path="/empresas"
-                    element={
-                        <ProtectedRoute>
-                            <Layout>
-                                <Companies />
-                            </Layout>
-                        </ProtectedRoute>
-                    }
-                />
-                <Route
-                    path="/usuarios"
-                    element={
-                        <ProtectedRoute>
-                            <Layout>
-                                <Users />
-                            </Layout>
-                        </ProtectedRoute>
-                    }
-                />
-                <Route
-                    path="/categorias"
-                    element={
-                        <ProtectedRoute>
-                            <Layout>
-                                <Categories />
-                            </Layout>
-                        </ProtectedRoute>
-                    }
-                />
-            </Routes>
-        </Router>
-    );
+  return (
+    <Router>
+      <Routes>
+        <Route path="/login" element={<LoginAuth />} />
+        <Route
+          path="/inicio"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <Home />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/transacciones"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <Transactions />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/productos"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <Products />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/marcas"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <Companies />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/usuarios"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <Users />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/categorias"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <Categories />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/slider"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <Slider />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/configuracionbancaria"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <BankConfiguration />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+      </Routes>
+    </Router>
+  );
 };
