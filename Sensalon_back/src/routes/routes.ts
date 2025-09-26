@@ -41,6 +41,8 @@ import {
   getSliderImages,
   uploadSlider,
 } from "../controllers/Slider/slider";
+import { GetAllTransactions } from "../controllers/Transactions/transactions";
+import { CreateShippingAddress, DeleteShipping, GetShippingAddressById } from "../controllers/ShippingAddress/shipping";
 
 const storageConfig = (folder: string): StorageEngine =>
   multer.diskStorage({
@@ -97,20 +99,26 @@ router.post("/login", Login);
 router.post("/loginA", LoginAdmin);
 router.post("/register", Register);
 
+//GET Products
+router.get("/productos", getAllProducts);
+router.get("/producto/:id", getProductById);
+router.get("/productosSimilares", getProductSimilar);
+
 //POST Products
 router.post("/createproducto", uploadImages.single("vcphoto"), insertProduct);
-router.post(
-  "/actualizarproducto",
-  uploadImages.single("vcphoto"),
-  updateProduct,
-);
+router.post("/actualizarproducto", uploadImages.single("vcphoto"), updateProduct);
 router.post("/deleteproduct/:id", deleteProduct);
+
+//GET Categories
+router.get("/categorias", getAllCategories);
 
 //POST Categories
 router.post("/createcategorie", insertCategorie);
 router.post("/actualizarcategoria", updateCategoria);
 router.post("/deletecategorie/:id", deleteCategorie);
 
+//GET Companies
+router.get("/empresas", getAllCompanies);
 //POST Companies
 router.post("/createcompanies", insertCompanies);
 router.post("/actualizarcompanie", updateCompanies);
@@ -120,13 +128,12 @@ router.post("/deletecompanies/:id", deleteCompanies);
 router.get("/distributors", getAllDistributors);
 router.get("/salons", getAllSalons);
 router.get("/usersn", getAllUsersN);
+//router.get('/usuarios', getAllUsers)
 
 //POST Users
 router.post("/createuser", uploadFiles, CreateUser);
-
 //PUT Users
 router.put("/updateuser", uploadFiles, UpdateUser);
-
 //Delete Users
 router.delete("/deleteuser/:id", deleteUsers);
 router.delete("/deleteusersalon/:id", deleteUsersSalon);
@@ -139,14 +146,21 @@ router.get("/sliderImage", getSliderImages);
 //Delete
 router.delete("/sliderImage/:id", deleteSliderImage);
 
-router.get("/productos", getAllProducts);
-router.get("/producto/:id", getProductById);
-router.get("/productosSimilares", getProductSimilar);
-router.get("/empresas", getAllCompanies);
-router.get("/categorias", getAllCategories);
+//GET Transactions 
+router.get('/transactions', GetAllTransactions);
+
+//GET Shipping
+router.get('/shippingaddres/:id', GetShippingAddressById);
+//POST Shipping
+router.post('/createshipping/:id', CreateShippingAddress);
+//DELETE Shipping
+router.delete('/deleteshipping/:id', DeleteShipping);
+
+//GET Roles
 router.get("/roles", getAllRoles);
+
+//GET Services
 router.get("/services", getAllServices);
-//router.get('/usuarios', getAllUsers)
 
 router.get("/archivos/:filename", (req, res) => {
   const fileName = req.params.filename;

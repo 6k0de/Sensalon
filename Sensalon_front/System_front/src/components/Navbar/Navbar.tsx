@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
-import { ShoppingBag, Menu, X, User } from 'lucide-react';
+import { Menu, X, User, ShoppingCart } from 'lucide-react';
 import { useCartStore } from '../../hooks/useCartStore';
 import { useProductStore } from '../../hooks/useProductStore';
-import { useNavigate } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { Product } from '../../interfaces/products';
 import './index.css'
 export const Navbar = () => {
@@ -11,6 +11,7 @@ export const Navbar = () => {
   const cartRef = useRef<HTMLDivElement>(null)
   const serchRef = useRef<HTMLDivElement>(null)
   const navigate = useNavigate()
+  const location = useLocation()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [avatarMenuOpen, setAvatarMenuOpen] = useState(false);
@@ -41,6 +42,10 @@ export const Navbar = () => {
 
 
   }, [fetchProducts, products]);
+
+  useEffect(() => {
+    setShowCart(false)
+  }, [location.pathname])
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -74,15 +79,15 @@ export const Navbar = () => {
   const toggleCart = () => setShowCart(!showCart);
 
   const totalPrice = cart.reduce((total, item) => {
-    const price = item.product.decprice1 !== null && item.product.decprice1 !== undefined 
-      ? item.product.decprice1 
-      : item.product.decprice2 !== null && item.product.decprice2 !== undefined 
-      ? item.product.decprice2 
-      : item.product.decprice3 || 0;
-  
+    const price = item.product.decprice1 !== null && item.product.decprice1 !== undefined
+      ? item.product.decprice1
+      : item.product.decprice2 !== null && item.product.decprice2 !== undefined
+        ? item.product.decprice2
+        : item.product.decprice3 || 0;
+
     return total + (price * item.quantity);
   }, 0);
-  
+
 
   const toggleAvatarMenu = () => {
     setAvatarMenuOpen(!avatarMenuOpen);
@@ -98,12 +103,24 @@ export const Navbar = () => {
   console.log(cart)
   return (
     <header className="border-b sticky top-0 bg-white z-10">
-      <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-        <a href='/' className="text-2xl font-bold">SENSALON</a>
+      <div className="container mx-auto px-4 flex justify-between items-center">
+        <a href='/' className="text-2xl font-bold">
+          <img src="/img/SENSALON.png" alt="" className='w-[11rem] h-[5rem] object-cover' />
+        </a>
 
         <nav className="hidden md:flex space-x-6">
-          <a href="/productos" className="text-sm font-medium">Productos</a>
-          {/* <a href="#" className="text-sm font-medium">Empresas</a> */}
+          <NavLink to="/" className={({ isActive }) =>
+            `text-sm font-medium pb-1 transition ${isActive ? "border-b-2 border-black text-black" : "text-gray-600 hover:text-black"
+            }`
+          }>Inicio</NavLink>
+          <NavLink to="/productos" className={({ isActive }) =>
+            `text-sm font-medium pb-1 transition ${isActive ? "border-b-2 border-black text-black" : "text-gray-600 hover:text-black"
+            }`
+          }>Productos</NavLink>
+          <NavLink to="/salons" className={({ isActive }) =>
+            `text-sm font-medium pb-1 transition ${isActive ? "border-b-2 border-black text-black" : "text-gray-600 hover:text-black"
+            }`
+          }>Salones</NavLink>
         </nav>
 
         <div className="flex items-center space-x-4">
@@ -154,7 +171,7 @@ export const Navbar = () => {
                   {cart.length}
                 </span>
               )}
-              <ShoppingBag size={24} />
+              <ShoppingCart size={24} />
             </button>
 
             {/* Mini Cart */}
@@ -165,7 +182,7 @@ export const Navbar = () => {
                   <div className="flex flex-col">
                     {/* Sección con scroll, máximo 4 productos visibles */}
                     <div className="overflow-y-auto max-h-64 custom-scrollbar">
-                      {cart.slice(0, 4).map(({ product, quantity }) => {
+                      {cart.map(({ product, quantity }) => {
                         const normalizedPath = product?.vcphoto?.replace(/\\/g, '/').split('/imagenes/')[1];
                         const imageUrl = `https://api.sensalon.com.mx/imagenes/${normalizedPath}`;
 
@@ -259,8 +276,8 @@ export const Navbar = () => {
       {mobileMenuOpen && (
         <div className="md:hidden">
           <nav className="px-2 pt-2 pb-4 space-y-1">
-          <a href="/productos" className="text-sm font-medium">Productos</a>
-           {/*  <a href="#" className="block px-3 py-2 rounded-md text-base font-medium hover:bg-gray-100">
+            <a href="/productos" className="text-sm font-medium">Productos</a>
+            {/*  <a href="#" className="block px-3 py-2 rounded-md text-base font-medium hover:bg-gray-100">
               Empresas
             </a> */}
             <div className="px-3 py-2">
@@ -295,7 +312,7 @@ export const Navbar = () => {
                           />
                           <div>
                             <p className="font-semibold text-md">{product.vcname}</p>
-                            <p className="text-sm text-gray-500">${product.decprice3}</p>
+                            <p className="text-sm text-gray-500">${product.decprice1 ?? product.decprice2 ?? product.decprice3 ?? 'Precio no disponible'}</p>
                           </div>
                         </div>
                       );

@@ -1,8 +1,10 @@
 import { formData } from "../interfaces/formData";
 
 export const transformToFormData = (raw: any): formData => {
+  console.log(raw)
   const base: formData = {
-    role: raw.role || "",
+    role: raw.role || raw.vctyperole || "",
+    iIdRole: raw.iIdRole || "",
     nombres: raw.nombres || "",
     apellidos: raw.apellidos || "",
     username: raw.username || "",

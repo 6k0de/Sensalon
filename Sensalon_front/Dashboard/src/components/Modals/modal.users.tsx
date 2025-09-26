@@ -8,8 +8,6 @@ import { formData } from "../../interfaces/formData";
 import { InsertUsers } from "../../services/users/insertUsers";
 import { transformToFormData } from "../../utils/transformInitialData";
 import { UpdateUsers } from "../../services/users/updateUsers";
-import { SuccessToast } from "../Toast/successToast";
-import { ErrorToast } from "../Toast/errorToast";
 
 export const ModalUsers = ({
   show,
@@ -17,12 +15,16 @@ export const ModalUsers = ({
   initialData,
   mode = 0, // 'create' | 'edit'
   onShowToast,
+  changeRol,
+  setChangeRol
 }: {
   show: boolean;
   onClose: () => void;
   initialData?: formData | null;
   mode?: number;
   onShowToast: (type: "success" | "error", message: string) => void;
+  changeRol: string
+  setChangeRol: (role: string) => void;
 }) => {
   const [formData, setFormData] = useState<formData>({
     iIdUser: "",
@@ -65,7 +67,7 @@ export const ModalUsers = ({
   const [RolesError, setRolesError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [changeRol, setChangeRol] = useState<string>("Usuario");
+  
 
   useEffect(() => {
     axios
@@ -101,6 +103,9 @@ export const ModalUsers = ({
     const selectedName =
       e.target.options[e.target.selectedIndex].getAttribute("data-rol-name") ||
       "";
+    const selectedId =
+      e.target.options[e.target.selectedIndex].getAttribute("data-rol-id") || "";
+
     console.log(selectedName);
     setChangeRol(selectedName);
 
@@ -109,6 +114,7 @@ export const ModalUsers = ({
       let newFormData = {
         ...prevFormData,
         role: selectedName,
+        iIdRole: selectedId
       };
       // Si se selecciona Distribuidor, eliminar los datos de Salón
       if (selectedName === "Distribuidor") {
@@ -172,13 +178,9 @@ export const ModalUsers = ({
     console.log(formData);
     console.log(initialData);
 
-    if (mode === 1 && initialData) {
-      if ("iIdUser" in initialData) {
-        formDataSend.append("p_UserId", initialData.iIdUser || "");
-      }
-      if ("iIdRole" in initialData) {
-        formDataSend.append("p_RolId", initialData.iIdRole || "");
-      }
+    if (mode === 1) {
+      formDataSend.append("p_UserId", initialData?.iIdUser || "");
+      formDataSend.append("p_RolId", formData.iIdRole || "");
     }
 
     formDataSend.append("role", formData.role);
@@ -285,7 +287,7 @@ export const ModalUsers = ({
       });
     }
   };
-
+  console.log(changeRol)
   return (
     <>
       <div
@@ -348,6 +350,7 @@ export const ModalUsers = ({
                           key={rol.iIdRole}
                           value={rol.vctyperole}
                           data-rol-name={rol.vctyperole}
+                          data-rol-id={rol.iIdRole}
                         >
                           {rol.vctyperole}
                         </option>
@@ -389,7 +392,7 @@ export const ModalUsers = ({
             <div className="grid gap-4 mb-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-12">
               <div className="col-span-2 lg:col-span-3">
                 <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                  Nombre de usuario:
+                  Nombre de usuario<span className="text-red-700">*</span>&nbsp;:
                 </label>
                 <input
                   type="text"
@@ -404,7 +407,7 @@ export const ModalUsers = ({
 
               <div className="col-span-2 lg:col-span-3">
                 <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                  Contraseña:
+                  Contraseña<span className="text-red-700">*</span>&nbsp;:
                 </label>
                 <div className="relative">
                   <input
@@ -430,7 +433,7 @@ export const ModalUsers = ({
 
               <div className="col-span-2 lg:col-span-3">
                 <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                  Validar contraseña:
+                  Validar contraseña<span className="text-red-700">*</span>&nbsp;:
                 </label>
                 <div className="relative">
                   <input
@@ -463,7 +466,7 @@ export const ModalUsers = ({
 
               <div className="col-span-2 lg:col-span-3">
                 <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                  Correo electronico:
+                  Correo electronico<span className="text-red-700">*</span>&nbsp;:
                 </label>
                 <input
                   type="email"

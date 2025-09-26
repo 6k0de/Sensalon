@@ -6,6 +6,7 @@ import { ProductosView } from "../components/Productos/prductosView";
 import { ProductDetail } from "../pages/ProductDetail";
 import { ShoppingCar } from "../pages/ShoppingCar";
 import { RegisterForm } from "../components/Auths";
+import { Salons } from "../pages/Salons";
 
 export const AppRoutes = () => {
     return (
@@ -15,6 +16,7 @@ export const AppRoutes = () => {
                 <Route element={<Layout />}>
                     <Route path="/" element={<Home key={window.location.pathname} />} />
                     <Route path="/productos" element={<ProductosView key={window.location.pathname} />} />
+                    <Route path="/salons" element={<Salons key={window.location.pathname} />} />
                     <Route path="/carrito" element={<ShoppingCar key={window.location.pathname} />} />
                     <Route path="/productDetail/:id" element={<ProductDetail key={window.location.pathname} />} />
                     <Route path="/terminos" element={<Terms key={window.location.pathname} />} />

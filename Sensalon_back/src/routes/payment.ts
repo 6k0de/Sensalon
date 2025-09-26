@@ -42,6 +42,5 @@ payment.put("/infoTransferUpdate", infoTransferUpdate);
 
 //GET DeliveryInfo
 payment.get("/delivery", getDeliveryInfo);
-
 //PUT DeliveryInfo
 payment.put("/deliveryUpdate", updateDelivery);

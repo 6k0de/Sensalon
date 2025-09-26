@@ -12,14 +12,13 @@ import { ErrorToast } from "../components/Toast/errorToast";
 
 export const Users = () => {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState<string>("")
   const [toastType, setToastType] = useState<"success" | "error" | null>(null);
   const [showToast, setShowToast] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [viewChange, setViewCHange] = useState("usuarios");
   const [loading, setLoading] = useState(false);
-  const [changeRol, setChangeRol] = useState<
-    "Usuario" | "Salón" | "Distribuidor"
-  >("Usuario");
+  const [changeRol, setChangeRol] = useState<string>("Usuario");
 
   const [modalKey, setModalKey] = useState(0); // 👈 clave para remontar
 
@@ -30,6 +29,26 @@ export const Users = () => {
   const { users, fetchUsers } = useUserStore();
   const { salones, fetchSalones } = useSalonStore();
   const { distribuidores, fetchDistribuidores } = useDistributorStore();
+
+  const filteredUsers = (users?.usuarios || []).filter((u) =>
+    `${u.nombres} ${u.apellidos} ${u.username} ${u.email}`
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase())
+  );
+
+  // filtrar salones
+  const filteredSalones = (salones?.salones || []).filter((s) =>
+    `${s.nombreSalon} ${s.telefono} ${s.correo} ${s.direccion}`
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase())
+  );
+
+  // filtrar distribuidores
+  const filteredDistribuidores = (distribuidores?.distribuidores || []).filter((d) =>
+    `${d.nombres} ${d.apellidos} ${d.telefono} ${d.correo} ${d.pais} ${d.estado} ${d.ciudad}`
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase())
+  );
 
   const tableDistriutorsHeaders = [
     "Nombres",
@@ -83,11 +102,13 @@ export const Users = () => {
     user: any,
     role: "Usuario" | "Salón" | "Distribuidor",
   ) => {
+
     console.log(role);
-    setMode(1); // Cambiar a modo de edición
-    setSelectedCompanie(user); // Establecer el producto seleccionado
-    setChangeRol(role);
-    setShowModal(true); // Mostrar el modal
+    const rolName = user.role || role || "Usuario";
+    setMode(1);
+    setSelectedCompanie(user);
+    setChangeRol(rolName);
+    setShowModal(true);
     setModalKey((k) => k + 1);
   };
 
@@ -134,6 +155,8 @@ export const Users = () => {
                   <input
                     type="search"
                     id="search"
+                    value={searchTerm}
+                    onChange={(e) => { setSearchTerm(e.target.value) }}
                     className="block w-96 p-2 ps-10 text-sm text-[#1d1d1b] border border-gray-300 rounded-xl bg-gray-50 dark:placeholder-gray-400 dark:text-white"
                     placeholder="Search"
                     required
@@ -156,12 +179,26 @@ export const Users = () => {
                   <ModalUsers
                     key={modalKey}
                     show={showModal}
-                    onClose={() => {
+                    onClose={async () => {
                       setShowModal(false);
                       setSelectedCompanie(null);
                       setMode(0);
+
+                      if (mode === 0 || mode === 1) {
+                        setChangeRol("Usuario");
+                      }
+
+                      if (viewChange === "usuarios") {
+                        await fetchUsers();
+                      } else if (viewChange === "salones") {
+                        await fetchSalones();
+                      } else if (viewChange === "distribuidores") {
+                        await fetchDistribuidores();
+                      }
                     }}
                     mode={mode}
+                    changeRol={changeRol}
+                    setChangeRol={setChangeRol}
                     initialData={selectedCompanie}
                     onShowToast={(type, message) => {
                       setToastType(type);
@@ -218,10 +255,10 @@ export const Users = () => {
                     {viewChange === "usuarios" && (
                       <div className="overflow-x-auto">
                         <TableUserN
-                          fetch={fetchSalones}
+                          fetch={fetchUsers}
                           outofstock="Error al obtener los usuarios"
                           encabezados={tableHeaders}
-                          data={users?.usuarios || []}
+                          data={filteredUsers}
                           setShowModal={undefined}
                           showModal={undefined}
                           handleEdit={(user) => handleEditUser(user, "Usuario")}
@@ -231,10 +268,10 @@ export const Users = () => {
                     {viewChange === "salones" && (
                       <div className="overflow-x-auto">
                         <TableUserSalon
-                          fetch={fetchUsers}
+                          fetch={fetchSalones}
                           outofstock="Error al obtener los salones"
                           encabezados={tableSalonsHeaders}
-                          data={salones?.salones || []}
+                          data={filteredSalones}
                           setShowModal={undefined}
                           showModal={undefined}
                           handleEdit={(user) => handleEditUser(user, "Salón")}
@@ -247,7 +284,7 @@ export const Users = () => {
                           fetch={fetchDistribuidores}
                           outofstock="Error al obtener los distribuidores"
                           encabezados={tableDistriutorsHeaders}
-                          data={distribuidores?.distribuidores || []}
+                          data={filteredDistribuidores}
                           setShowModal={undefined}
                           showModal={undefined}
                           handleEdit={(user) =>

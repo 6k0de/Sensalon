@@ -5,9 +5,11 @@ import { Product } from "../interfaces/products";
 import { SuccessToast } from "../components/Toast/successToast";
 import { ErrorToast } from "../components/Toast/errorToast";
 import axios from "axios";
+import { HEADER_TABLE_PRODUCTS } from "../utils/headers/Products";
 
 export const Products = () => {
   const [showModal, setShowModal] = useState(false);
+  const [searchTerm, setSearchTerm] = useState<string>("")
   const [products, SetProducts] = useState<Product[]>([]);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [toastType, setToastType] = useState<"success" | "error" | null>(null);
@@ -15,18 +17,6 @@ export const Products = () => {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null); // Estado para el producto seleccionado
   const [showToast, setShowToast] = useState(true);
 
-  const headers: string[] = [
-    "Producto",
-    "Detalle",
-    "Peso",
-    "Cant",
-    "PrecioD",
-    "PrecioS",
-    "PrecioP",
-    "Stock",
-    "Stock min.",
-    "Creado",
-  ];
   const fetchProducts = async () => {
     try {
       const response = await axios.get("http://localhost:3000/api/productos");
@@ -39,6 +29,12 @@ export const Products = () => {
   useEffect(() => {
     fetchProducts();
   }, []);
+  
+  const filteredProducts = (products || []).filter((p) => 
+    `${p.vcname} ${p.decprice1} ${p.decprice2} ${p.decprice3}`
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase())
+  )
 
   const handleModalClose = async (
     message: string,
@@ -113,6 +109,8 @@ export const Products = () => {
                 <input
                   type="search"
                   id="search"
+                  value={searchTerm}
+                  onChange={(e) => {setSearchTerm(e.target.value)}}
                   className="block w-96 p-2 ps-10 text-sm text-[#1d1d1b] border border-gray-300 rounded-xl bg-gray-50 dark:placeholder-gray-400 dark:text-white"
                   placeholder="Search"
                   required
@@ -147,8 +145,8 @@ export const Products = () => {
               setShowModal={setShowModal}
               showModal={showModal}
               handleEdit={handleEditProduct}
-              encabezados={headers}
-              data={products}
+              encabezados={HEADER_TABLE_PRODUCTS}
+              data={filteredProducts}
               fetch={fetchProducts}
               outofstock="No se tiene productos registrados"
             />

@@ -78,7 +78,7 @@ export const Companies = () => {
         )}
       </div>
       <div className="py-12 px-5 ">
-        <h1 className="text-3xl font-bold text-[#1d1d1b]">Empresas</h1>
+        <h1 className="text-3xl font-bold text-[#1d1d1b]">Marcas</h1>
         <section className="mt-5">
           <div className="flex items-center justify-between bg-white shadow-sm w-full p-4 rounded-xl">
             <div>

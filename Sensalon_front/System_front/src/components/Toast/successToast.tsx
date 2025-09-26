@@ -13,7 +13,7 @@ export const SuccessToast = ({ message, showToast }: { message: string, showToas
                 </svg>
                 <span className="sr-only">Check icon</span>
             </div>
-            <div className="ms-3 text-sm font-normal text-white">{message}</div>
+            <div className="ms-3 text-sm font-normal text-black">{message}</div>
         </div>
     );
 }

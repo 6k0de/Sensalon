@@ -163,7 +163,7 @@ export const SalonForms = ({
               value={SalonData.nombreSalon || ""}
               onChange={handleInputChange}
               className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-xl focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500"
-              placeholder="Francisco Javier"
+              placeholder="Salon Monterrey"
             />
           </div>
           <div className="col-span-2 lg:col-span-2">
@@ -177,7 +177,7 @@ export const SalonForms = ({
               value={SalonData.telefono || ""}
               onChange={handleInputChange}
               className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-xl focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500"
-              placeholder="555-123-4567"
+              placeholder="8444321567"
             />
           </div>
           <div className="col-span-2 lg:col-span-2">
@@ -191,7 +191,7 @@ export const SalonForms = ({
               value={SalonData.correo || ""}
               onChange={handleInputChange}
               className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-xl focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500"
-              placeholder="salon@ejemplo.com"
+              placeholder="salon.m@gmail.com"
             />
           </div>
         </div>
@@ -208,7 +208,7 @@ export const SalonForms = ({
               value={SalonData.direccion || ""}
               onChange={handleInputChange}
               className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-xl focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500"
-              placeholder="Calle, número, ciudad, estado, código postal"
+              placeholder="Av. Insurgentes Sur 1234, Colonia del Valle, C.P. 03100, Ciudad de México, Ciudad de México, México, A una cuadra del Parque Hundido"
             />
           </div>
         </div>

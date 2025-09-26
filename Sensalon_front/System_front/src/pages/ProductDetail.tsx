@@ -62,8 +62,8 @@ export const ProductDetail = () => {
                 <div className="md:w-1/2">
                     <h1 className="text-3xl font-bold mb-4">{product?.vcname}</h1>
                     <p className='text-sm'></p>
-                   
-                    <p className="text-2xl font-bold mb-6">${product?.decprice3}</p>
+
+                    <p className="text-2xl font-bold mb-6">${product.decprice1 ?? product.decprice2 ?? product.decprice3 ?? 'Precio no disponible'}</p>
                     <p className="text-gray-700 mb-8">{product?.vcdescription}</p>
                     <div className="mb-10">
                         <h3 className="font-semibold mb-4">Tamaño el producto</h3>
@@ -96,24 +96,6 @@ export const ProductDetail = () => {
                             <Heart size={20} />
                         </button>
                     </div>
-                    {/*  <div className="border-t pt-6">
-                        <div className="flex justify-between items-center py-4 border-b">
-                            <span className="font-semibold">Product Details</span>
-                            <ChevronDown size={20} />
-                        </div>
-                        <div className="flex justify-between items-center py-4 border-b">
-                            <span className="font-semibold">Ingredients</span>
-                            <ChevronDown size={20} />
-                        </div>
-                        <div className="flex justify-between items-center py-4 border-b">
-                            <span className="font-semibold">How to Use</span>
-                            <ChevronDown size={20} />
-                        </div>
-                        <div className="flex justify-between items-center py-4 border-b">
-                            <span className="font-semibold">Shipping & Returns</span>
-                            <ChevronDown size={20} />
-                        </div>
-                    </div> */}
                 </div>
             </div>
 
@@ -121,8 +103,8 @@ export const ProductDetail = () => {
                 <h2 className="text-2xl font-bold mb-8">Productos similares</h2>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                     {productosSimilares.map((product) => {
-                       const normalizedPath = product.vcphoto.replace(/\\/g, "/").split("/imagenes/")[1];
-                       const imageUrl = `https://api.sensalon.com.mx/imagenes/${normalizedPath}`;
+                        const normalizedPath = product.vcphoto.replace(/\\/g, "/").split("/imagenes/")[1];
+                        const imageUrl = `https://api.sensalon.com.mx/imagenes/${normalizedPath}`;
                         return (
                             <div key={product.iIdProduct} className="group">
                                 <div className="mb-4 relative overflow-hidden rounded-lg">
@@ -134,7 +116,7 @@ export const ProductDetail = () => {
                                 </div>
                                 <h3 className="font-medium">{product.vcname}</h3>
                                 <h4 className='text-sm'>{product.vcdescription}</h4>
-                                <p className="text-lg font-bold">${product.decprice3}</p>
+                                <p className="text-lg font-bold">${product.decprice1 ?? product.decprice2 ?? product.decprice3 ?? 'Precio no disponible'}</p>
                             </div>
                         )
                     })}

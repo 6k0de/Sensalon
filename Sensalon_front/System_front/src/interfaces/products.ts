@@ -14,4 +14,8 @@ export interface Product {
     dtcreation: Date;
     dtupdate?: Date | null;
     dtdeletion?: Date | null;
+    vccategories?: string;
+    company?: {
+        vcname: string
+    }
 }

@@ -5,26 +5,53 @@ import { SuccessToast } from "../Toast/successToast";
 import { ErrorToast } from "../Toast/errorToast";
 import { Spinner } from "../Spinner/spinner";
 import { Distributor } from "../../interfaces/distributors";
+import { api } from "../../utils/axiosClients";
+import { ModalSuccesCancel } from "../Modals/modal.acceptcancel";
 
 export const TableUserN = ({
   encabezados,
   data,
-  fetch,
   outofstock,
+  fetch,
   handleEdit,
 }: {
   encabezados: string[];
   data: Distributor[] | any;
-  fetch: { (): void } | null;
   outofstock: string | "";
   setShowModal: any;
   showModal: any;
+  fetch: () => Promise<void>;
   handleEdit: (user: any, role: "Usuario" | "Salón" | "Distribuidor") => void;
 }) => {
-  const [toastMessage] = useState<string | null>(null);
-  const [toastType] = useState<"success" | "error" | null>(null);
-  const [showToast] = useState(true);
-  const [isProcessing] = useState(false); // Estado para el spinner
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [toastType, setToastType] = useState<"success" | "error" | null>(null);
+  const [showToast, setShowToast] = useState(true);
+  const [isProcessing, setIsProcessing] = useState(false); // Estado para el spinner
+  const [showModal, setShowModal] = useState<boolean>(false)
+  const [userToDelete, setUserToDelete] = useState<any>(null)
+
+  const handleDelete = async (id: string) => {
+    setIsProcessing(true);
+    try {
+      await api.delete(`/deleteuser/${id}`);
+      await fetch?.(); // refrescar lista
+      setShowModal(false);
+      setToastMessage("Usuario eliminado correctamente ✅");
+      setToastType("success");
+      setShowToast(true);
+    } catch (error) {
+      console.error("Error eliminando usuario", error);
+      setToastMessage("Error al eliminar el usuario ❌");
+      setToastType("error");
+      setShowToast(true);
+    } finally {
+      setIsProcessing(false);
+      setShowModal(false);
+      // Ocultar toast después de unos segundos
+      setTimeout(() => setShowToast(false), 3000);
+    }
+  };
+
 
   console.log(data);
   return (
@@ -101,7 +128,10 @@ export const TableUserN = ({
                       <FaPenToSquare size={18} />
                     </button>
                     <button
-                      onClick={() => {}}
+                      onClick={() => {
+                        setUserToDelete(userN);
+                        setShowModal(true);
+                      }}
                       className="font-medium text-red-600 dark:text-blue-500 hover:underline"
                     >
                       <FaRegTrashCan size={18} />
@@ -122,6 +152,19 @@ export const TableUserN = ({
           </tbody>
         </table>
       </div>
+      <ModalSuccesCancel
+        show={showModal}
+         message={
+          <>
+            ¿Seguro que deseas eliminar al Usuario{" "}
+            <strong>{userToDelete?.nombres}</strong>?
+          </>
+        }
+        confirmLabel="Eliminar"
+        cancelLabel="Cancelar"
+        onConfirm={() => handleDelete(userToDelete.iIdUser)}
+        onCancel={() => setShowModal(false)}
+      />
     </>
   );
 };

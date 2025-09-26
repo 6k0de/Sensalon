@@ -6,13 +6,16 @@ import { ErrorToast } from "../Toast/errorToast";
 import { Spinner } from "../Spinner/spinner";
 import { Categorie } from "../../interfaces/categories";
 import { DeleteCategorie } from "../../services/categories/deleteCategorie";
+import { ModalSuccesCancel } from "../Modals/modal.acceptcancel";
 
-export const TableCategories = ({ encabezados, data, fetch, outofstock, handleEdit }: { encabezados: string[], data: Categorie[] | any , fetch: {() : void} | null, outofstock: string | '', setShowModal: any, showModal: any, handleEdit: (product: Categorie) => void }) => {
+export const TableCategories = ({ encabezados, data, fetch, outofstock, handleEdit }: { encabezados: string[], data: Categorie[] | any, fetch: { (): void } | null, outofstock: string | '', setShowModal: any, showModal: any, handleEdit: (product: Categorie) => void }) => {
     const [toastMessage, setToastMessage] = useState<string | null>(null);
     const [toastType, setToastType] = useState<"success" | "error" | null>(null);
     const [showToast, setShowToast] = useState(true);
     const [isProcessing, setIsProcessing] = useState(false); // Estado para el spinner
-    
+    const [showModal, setShowModal] = useState<boolean>(false)
+    const [userToDelete, setUserToDelete] = useState<any>(null)
+
     const handleDeleteCategorie = async (id: string) => {
         setIsProcessing(true);
         try {
@@ -21,7 +24,7 @@ export const TableCategories = ({ encabezados, data, fetch, outofstock, handleEd
                 setToastMessage(resultado.message);
                 setToastType('success');
                 setShowToast(true)
-                fetch!() 
+                fetch!()
             } else {
                 setToastMessage(resultado.message);
                 setToastType('error');
@@ -32,6 +35,7 @@ export const TableCategories = ({ encabezados, data, fetch, outofstock, handleEd
             setToastType('error');
             setShowToast(true)
         } finally {
+            setShowModal(false);
             setIsProcessing(false);
         }
 
@@ -83,7 +87,7 @@ export const TableCategories = ({ encabezados, data, fetch, outofstock, handleEd
                                     <td className="px-6 py-2">
                                         {categorie.vcdescription}
                                     </td>
-                                   
+
                                     <td className="px-6 py-2">
                                         {new Date(categorie.dtcreation).toLocaleDateString()}
                                     </td>
@@ -91,7 +95,11 @@ export const TableCategories = ({ encabezados, data, fetch, outofstock, handleEd
                                         <button onClick={() => handleEdit(categorie)} className="font-medium text-[#393936] dark:text-blue-500 hover:underline">
                                             <FaPenToSquare size={18} />
                                         </button>
-                                        <button onClick={() => handleDeleteCategorie(categorie.iIdCategory)} className="font-medium text-red-600 dark:text-blue-500 hover:underline">
+                                        <button onClick={() => {
+                                            setUserToDelete(categorie);
+                                            setShowModal(true);
+                                        }}
+                                            className="font-medium text-red-600 dark:text-blue-500 hover:underline">
                                             <FaRegTrashCan size={18} />
                                         </button>
                                     </td>
@@ -99,15 +107,27 @@ export const TableCategories = ({ encabezados, data, fetch, outofstock, handleEd
                             )) : (
                                 <tr>
                                     <td colSpan={encabezados.length + 1} className="text-center py-4 text-lg ">
-                                       {outofstock}
+                                        {outofstock}
                                     </td>
                                 </tr>
                             )}
                     </tbody>
                 </table>
-                
+
             </div>
-           
+            <ModalSuccesCancel
+                show={showModal}
+                message={
+                    <>
+                        ¿Seguro que deseas eliminar la categoria{" "}
+                        <strong>{userToDelete?.vcname}</strong>?
+                    </>
+                }
+                confirmLabel="Eliminar"
+                cancelLabel="Cancelar"
+                onConfirm={() => handleDeleteCategorie(userToDelete.iIdCategory)}
+                onCancel={() => setShowModal(false)}
+            />
         </>
     );
 };

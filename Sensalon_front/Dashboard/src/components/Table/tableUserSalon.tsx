@@ -6,6 +6,8 @@ import { ErrorToast } from "../Toast/errorToast";
 import { Spinner } from "../Spinner/spinner";
 import { Distributor } from "../../interfaces/distributors";
 import { SalonData } from "../../interfaces/salonData";
+import { api } from "../../utils/axiosClients";
+import { ModalSuccesCancel } from "../Modals/modal.acceptcancel";
 
 export const TableUserSalon = ({
   encabezados,
@@ -22,41 +24,34 @@ export const TableUserSalon = ({
   showModal: any;
   handleEdit: (user: any, role: "Usuario" | "Salón" | "Distribuidor") => void;
 }) => {
-  const [toastMessage] = useState<string | null>(null);
-  const [toastType] = useState<"success" | "error" | null>(null);
-  const [showToast] = useState(true);
-  const [isProcessing] = useState(false); // Estado para el spinner
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [toastType, setToastType] = useState<"success" | "error" | null>(null);
+  const [showToast, setShowToast] = useState(true);
+  const [isProcessing, setIsProcessing] = useState(false); // Estado para el spinner
+  const [showModal, setShowModal] = useState<boolean>(false)
+  const [userToDelete, setUserToDelete] = useState<any>(null)
 
-  /*  const handleDeleteCompanie = async (id: string) => {
-         setIsProcessing(true);
-         try {
-             const resultado = await DeleteCompanies(id);
-             if (resultado.valor == 0) {
-                 setToastMessage(resultado.message);
-                 setToastType('success');
-                 setShowToast(true)
-                 fetch!()
-             } else {
-                 setToastMessage(resultado.message);
-                 setToastType('error');
-                 setShowToast(true)
-             }
-         } catch (error) {
-             setToastMessage('Fallo al eliminar la empresa');
-             setToastType('error');
-             setShowToast(true)
-         } finally {
-             setIsProcessing(false);
-         }
-
-         // Limpiar el toast después de unos segundos
-         setTimeout(() => {
-             setToastMessage(null);
-             setToastType(null);
-             setShowToast(false)
-         }, 3000); // 3 segundos
-     }; */
-
+  const handleDelete = async (id: string) => {
+    setIsProcessing(true);
+    try {
+      await api.delete(`/deleteusersalon/${id}`);
+      await fetch?.(); // refrescar lista
+      setShowModal(false);
+      setToastMessage("Salon eliminado correctamente ✅");
+      setToastType("success");
+      setShowToast(true);
+    } catch (error) {
+      console.error("Error eliminando el salon", error);
+      setToastMessage("Error al eliminar el salon ❌");
+      setToastType("error");
+      setShowToast(true);
+    } finally {
+      setIsProcessing(false);
+      setShowModal(false);
+      // Ocultar toast después de unos segundos
+      setTimeout(() => setShowToast(false), 3000);
+    }
+  };
   console.log(fetch);
   console.log(handleEdit);
   return (
@@ -155,7 +150,10 @@ export const TableUserSalon = ({
                       <FaPenToSquare size={18} />
                     </button>
                     <button
-                      onClick={() => {}}
+                      onClick={() => {
+                        setUserToDelete(userSalon);
+                        setShowModal(true);
+                      }}
                       className="font-medium text-red-600 dark:text-blue-500 hover:underline"
                     >
                       <FaRegTrashCan size={18} />
@@ -176,6 +174,19 @@ export const TableUserSalon = ({
           </tbody>
         </table>
       </div>
+      <ModalSuccesCancel
+        show={showModal}
+        message={
+          <>
+            ¿Seguro que deseas eliminar al Salón{" "}
+            <strong>{userToDelete?.nombreSalon}</strong>?
+          </>
+        }
+        confirmLabel="Eliminar"
+        cancelLabel="Cancelar"
+        onConfirm={() => handleDelete(userToDelete.iIdsalon)}
+        onCancel={() => setShowModal(false)}
+      />
     </>
   );
 };

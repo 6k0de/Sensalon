@@ -6,13 +6,16 @@ import { ErrorToast } from "../Toast/errorToast";
 import { Spinner } from "../Spinner/spinner";
 import { Companie } from "../../interfaces/companies";
 import { DeleteCompanies } from "../../services/companies/deleteCompanies";
+import { ModalSuccesCancel } from "../Modals/modal.acceptcancel";
 
-export const TableCompanies = ({ encabezados, data, fetch, outofstock, handleEdit }: { encabezados: string[], data: Companie[] | any , fetch: {() : void} | null, outofstock: string | '', setShowModal: any, showModal: any, handleEdit: (companie: Companie) => void }) => {
+export const TableCompanies = ({ encabezados, data, fetch, outofstock, handleEdit }: { encabezados: string[], data: Companie[] | any, fetch: { (): void } | null, outofstock: string | '', setShowModal: any, showModal: any, handleEdit: (companie: Companie) => void }) => {
     const [toastMessage, setToastMessage] = useState<string | null>(null);
     const [toastType, setToastType] = useState<"success" | "error" | null>(null);
     const [showToast, setShowToast] = useState(true);
     const [isProcessing, setIsProcessing] = useState(false); // Estado para el spinner
-    
+    const [showModal, setShowModal] = useState<boolean>(false)
+    const [userToDelete, setUserToDelete] = useState<any>(null)
+
     const handleDeleteCompanie = async (id: string) => {
         setIsProcessing(true);
         try {
@@ -21,7 +24,7 @@ export const TableCompanies = ({ encabezados, data, fetch, outofstock, handleEdi
                 setToastMessage(resultado.message);
                 setToastType('success');
                 setShowToast(true)
-                fetch!() 
+                fetch!()
             } else {
                 setToastMessage(resultado.message);
                 setToastType('error');
@@ -32,6 +35,7 @@ export const TableCompanies = ({ encabezados, data, fetch, outofstock, handleEdi
             setToastType('error');
             setShowToast(true)
         } finally {
+            setShowModal(false)
             setIsProcessing(false);
         }
 
@@ -76,7 +80,7 @@ export const TableCompanies = ({ encabezados, data, fetch, outofstock, handleEdi
                     </thead>
                     <tbody>
                         {data && data.length > 0 ?
-                            data?.map((companie: Companie | any , index: number) => (
+                            data?.map((companie: Companie | any, index: number) => (
                                 <tr key={index} className="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
                                     <td className="px-5 py-2 font-medium text-gray-900 whitespace-nowrap dark:text-white">
                                         {companie?.vcname}
@@ -109,7 +113,10 @@ export const TableCompanies = ({ encabezados, data, fetch, outofstock, handleEdi
                                         <button onClick={() => handleEdit(companie)} className="font-medium text-[#393936] dark:text-blue-500 hover:underline">
                                             <FaPenToSquare size={18} />
                                         </button>
-                                        <button onClick={() => handleDeleteCompanie(companie.iIdCompany)} className="font-medium text-red-600 dark:text-blue-500 hover:underline">
+                                        <button onClick={() => {
+                                            setUserToDelete(companie);
+                                            setShowModal(true);
+                                        }} className="font-medium text-red-600 dark:text-blue-500 hover:underline">
                                             <FaRegTrashCan size={18} />
                                         </button>
                                     </td>
@@ -117,15 +124,28 @@ export const TableCompanies = ({ encabezados, data, fetch, outofstock, handleEdi
                             )) : (
                                 <tr>
                                     <td colSpan={encabezados.length + 1} className="text-center py-4 text-lg ">
-                                       {outofstock}
+                                        {outofstock}
                                     </td>
                                 </tr>
                             )}
                     </tbody>
                 </table>
-                
+
             </div>
-           
+            <ModalSuccesCancel
+                show={showModal}
+                message={
+                    <>
+                        ¿Seguro que deseas eliminar la Marca{" "}
+                        <strong>{userToDelete?.vcname}</strong>?
+                    </>
+                }
+                confirmLabel="Eliminar"
+                cancelLabel="Cancelar"
+                onConfirm={() => handleDeleteCompanie(userToDelete.iIdCompany)}
+                onCancel={() => setShowModal(false)}
+            />
+
         </>
     );
 };

@@ -5,6 +5,8 @@ import { SuccessToast } from "../Toast/successToast";
 import { ErrorToast } from "../Toast/errorToast";
 import { Spinner } from "../Spinner/spinner";
 import { Distributor } from "../../interfaces/distributors";
+import { api } from "../../utils/axiosClients";
+import { ModalSuccesCancel } from "../Modals/modal.acceptcancel";
 
 export const TableUserDist = ({
   encabezados,
@@ -21,10 +23,34 @@ export const TableUserDist = ({
   showModal: any;
   handleEdit: (user: any, role: "Usuario" | "Salón" | "Distribuidor") => void;
 }) => {
-  const [toastMessage] = useState<string | null>(null);
-  const [toastType] = useState<"success" | "error" | null>(null);
-  const [showToast] = useState(true);
-  const [isProcessing] = useState(false); // Estado para el spinner
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [toastType, setToastType] = useState<"success" | "error" | null>(null);
+  const [showToast, setShowToast] = useState(true);
+  const [isProcessing, setIsProcessing] = useState(false); // Estado para el spinner
+  const [showModal, setShowModal] = useState<boolean>(false)
+  const [userToDelete, setUserToDelete] = useState<any>(null)
+
+  const handleDelete = async (id: string) => {
+    setIsProcessing(true);
+    try {
+      await api.delete(`/deleteuserdistributor/${id}`);
+      await fetch?.(); // refrescar lista
+      setShowModal(false);
+      setToastMessage("Distribuidor eliminado correctamente ✅");
+      setToastType("success");
+      setShowToast(true);
+    } catch (error) {
+      console.error("Error eliminando el distribuidor", error);
+      setToastMessage("Error al eliminar el distribuidor ❌");
+      setToastType("error");
+      setShowToast(true);
+    } finally {
+      setIsProcessing(false);
+      setShowModal(false);
+      // Ocultar toast después de unos segundos
+      setTimeout(() => setShowToast(false), 3000);
+    }
+  };
 
   console.log(data);
 
@@ -86,11 +112,11 @@ export const TableUserDist = ({
                     </td>
                     <td className="px-5 py-2 font-medium text-gray-900 whitespace-nowrap dark:text-white align-top">
                       {userDistribiutor.companies_names_array &&
-                      JSON.parse(userDistribiutor.companies_names_array)
-                        .length > 0 &&
-                      !JSON.parse(
-                        userDistribiutor.companies_names_array,
-                      ).includes(null) ? (
+                        JSON.parse(userDistribiutor.companies_names_array)
+                          .length > 0 &&
+                        !JSON.parse(
+                          userDistribiutor.companies_names_array,
+                        ).includes(null) ? (
                         <ul className="flex flex-col gap-1">
                           {[
                             ...new Set(
@@ -137,9 +163,9 @@ export const TableUserDist = ({
                     </td>
                     <td className="px-5 py-2 font-medium text-gray-900 whitespace-nowrap dark:text-white">
                       {userDistribiutor.vcconstfisc &&
-                      userDistribiutor.vcconstfisc.includes(
-                        "/assets/archivos/",
-                      ) ? (
+                        userDistribiutor.vcconstfisc.includes(
+                          "/assets/archivos/",
+                        ) ? (
                         <button
                           onClick={() => {
                             // Extraemos solo el nombre del archivo desde la ruta
@@ -182,7 +208,10 @@ export const TableUserDist = ({
                         <FaPenToSquare size={18} />
                       </button>
                       <button
-                        onClick={() => {}}
+                        onClick={() => {
+                          setUserToDelete(userDistribiutor);
+                          setShowModal(true);
+                        }}
                         className="font-medium text-red-600 dark:text-blue-500 hover:underline"
                       >
                         <FaRegTrashCan size={18} />
@@ -204,6 +233,19 @@ export const TableUserDist = ({
           </tbody>
         </table>
       </div>
+      <ModalSuccesCancel
+        show={showModal}
+        message={
+          <>
+            ¿Seguro que deseas eliminar al Distribuidor{" "}
+            <strong>{userToDelete?.nombres}</strong>?
+          </>
+        }
+        confirmLabel="Eliminar"
+        cancelLabel="Cancelar"
+        onConfirm={() => handleDelete(userToDelete.iIdUser)}
+        onCancel={() => setShowModal(false)}
+      />
     </>
   );
 };

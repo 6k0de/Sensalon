@@ -6,12 +6,15 @@ import { deleteProduct } from "../../services/products/deleteProduct";
 import { SuccessToast } from "../Toast/successToast";
 import { ErrorToast } from "../Toast/errorToast";
 import { Spinner } from "../Spinner/spinner";
+import { ModalSuccesCancel } from "../Modals/modal.acceptcancel";
 
 export const TableProducts = ({ encabezados, data, fetch, outofstock, handleEdit }: { encabezados: string[], data: Product[] | any, fetch: { (): void } | null, outofstock: string | '', setShowModal: any, showModal: any, handleEdit: (product: Product) => void }) => {
     const [toastMessage, setToastMessage] = useState<string | null>(null);
     const [toastType, setToastType] = useState<"success" | "error" | null>(null);
     const [showToast, setShowToast] = useState(true);
     const [isProcessing, setIsProcessing] = useState(false); // Estado para el spinner
+    const [showModal, setShowModal] = useState<boolean>(false)
+    const [userToDelete, setUserToDelete] = useState<any>(null)
 
     const handleDeleteProduct = async (id: string) => {
         setIsProcessing(true);
@@ -32,6 +35,7 @@ export const TableProducts = ({ encabezados, data, fetch, outofstock, handleEdit
             setToastType('error');
             setShowToast(true)
         } finally {
+            setShowModal(false)
             setIsProcessing(false);
         }
 
@@ -127,7 +131,10 @@ export const TableProducts = ({ encabezados, data, fetch, outofstock, handleEdit
                                                     <FaPenToSquare size={18} />
                                                 </button>
                                                 <button
-                                                    onClick={() => handleDeleteProduct(product.iIdProduct)}
+                                                    onClick={() => {
+                                                        setUserToDelete(product);
+                                                        setShowModal(true);
+                                                    }}
                                                     className="font-medium text-red-600 dark:text-blue-500 hover:underline"
                                                 >
                                                     <FaRegTrashCan size={18} />
@@ -149,7 +156,19 @@ export const TableProducts = ({ encabezados, data, fetch, outofstock, handleEdit
 
                 </table>
             </div>
-
+            <ModalSuccesCancel
+                show={showModal}
+                message={
+                    <>
+                        ¿Seguro que deseas eliminar el Producto{" "}
+                        <strong>{userToDelete?.vcname}</strong>?
+                    </>
+                }
+                confirmLabel="Eliminar"
+                cancelLabel="Cancelar"
+                onConfirm={() => handleDeleteProduct(userToDelete.iIdProduct)}
+                onCancel={() => setShowModal(false)}
+            />
         </>
     );
 };

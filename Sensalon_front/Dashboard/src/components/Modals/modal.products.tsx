@@ -9,8 +9,6 @@ import { UpdateProduct } from "../../services/products/updateProduct";
 
 export const ModalProduct = ({ show, onClose, data, mode }: { show: boolean, onClose: (message: string, type: "success" | "error" | null) => void, data: Product | any, mode: number }) => {
     // en la variable mode, 0 = creando y 1 = editando
-
-
     const [empresasError, setEmpresasError] = useState<string | null>(null);
     const [categoriasError, setCategoriasError] = useState<string | null>(null);
 
@@ -34,6 +32,7 @@ export const ModalProduct = ({ show, onClose, data, mode }: { show: boolean, onC
     const [selectedFile, setSelectedFile] = useState<File | null>(data?.vcphoto || null); // Estado para el archivo de imagen
     const [showDropdown, setShowDropdown] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
+
 
     useEffect(() => {
         axios.all([
@@ -153,9 +152,9 @@ export const ModalProduct = ({ show, onClose, data, mode }: { show: boolean, onC
             console.log('actualizando', data?.iIdProduct)
             formData.append('piIdProduct', data?.iIdProduct)
             UpdateProduct(formData).then((res) => {
-                if(res.valor != 0) {
+                if (res.valor != 0) {
                     onClose(res.message, 'error')
-                }else{
+                } else {
                     onClose(res.message, 'success')
                 }
             })
@@ -408,7 +407,6 @@ export const ModalProduct = ({ show, onClose, data, mode }: { show: boolean, onC
                     </form>
                 </div>
             </div>
-
         </>
     );
 };

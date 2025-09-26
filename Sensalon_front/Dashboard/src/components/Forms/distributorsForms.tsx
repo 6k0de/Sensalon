@@ -317,7 +317,7 @@ export const DistributorsForms = ({
             />
           </div>
           <div className="col-span-2 lg:col-span-5 flex flex-col gap-2">
-            <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+            <label className="block text-sm font-medium text-gray-900 dark:text-white">
               Constancia Sit. Fiscal:
             </label>
             <input

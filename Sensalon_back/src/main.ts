@@ -3,8 +3,13 @@ import cors from "cors";
 import path from "path";
 import { router } from "./routes/routes"; // Ruta de las rutas que ya tienes
 import { payment } from "./routes/payment";
+import { AssociationsUserTransactions } from "./bd/associations/AssocionsUserTransactions";
+import { AssociationsShippingTransactions } from "./bd/associations/AssociatiosShippingTransactions";
 
 const app = express();
+
+AssociationsUserTransactions()
+AssociationsShippingTransactions()
 
 // Middleware para analizar JSON y datos de formularios
 app.use(express.json());
