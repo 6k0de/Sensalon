@@ -143,7 +143,7 @@ export const BankConfiguration = () => {
         "cardnumber",
       ];
     fieldsToValidate.forEach((fieldName) => {
-      const error = validateField(fieldName, formData[fieldName]);
+      const error = validateField(fieldName, formData[fieldName]!);
       if (error) {
         newErrors[fieldName] = error;
         hasErrors = true;

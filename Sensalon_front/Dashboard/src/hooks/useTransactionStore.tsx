@@ -12,7 +12,6 @@ export const useTransactionStore = create<TransactionStore>((set) => ({
     fetchTransaction: async () => {
         try {
             const resp = await api.get('/transactions');
-            console.log(resp)
             set({ transaction: { transaction: resp.data } });  // Asegúrate de que los datos sean asignados correctamente
         } catch (error) {
             console.error('Error al cargar las transacciones:', error);

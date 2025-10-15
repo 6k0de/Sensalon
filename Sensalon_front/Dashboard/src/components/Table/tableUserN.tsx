@@ -52,8 +52,6 @@ export const TableUserN = ({
     }
   };
 
-
-  console.log(data);
   return (
     <>
       {/* Mostrar toasts si hay un mensaje */}

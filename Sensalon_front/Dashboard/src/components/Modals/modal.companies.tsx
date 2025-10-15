@@ -33,7 +33,6 @@ export const ModalCompanie = ({ show, onClose, data, mode }: { show: boolean, on
         }
       })
     } else {
-      console.log('editando')
       UpdateCompanies(data?.iIdCompany, datos.vcname, datos.vcdescription, datos.vcsocialreason, datos.vcorigin, datos.vcmanufacturingaddress, datos.vcemail, datos.vcphone, datos.vcwebsite).then((res) => {
         if (res.value != 0) {
           onClose(res.message, 'error')

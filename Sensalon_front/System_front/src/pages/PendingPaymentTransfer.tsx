@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { CheckCircle2, Home, Clock } from "lucide-react";
+import { CheckCircle2, Clock } from "lucide-react";
 
 export const PaymentReviewInfo: React.FC = () => {
   const navigate = useNavigate();
@@ -10,7 +10,6 @@ export const PaymentReviewInfo: React.FC = () => {
 
   useEffect(() => {
     localStorage.removeItem("cart-storage");
-    sessionStorage.removeItem("cart-storage");
   }, []);
 
   return (

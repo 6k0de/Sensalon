@@ -91,7 +91,6 @@ export const ModalUsers = ({
     }
   }, [initialData]);
 
-  console.log(initialData);
 
   //const passwordProvider = formData?.password?.trim() !== "";
   const passwordsMatchProvider = formData?.confirmPassword?.trim() !== "";
@@ -107,7 +106,6 @@ export const ModalUsers = ({
     const selectedId =
       e.target.options[e.target.selectedIndex].getAttribute("data-rol-id") || "";
 
-    console.log(selectedName);
     setChangeRol(selectedName);
 
     // Limpiar datos de roles no seleccionados
@@ -177,8 +175,6 @@ export const ModalUsers = ({
     }
 
     const formDataSend = new FormData();
-    console.log(formData);
-    console.log(initialData);
 
     if (mode === 1) {
       formDataSend.append("p_UserId", initialData?.iIdUser || initialData?.iFIdUser || "");
@@ -276,24 +272,30 @@ export const ModalUsers = ({
       );
       formDataSend.append(
         "distributorData[credit]",
-            String(formData.distributorData?.credit ?? ""),
+        String(formData.distributorData?.credit ?? ""),
       );
     }
 
     if (mode === 0) {
       InsertUsers(formDataSend).then((res) => {
-        console.log(res);
+        if (res.valor === 0) {
+          onShowToast("success", res.message);
+          onClose();
+        } else {
+          onShowToast("error", res.message);
+        }
       });
     } else {
       UpdateUsers(formDataSend).then((res) => {
         if (res.valor === 0) {
           onShowToast("success", res.message);
           onClose();
+        } else {
+          onShowToast("error", res.message);
         }
       });
     }
   };
-  console.log(changeRol)
   return (
     <>
       <div

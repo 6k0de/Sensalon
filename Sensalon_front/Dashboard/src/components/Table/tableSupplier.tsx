@@ -20,7 +20,6 @@ export const TableSupplier = ({ encabezados, data, fetch, outofstock, handleEdit
         setIsProcessing(true);
         try {
             const resultado = await deleteSupplier(id);
-            console.log(resultado)
             if (resultado.supplier === 1) {
                 setToastMessage(resultado.message);
                 setToastType('success');
@@ -48,7 +47,6 @@ export const TableSupplier = ({ encabezados, data, fetch, outofstock, handleEdit
         }, 3000); // 3 segundos
     };
 
-    console.log(data)
     return (
         <>
             {/* Mostrar toasts si hay un mensaje */}

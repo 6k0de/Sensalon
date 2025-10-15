@@ -134,13 +134,9 @@ export const ModalProduct = ({ show, onClose, data, mode }: { show: boolean, onC
         formData.append('istock', existencia);
         formData.append('istocklimit', existenciaMinima);
 
-        console.log({
-            empresa, nombre, descripcion, cantidad, precio1, precio2, precio3, existencia, existenciaMinima, selectedFile
-        })
+
         if (mode === 0) {
-            console.log('insertando')
             InsertProducts(formData).then((res) => {
-                console.log(res)
                 if (res.valor != 0) {
                     onClose(res.message, "error");
                 } else {
@@ -149,7 +145,6 @@ export const ModalProduct = ({ show, onClose, data, mode }: { show: boolean, onC
 
             })
         } else {
-            console.log('actualizando', data?.iIdProduct)
             formData.append('piIdProduct', data?.iIdProduct)
             UpdateProduct(formData).then((res) => {
                 if (res.valor != 0) {

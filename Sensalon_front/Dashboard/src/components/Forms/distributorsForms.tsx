@@ -20,20 +20,15 @@ export const DistributorsForms = ({
   const inputFileRef = useRef<HTMLInputElement | null>(null);
   const distributorData = formData.distributorData || {};
 
-  console.log(formData);
-  console.log(distributorData);
-
   useEffect(() => {
     api.get("/empresas").then((res) => {
       setCompanies(res.data);
     });
   }, []);
 
-  console.log(formData.iIdUser)
   useEffect(() => {
     if (formData?.iIdUser && formData?.iIdUser !== "") {
       api.get(`/credit/${formData?.iIdUser}`).then((res) => {
-        console.log(res.data)
         setFormData((prevFormData) => ({
           ...prevFormData,
           distributorData: {

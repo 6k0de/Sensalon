@@ -47,7 +47,6 @@ export const TableCompanies = ({ encabezados, data, fetch, outofstock, handleEdi
         }, 3000); // 3 segundos
     };
 
-    console.log(data)
     return (
         <>
             {/* Mostrar toasts si hay un mensaje */}

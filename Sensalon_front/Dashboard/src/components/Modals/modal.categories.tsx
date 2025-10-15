@@ -20,9 +20,6 @@ export const ModalCategories = ({ show, onClose, data, mode }: { show: boolean, 
                 }
             })
         } else {
-            console.log({ name, descripcion })
-            console.log(data?.iIdCategory)
-            console.log('editando')
             UpdateCategorie(name, descripcion, data?.iIdCategory).then((res) => {
                 if (res.value != 0) {
                     onClose(res.message, 'error')

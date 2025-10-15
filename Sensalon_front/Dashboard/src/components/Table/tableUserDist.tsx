@@ -52,8 +52,6 @@ export const TableUserDist = ({
     }
   };
 
-  console.log(data);
-
   return (
     <>
       {/* Mostrar toasts si hay un mensaje */}
