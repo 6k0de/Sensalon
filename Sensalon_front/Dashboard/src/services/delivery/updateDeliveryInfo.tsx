@@ -1,9 +1,9 @@
-import axios from "axios";
+import { payment } from "../../utils/axiosClients";
 
 export const updateDeliveryInfo = async (seEnvia: any) => {
   try {
-    const response = await axios.put(
-      "http://localhost:3000/payments/deliveryUpdate",
+    const response = await payment.put(
+      "/deliveryUpdate",
       { seEnvia },
       {
         headers: { "Content-Type": "application/json" },
@@ -11,6 +11,6 @@ export const updateDeliveryInfo = async (seEnvia: any) => {
     );
     return response.data;
   } catch (error: any) {
-    throw new Error("Error al obtener la informacion del envio");
+    throw new Error("Error al actualizar la informacion del envio");
   }
 };

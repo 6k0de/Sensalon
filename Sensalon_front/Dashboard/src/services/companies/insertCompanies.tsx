@@ -1,8 +1,8 @@
-import axios from "axios";
+import { api } from "../../utils/axiosClients";
 
 export const InsertCompanies = async (vcname: string, vcdescription: string, vcsocialreason: string, vcorigin: string, vcmanufacturingaddress: string, vcemail: string, vcphone: string, vcwebsite: string) => {
 
-    let resultado = await axios.post('http://localhost:3000/api/createcompanies', {
+    let resultado = await api.post('/createcompanies', {
         vcname: vcname,
         vcdescription: vcdescription,
         vcsocialreason: vcsocialreason, 

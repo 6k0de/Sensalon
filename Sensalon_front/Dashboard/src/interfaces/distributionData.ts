@@ -10,6 +10,7 @@ export interface DistributorData {
   codigoPostal?: string;
   direccion?: string;
   rfc?: string;
-  razonSocial?: string;
+  vcrazonsocial?: string;
   constanciaFiscal?: File;
+  credit?: number
 }

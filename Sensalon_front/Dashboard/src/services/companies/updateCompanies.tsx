@@ -1,4 +1,4 @@
-import axios from "axios";
+import { api } from "../../utils/axiosClients";
 
 export const UpdateCompanies = async (
   id: string,
@@ -11,8 +11,8 @@ export const UpdateCompanies = async (
   vcphone: string,
   vcwebsite: string,
 ) => {
-  let resultado = await axios.post(
-    `http://localhost:3000/api/actualizarcompanie/`,
+  let resultado = await api.post(
+    `/actualizarcompanie/`,
     {
       iIdCompany: id,
       vcname: vcname,

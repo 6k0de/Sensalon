@@ -1,0 +1,37 @@
+{
+  "idUser": "05351127-ef20-11ef-910f-0050562645d0",
+  "formattedProducts": [
+    {
+      "iIdProduct": "13c0d0ce-84d7-11ef-a9b1-0050563b5fff",
+      "name": "Renew Anti-aging Treatment",
+      "priceUnit": 0,
+      "quantity": 1,
+      "total": 0,
+      "companyId": "4e2b8bcf-206f-4501-b000-ec7dc19a6e2e",
+      "categoryId": "{\"Categorias\":[{\"idCategoria\":\"fb09f3fc-5790-4112-90f8-7dfcb128419d\"},{\"idCategoria\":\"e5625114-dcc1-11ef-9113-0050563b5fff\"},{\"idCategoria\":\"6e9b587f-63f5-40a2-9933-ab4f53deb416\"}]}",
+      "image": "/var/www/vhosts/sensalon.com.mx/api.sensalon.com.mx/assets/imagenes/1740676988482-177625168-Renew.jpg"
+    },
+    {
+      "iIdProduct": "248efa53-55e3-11f0-90e5-0050562645d0",
+      "name": "PROMO KIT PROTECT VA",
+      "priceUnit": 3600,
+      "quantity": 1,
+      "total": 3600,
+      "companyId": "e686c22f-26e3-42b2-a155-482c7627142f",
+      "categoryId": "{\"Categorias\":[{\"idCategoria\":\"6e9b587f-63f5-40a2-9933-ab4f53deb416\"},{\"idCategoria\":\"e5625114-dcc1-11ef-9113-0050563b5fff\"}]}",
+      "image": "/var/www/vhosts/sensalon.com.mx/api.sensalon.com.mx/assets/imagenes/1751309450771-15354488-KIT-PROTECT.jpg"
+    },
+    {
+      "iIdProduct": "c806a043-e966-11ef-910f-0050562645d0",
+      "name": "Mandil Sensalon",
+      "priceUnit": 135,
+      "quantity": 1,
+      "total": 135,
+      "companyId": "ff91dba5-11a0-4de4-99f8-3ae97ea0c8c3",
+      "categoryId": "{\"Categorias\":[{\"idCategoria\":\"e5625114-dcc1-11ef-9113-0050563b5fff\"},{\"idCategoria\":\"28dfd617-dbec-4a8e-9cc2-8658306fca1b\"}]}",
+      "image": "/var/www/vhosts/sensalon.com.mx/api.sensalon.com.mx/assets/imagenes/1740691008817-531061294-Mandil-Sensalon.jpg"
+    }
+  ],
+  "errorMessage": "Unexpected token 'o', \"[object Obj\"... is not valid JSON",
+  "errorStack": "SyntaxError: Unexpected token 'o', \"[object Obj\"... is not valid JSON\n    at JSON.parse (<anonymous>)\n    at createOrderTransfer (/Users/w1zardsq/Documents/Proyectos/Sensalon/Sensalon_back/src/controllers/Payments/payments.ts:155:28)\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)"
+}

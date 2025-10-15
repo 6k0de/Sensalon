@@ -5,6 +5,7 @@ import axios from "axios"
 import { TableCategories } from "../components/Table/tableCategories"
 import { SuccessToast } from "../components/Toast/successToast"
 import { ErrorToast } from "../components/Toast/errorToast"
+import { api } from "../utils/axiosClients"
 
 
 export const Categories = () => {
@@ -18,14 +19,12 @@ export const Categories = () => {
 
   const [searchTerm, setSearchTerm] = useState('');
 
-
-
   const headers: string[] = ['Nombre', 'Descripción', 'Creación']
   console.log(showModal)
 
   const fetchCategorias = async () => {
     try {
-      const response = await axios.get('http://localhost:3000/api/categorias')
+      const response = await api.get('/categorias')
       setCategorias(response.data)
     } catch (error) {
       console.error("Error fetching categorias:", error);

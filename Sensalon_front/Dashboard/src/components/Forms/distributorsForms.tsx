@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { formData } from "../../interfaces/formData";
 import { Companie } from "../../interfaces/companies";
-import axios from "axios";
 import { FaChevronDown } from "react-icons/fa6";
+import { api } from "../../utils/axiosClients";
 
 export const DistributorsForms = ({
   formData,
@@ -13,20 +13,38 @@ export const DistributorsForms = ({
 }) => {
   const [companies, setCompanies] = useState<Companie[]>([]);
   const [documentoPreview, setDocumentoPreview] = useState<string | null>(null);
+  const [creditStatus, setCreditStatus] = useState<boolean>(false)
 
   const [showDropdownCompanies, setShowDropdownCompanies] = useState(false);
   const dropdownRefCompanie = useRef<HTMLDivElement>(null);
   const inputFileRef = useRef<HTMLInputElement | null>(null);
-  console.log(formData);
   const distributorData = formData.distributorData || {};
 
+  console.log(formData);
   console.log(distributorData);
 
   useEffect(() => {
-    axios.get("http://localhost:3000/api/empresas").then((res) => {
+    api.get("/empresas").then((res) => {
       setCompanies(res.data);
     });
   }, []);
+
+  console.log(formData.iIdUser)
+  useEffect(() => {
+    if (formData?.iIdUser && formData?.iIdUser !== "") {
+      api.get(`/credit/${formData?.iIdUser}`).then((res) => {
+        console.log(res.data)
+        setFormData((prevFormData) => ({
+          ...prevFormData,
+          distributorData: {
+            ...prevFormData.distributorData,
+            credit: res.data.totalamount,
+          },
+        }));
+        setCreditStatus(res.data.state === 1)
+      })
+    }
+  }, [formData?.iIdUser])
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -137,16 +155,16 @@ export const DistributorsForms = ({
               >
                 <p className="text-start">
                   {distributorData?.empresasRelacionadas &&
-                  JSON?.parse(distributorData?.empresasRelacionadas).Empresas
-                    ?.length > 0
+                    JSON?.parse(distributorData?.empresasRelacionadas).Empresas
+                      ?.length > 0
                     ? JSON?.parse(distributorData?.empresasRelacionadas)
-                        .Empresas.map(
-                          (empresaObj: { idEmpresa: string }) =>
-                            companies.find(
-                              (s) => s.iIdCompany === empresaObj.idEmpresa,
-                            )?.vcname,
-                        )
-                        .join(", ")
+                      .Empresas.map(
+                        (empresaObj: { idEmpresa: string }) =>
+                          companies.find(
+                            (s) => s.iIdCompany === empresaObj.idEmpresa,
+                          )?.vcname,
+                      )
+                      .join(", ")
                     : "Seleccione las marcas"}
                 </p>
                 <FaChevronDown className="text-[#6B7280]" />
@@ -170,11 +188,11 @@ export const DistributorsForms = ({
                             checked={
                               distributorData.empresasRelacionadas
                                 ? JSON.parse(
-                                    distributorData.empresasRelacionadas,
-                                  ).Empresas.some(
-                                    (s: { idEmpresa: string }) =>
-                                      s.idEmpresa === companie.iIdCompany,
-                                  )
+                                  distributorData.empresasRelacionadas,
+                                ).Empresas.some(
+                                  (s: { idEmpresa: string }) =>
+                                    s.idEmpresa === companie.iIdCompany,
+                                )
                                 : false
                             }
                             onChange={() =>
@@ -202,13 +220,34 @@ export const DistributorsForms = ({
             </label>
             <input
               type="text"
-              name="razonSocial"
-              id="razonSocial"
-              value={distributorData?.razonSocial || ""}
+              name="vcrazonsocial"
+              id="vcrazonsocial"
+              value={distributorData?.vcrazonsocial || ""}
               onChange={handleInputChange}
               className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-xl focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500"
               placeholder="JRGLEZ"
             />
+          </div>
+
+          <div className="col-span-2 lg:col-span-2">
+            <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+              Credito del ditribuidor:
+            </label>
+            <input
+              type="text"
+              name="credit"
+              id="credit"
+              value={distributorData?.credit || ""}
+              onChange={handleInputChange}
+              className={`bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-xl focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500 ${creditStatus ? "cursor-not-allowed opacity-50 " : ""}`}
+              placeholder=""
+              disabled={creditStatus}
+            />
+            {creditStatus && (
+              <p className="text-red-500 text-sm px-2">
+                Credito no pagado
+              </p>
+            )}
           </div>
 
           <div className="col-span-2 lg:col-span-2">
@@ -226,6 +265,9 @@ export const DistributorsForms = ({
             />
           </div>
 
+        </div>
+
+        <div className="grid gap-4 mb-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-6">
           <div className="col-span-2 lg:col-span-2">
             <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
               Correo electronico:
@@ -240,9 +282,7 @@ export const DistributorsForms = ({
               placeholder="Arriaga Montero"
             />
           </div>
-        </div>
 
-        <div className="grid gap-4 mb-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-8">
           <div className="col-span-2 lg:col-span-2">
             <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
               Ciudad:
@@ -271,6 +311,10 @@ export const DistributorsForms = ({
               placeholder="Francisco Javier"
             />
           </div>
+
+        </div>
+
+        <div className="grid gap-4 mb-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-6">
           <div className="col-span-2 lg:col-span-2">
             <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
               Estado:
@@ -299,9 +343,6 @@ export const DistributorsForms = ({
               placeholder="67500"
             />
           </div>
-        </div>
-
-        <div className="grid gap-4 mb-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-12">
           <div className="col-span-2 lg:col-span-2">
             <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
               Rfc:
@@ -316,7 +357,10 @@ export const DistributorsForms = ({
               placeholder="VECJ880326"
             />
           </div>
-          <div className="col-span-2 lg:col-span-5 flex flex-col gap-2">
+        </div>
+        <div className="grid gap-4 mb-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-8">
+
+          <div className="col-span-2 lg:col-span-4 flex flex-col gap-2">
             <label className="block text-sm font-medium text-gray-900 dark:text-white">
               Constancia Sit. Fiscal:
             </label>
@@ -379,7 +423,7 @@ export const DistributorsForms = ({
               </div>
             )}
           </div>
-          <div className="col-span-2 lg:col-span-5">
+          <div className="col-span-2 lg:col-span-4">
             <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
               Direccion de residencia:
             </label>

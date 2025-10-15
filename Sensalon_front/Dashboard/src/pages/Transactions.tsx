@@ -67,6 +67,7 @@ export const Transactions = () => {
                     encabezados={HEADER_TABLE_TRANSACTIONS}
                     data={filteredTransactions}
                     outofstock="No se encontraron transacciones"
+                    fetch={fetchTransaction}
                 />
             </section>
         </div>

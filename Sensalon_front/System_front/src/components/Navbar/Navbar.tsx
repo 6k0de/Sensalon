@@ -1,15 +1,18 @@
 import { useState, useEffect, useRef } from 'react';
-import { Menu, X, User, ShoppingCart } from 'lucide-react';
+import { Menu, X, User, ShoppingCart, Wallet } from 'lucide-react';
 import { useCartStore } from '../../hooks/useCartStore';
 import { useProductStore } from '../../hooks/useProductStore';
-import { NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { Product } from '../../interfaces/products';
 import './index.css'
+import { isNormalUser, readUser } from '../../helpers/detectedUserRole';
+import { api } from '../../utils/axiosClients';
 export const Navbar = () => {
   const { cart, updateQuantity, removeFromCart } = useCartStore();
-  const { products, fetchProducts } = useProductStore()
+  const { products } = useProductStore()
   const cartRef = useRef<HTMLDivElement>(null)
   const serchRef = useRef<HTMLDivElement>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
   const navigate = useNavigate()
   const location = useLocation()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -19,6 +22,8 @@ export const Navbar = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [showResults, setShowResults] = useState(false);
+  const [userType, setUserType] = useState('')
+  const [cashbackBalance, setCashbackBalance] = useState(0)
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -28,20 +33,33 @@ export const Navbar = () => {
       if (serchRef.current && !serchRef.current.contains(e.target as Node)) {
         setShowResults(false)
       }
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setAvatarMenuOpen(false);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+  const user = readUser()
+  const isNormal = isNormalUser(user?.user)
+  console.log(isNormal)
+  useEffect(() => {
+    const userType = localStorage.getItem('userType');
+    if (user && userType) {
+      setIsLoggedIn(true);
+      setUserType(userType)
+    }
+  }, []);
 
   useEffect(() => {
-    const userId = localStorage.getItem('user');
-    if (userId) {
-      setIsLoggedIn(true);
+    if (isNormal) {
+      api.get(`/chasback/${user.user.iIdUser}`).then((res) => {
+        setCashbackBalance(res.data.data.cashbackbalance || 0)
+      }).catch((err) => {
+        console.log(err)
+      })
     }
-    if (products.length === 0) fetchProducts();
-
-
-  }, [fetchProducts, products]);
+  }, [isNormal, user])
 
   useEffect(() => {
     setShowCart(false)
@@ -70,10 +88,16 @@ export const Navbar = () => {
     navigate(`/productDetail/${id}`); // Navega al detalle del producto
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    const idCart = localStorage?.getItem('cartId')
+    console.log(idCart)
     localStorage.removeItem('user');
-    setIsLoggedIn(false);
-    window.location.href = '/';
+    localStorage.removeItem('auth');
+    await useCartStore.getState().syncCartToBackend(idCart as string);
+
+    setIsLoggedIn(false)
+    useCartStore.getState().clearCart()
+    //window.location.href = '/';
   };
 
   const toggleCart = () => setShowCart(!showCart);
@@ -100,6 +124,14 @@ export const Navbar = () => {
   const hanldeGoToCart = () => {
     navigate('/carrito')
   }
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat("es-MX", {
+      style: "currency",
+      currency: "MXN",
+      minimumFractionDigits: 2,
+    }).format(value || 0);
+  };
   console.log(cart)
   return (
     <header className="border-b sticky top-0 bg-white z-10">
@@ -163,6 +195,18 @@ export const Navbar = () => {
               </div>
             )}
           </div>
+
+          {isNormal && cashbackBalance >= 0 && (
+            <div className="flex items-center gap-3 rounded-xl  bg-white p-3">
+              <div className="rounded-lg bg-blue-50 p-2">
+                <Wallet className="w-5 h-5 text-blue-500" />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-xs text-gray-500">Cashback disponible</span>
+                <span className="text-base font-semibold">{formatCurrency(cashbackBalance)}</span>
+              </div>
+            </div>
+          )}
 
           <div ref={cartRef} className="relative">
             <button className="p-2" onClick={toggleCart}>
@@ -240,18 +284,26 @@ export const Navbar = () => {
                 )}
               </div>
             )}
-
-
           </div>
 
           {isLoggedIn ? (
-            <div className="relative">
+            <div ref={menuRef} className="relative">
               <button onClick={toggleAvatarMenu} className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
                 <User size={20} />
               </button>
               {avatarMenuOpen && (
                 <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1">
-                  <a href="#" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Perfil</a>
+                  <Link to="" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                    Perfil
+                  </Link>
+                  {userType === 'distributor' && (
+                    <Link to="/myCredit" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                      Mi credito
+                    </Link>
+                  )}
+                  <Link to="/myOrders" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                    Mis pedidos
+                  </Link>
                   <button
                     onClick={handleLogout}
                     className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
@@ -273,57 +325,59 @@ export const Navbar = () => {
         </div>
       </div>
 
-      {mobileMenuOpen && (
-        <div className="md:hidden">
-          <nav className="px-2 pt-2 pb-4 space-y-1">
-            <a href="/productos" className="text-sm font-medium">Productos</a>
-            {/*  <a href="#" className="block px-3 py-2 rounded-md text-base font-medium hover:bg-gray-100">
+      {
+        mobileMenuOpen && (
+          <div className="md:hidden">
+            <nav className="px-2 pt-2 pb-4 space-y-1">
+              <a href="/productos" className="text-sm font-medium">Productos</a>
+              {/*  <a href="#" className="block px-3 py-2 rounded-md text-base font-medium hover:bg-gray-100">
               Empresas
             </a> */}
-            <div className="px-3 py-2">
-              <div className='relative'>
-                <input
-                  type="search"
-                  placeholder="Buscar producto..."
-                  value={searchTerm}
-                  onChange={handleSearchChange}
-                  className="block border w-1/2 rounded-full px-4 py-2 text-sm relative"
-                />
+              <div className="px-3 py-2">
+                <div className='relative'>
+                  <input
+                    type="search"
+                    placeholder="Buscar producto..."
+                    value={searchTerm}
+                    onChange={handleSearchChange}
+                    className="block border w-1/2 rounded-full px-4 py-2 text-sm relative"
+                  />
 
-                {showResults && filteredProducts.length > 0 && (
-                  <div
-                    className="absolute left-0 mt-2 w-full bg-white border rounded-lg shadow-lg max-h-96 overflow-y-auto z-50"
-                    style={{ top: '100%' }}
-                  >
-                    {filteredProducts.map((product: Product) => {
-                      const normalizedPath = product.vcphoto.replace(/\\/g, '/').split('/imagenes/')[1];
-                      const imageUrl = `https://api.sensalon.com.mx/imagenes/${normalizedPath}`;
+                  {showResults && filteredProducts.length > 0 && (
+                    <div
+                      className="absolute left-0 mt-2 w-full bg-white border rounded-lg shadow-lg max-h-96 overflow-y-auto z-50"
+                      style={{ top: '100%' }}
+                    >
+                      {filteredProducts.map((product: Product) => {
+                        const normalizedPath = product.vcphoto.replace(/\\/g, '/').split('/imagenes/')[1];
+                        const imageUrl = `https://api.sensalon.com.mx/imagenes/${normalizedPath}`;
 
-                      return (
-                        <div
-                          key={product.iIdProduct}
-                          className="p-3 flex items-center gap-6 cursor-pointer hover:bg-gray-100 transition"
-                          onClick={() => handleProductClick(product.iIdProduct)}
-                        >
-                          <img
-                            src={imageUrl}
-                            alt={product.vcname}
-                            className="w-14 h-14 rounded-lg object-cover"
-                          />
-                          <div>
-                            <p className="font-semibold text-md">{product.vcname}</p>
-                            <p className="text-sm text-gray-500">${product.decprice1 ?? product.decprice2 ?? product.decprice3 ?? 'Precio no disponible'}</p>
+                        return (
+                          <div
+                            key={product.iIdProduct}
+                            className="p-3 flex items-center gap-6 cursor-pointer hover:bg-gray-100 transition"
+                            onClick={() => handleProductClick(product.iIdProduct)}
+                          >
+                            <img
+                              src={imageUrl}
+                              alt={product.vcname}
+                              className="w-14 h-14 rounded-lg object-cover"
+                            />
+                            <div>
+                              <p className="font-semibold text-md">{product.vcname}</p>
+                              <p className="text-sm text-gray-500">${product.decprice1 ?? product.decprice2 ?? product.decprice3 ?? 'Precio no disponible'}</p>
+                            </div>
                           </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          </nav>
-        </div>
-      )}
-    </header>
+            </nav>
+          </div>
+        )
+      }
+    </header >
   );
 };

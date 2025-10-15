@@ -13,5 +13,6 @@ export interface Distributor {
     vcconsfis?: string; 
     dtcreation: Date;
     dtupdate?: Date;
+    vcrazonsocial: string;
   }
   

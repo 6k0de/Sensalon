@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Request, Response, Router } from "express";
 import dotenv from "dotenv";
 import multer from "multer";
 import path from "path";
@@ -10,6 +10,15 @@ import {
   getDeliveryInfo,
   updateDelivery,
 } from "../controllers/Delivery/delivery";
+import { CreateOrderPending } from "../bd/models/OrderPending.model";
+import { TransactionModel } from "../bd/models/Transaction.model";
+import { buildTransactionHtml } from "../helpers/buildTransactionHtml";
+import { transporter } from "../controllers/nodemailer/config";
+import { createOrderMercadoPago, createOrderTransfer, createOrderTransferPayCredit } from "../controllers/Payments/payments";
+import { ShippingAddresModel } from "../bd/models/ShippingAdd.model";
+import { updateStatusTransaction } from "../controllers/Transactions/transactions";
+import { Credit } from "../bd/models/Credits.model";
+import { CashBack } from "../bd/models/Cashback.model";
 
 dotenv.config();
 export const payment = Router();
@@ -44,3 +53,89 @@ payment.put("/infoTransferUpdate", infoTransferUpdate);
 payment.get("/delivery", getDeliveryInfo);
 //PUT DeliveryInfo
 payment.put("/deliveryUpdate", updateDelivery);
+
+//POST CreateOrderPayMercadoPago
+payment.post('/createOrder', createOrderMercadoPago)
+
+//POST CreateOrderPayCredit
+payment.post('/createOrderTransferPayCredit', upload.single("file"), createOrderTransferPayCredit);
+
+//POST CreateOrderTransfer
+payment.post('/createOrderTransfer', upload.single("file"), createOrderTransfer)
+
+//POST UpdateStatusTransaction
+payment.post('/updateStatusTransaction/:id', updateStatusTransaction)
+
+
+
+
+//GET PaymentSuccesMercadoPagoRedireccion
+payment.get('/success', async (req: Request, res: Response) => {
+  const { payment_id, status, merchant_order_id, orderId } = req.query;
+  try {
+    const preOrder = await CreateOrderPending.findOne({ where: { iIdOrderPending: Number(orderId) } });
+    if (!preOrder) throw new Error("Orden no encontrada");
+
+    const transaction = await TransactionModel.create({
+      mercadoPagoPaymentId: String(payment_id),
+      status: String(status || ""),
+      amount: preOrder.dataValues.total,
+      iuserId: preOrder.dataValues.iIdUser,
+      ishippingAddressId: preOrder.dataValues.iIdShippingAddress,
+      merchantOrderId: String(merchant_order_id),
+      paymentMethod: 'MercadoPago',
+      products: preOrder.dataValues.products,
+      iOrderPendingId: Number(orderId),
+    })
+
+    if(preOrder.getDataValue('credit') > 0) {
+      await Credit.update({ state: 1, totalpayamount: preOrder.getDataValue('credit') }, { where: { iFIdUser: preOrder.dataValues.iIdUser } });
+    }
+
+    if(preOrder.getDataValue('cashback') > 0) {
+      const cash = await CashBack.findOne({ where: { FiIdUser: preOrder.dataValues.iIdUser } });
+      if(cash) {
+        await CashBack.update({  cashbackamount: preOrder.getDataValue('cashback') + cash.getDataValue('cashbackamount') }, { where: { iIdCashback: cash.dataValues.iIdCashback } });
+      }
+    }
+
+    const idTransaction = transaction.dataValues.iIdTransaction;
+    const direccion = await ShippingAddresModel.findOne({ where: { iIdAddressId: preOrder.dataValues.iIdShippingAddress } });
+
+    await preOrder.update({ status: "completed" });
+
+    try {
+      const htmlContent = await buildTransactionHtml(transaction, preOrder, direccion?.dataValues);
+
+      const info = await transporter.sendMail({
+        from: 'pedidos@sensalon.com.mx',
+        to: 'borrelizzy@gmail.com',
+        subject: `Nueva Orden de Compra - ${idTransaction}`,
+        html: htmlContent
+      });
+
+      console.log('Correo enviado:', info.response);
+    } catch (error) {
+      console.error('Error al enviar el correo:', error);
+    }
+
+    const redirectUrl = `http://localhost:5174/pagoExitoso?` +
+      `orderNumber=${idTransaction}` +
+      `&amount=${preOrder.dataValues.total}` +
+      `&method=${transaction.dataValues.paymentMethod}` +
+      `&date=${encodeURIComponent(new Date().toISOString())}`;
+    // Redirigir a frontend
+    res.redirect(302, redirectUrl);
+
+  } catch (error: any) {
+    console.error("Error en success:", error);
+    const redirectUrl = `http://localhost:5174/ordenFallida?` +
+      `orderId=${orderId}` +
+      `&paymentId=${payment_id || ""}` +
+      `&status=${status || "rejected"}` +
+      `&method=MercadoPago` +
+      `&date=${encodeURIComponent(new Date().toISOString())}` +
+      `&message=${encodeURIComponent(error.message || "Error en el pago")}`;
+    res.redirect(302, redirectUrl);
+  }
+})

@@ -1,9 +1,9 @@
-import axios from "axios";
+import { payment } from "../../utils/axiosClients";
 
 export const updateTransferInfo = async (payload: any) => {
   try {
-    const response = await axios.put(
-      "http://localhost:3000/payments/infoTransferUpdate",
+    const response = await payment.put(
+      "/infoTransferUpdate",
       payload,
       {
         headers: { "Content-Type": "application/json" },

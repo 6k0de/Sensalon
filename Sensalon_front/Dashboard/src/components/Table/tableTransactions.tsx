@@ -1,55 +1,96 @@
-import { FaEye } from "react-icons/fa6"
 import { TableTransactionsProps } from "../../utils/props/Transactions.props"
 import { Transaction } from "../../interfaces/transactions"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { formatStatus, formatValue } from "../../utils/formatters"
-import { recipt } from "../../utils/axiosClients"
+import { api, recipt } from "../../utils/axiosClients"
+import { updateStatusTransaction } from "../../services/satusChangeTransaction/statusChange"
+import { SuccessToast } from "../Toast/successToast"
+import { ErrorToast } from "../Toast/errorToast"
+import { Companie } from "../../interfaces/companies"
 
-export const TableTransactions = ({ encabezados, data, outofstock }: TableTransactionsProps) => {
+export const TableTransactions = ({ encabezados, data, outofstock, fetch }: TableTransactionsProps) => {
     const [selectedProducts, setSelectedProducts] = useState<any[]>([])
     const [showPreview, setShowPreview] = useState(false);
     const [previewUrl, setPreviewUrl] = useState("");
     const [previewType, setPreviewType] = useState<"image" | "pdf" | "unknown">("unknown");
-
+    const [toastMessage, setToastMessage] = useState<string | null>(null);
+    const [toastType, setToastType] = useState<"success" | "error" | null>(null);
+    const [showToast, setShowToast] = useState(true);
     const [showModal, setShowModal] = useState<boolean>(false)
+    const [companies, setCompanies] = useState<Companie[]>([])
+    const [isLoading, setIsLoading] = useState<boolean>(false)
 
-    const handleStatusChange = (id: string, status: string) => {
-        console.log({ id, status })
+    useEffect(() => {
+        const fetchCompanies = async () => {
+            try {
+                const response = await api.get("/empresas")
+                setCompanies(response.data)
+            } catch (error) {
+                console.error("Error fetching empresas:", error)
+            }
+        }
+        fetchCompanies()
+    }, [])
+
+    const handleStatusChange = async (id: string, status: string) => {
+        setIsLoading(true)
+        try {
+            const res = await updateStatusTransaction(id, status);
+            setToastMessage(res.message || "Estado actualizado correctamente");
+            setToastType("success");
+            setShowToast(true);
+            fetch?.()
+        } catch (error: any) {
+            setToastMessage(error.response?.data?.message || "Error al actualizar el estado");
+            setToastType("error");
+            setShowToast(true);
+        } finally {
+            setIsLoading(false)
+            setTimeout(() => {
+                setShowToast(false);
+                setToastMessage(null);
+                setToastType(null);
+            }, 4000);
+        }
     }
 
     const handleViewProducts = (products: any) => {
+        console.log(products)
         if (!products || products === "null") {
-            // Si no hay productos válidos
-            setSelectedProducts([]);
-            setShowModal(true);
-            return;
+            setSelectedProducts([])
+            setShowModal(true)
+            return
         }
 
-        let parsed;
+        let parsed
         try {
-            parsed = typeof products === "string" ? JSON.parse(products) : products;
+            parsed = typeof products === "string" ? JSON.parse(products) : products
         } catch (error) {
-            console.error("Error al parsear productos:", error);
-            parsed = [];
+            console.error("Error al parsear productos:", error)
+            parsed = []
         }
 
-        if (Array.isArray(parsed)) {
-            // Caso de IDs crudos ["id1","id2"]
-            if (parsed.length > 0 && typeof parsed[0] === "string") {
-                parsed = parsed.map((id: string) => ({
-                    name: "Producto desconocido",
-                    companie: id,
-                    quantity: 1,
-                }));
-            }
-        } else {
-            // No es array, mostramos vacío
-            parsed = [];
+        // Soporte para estructuras antiguas
+        if (!Array.isArray(parsed)) {
+            parsed = parsed?.Producto
+                ? [{ name: parsed.Producto, companyId: "N/A", quantity: 1, total: 0 }]
+                : []
         }
 
-        setSelectedProducts(parsed);
-        setShowModal(true);
-    };
+        // Estandarizar campos clave
+        parsed = parsed.map((p: any) => ({
+            name: p.name || p.productName || "Producto desconocido",
+            quantity: p.quantity || 1,
+            priceUnit: p.priceUnit || p.price || 0,
+            total: p.total || (p.priceUnit || p.price || 0) * (p.quantity || 1),
+            companyId: p.companyId || p.companie || "N/A",
+            image: p.image || null,
+        }))
+
+        setSelectedProducts(parsed)
+        setShowModal(true)
+    }
+
 
     const handleViewComprobante = async (transaction: Transaction) => {
         if (transaction?.paymentMethod === "MercadoPago") {
@@ -89,6 +130,24 @@ export const TableTransactions = ({ encabezados, data, outofstock }: TableTransa
     console.log(data)
     return (
         <>
+            {isLoading && (
+                <div
+                    className="fixed inset-0 z-[9999] bg-black/40 backdrop-blur-sm flex items-center justify-center"
+                    aria-live="polite"
+                    aria-busy="true"
+                    role="status"
+                >
+                    <div className="flex flex-col items-center gap-3">
+                        <div className="h-16 w-16 animate-spin rounded-full border-4 border-white/30 border-t-white" />
+                        <p className="text-white text-sm font-medium">Procesando…</p>
+                        <span className="sr-only">Cargando</span>
+                    </div>
+                </div>
+            )}
+            <div className="fixed top-4 right-4 z-50">
+                {toastMessage && toastType === "success" && <SuccessToast message={toastMessage} showToast={showToast} />}
+                {toastMessage && toastType === "error" && <ErrorToast message={toastMessage} showToast={showToast} />}
+            </div>
             <div className="relative shadow-md sm:rounded-lg custom-scrollbar max-h-[580px] overflow-auto">
                 <table className="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
                     <thead className="text-sm text-[#393936] bg-[#f7f7f6] sticky top-0 z-10">
@@ -136,9 +195,9 @@ export const TableTransactions = ({ encabezados, data, outofstock }: TableTransa
                                                     handleStatusChange(transaction.iIdTransaction, e.target.value)
                                                 }
                                                 className="w-40 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg
-        focus:ring-blue-500 focus:border-blue-500 block p-2.5 
-        dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 
-        dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                                                            focus:ring-blue-500 focus:border-blue-500 block p-2.5 
+                                                            dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 
+                                                            dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
                                             >
                                                 <option value="error">Error</option>
                                                 <option value="pending">Pending</option>
@@ -185,7 +244,7 @@ export const TableTransactions = ({ encabezados, data, outofstock }: TableTransa
                                                 className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 
                  rounded-lg hover:bg-blue-100 hover:text-blue-800 transition-colors duration-200"
                                             >
-                                              
+
                                                 Ver comprobante
                                             </button>
                                         )}
@@ -209,7 +268,7 @@ export const TableTransactions = ({ encabezados, data, outofstock }: TableTransa
 
             {showModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-                    <div className="relative w-full max-w-md p-4">
+                    <div className="relative w-full max-w-4xl p-4">
                         {/* Contenedor del modal */}
                         <div className="relative bg-white rounded-lg shadow-lg dark:bg-gray-800">
                             {/* Header */}
@@ -240,29 +299,141 @@ export const TableTransactions = ({ encabezados, data, outofstock }: TableTransa
                                 </button>
                             </div>
 
-                            {/* Body */}
-                            <div className="p-5">
-                                {selectedProducts?.length > 0 ? (
-                                    <ul className="divide-y divide-gray-200 dark:divide-gray-700">
-                                        {selectedProducts.map((p, i) => (
-                                            <li key={i} className="flex items-center justify-between py-3">
-                                                <div>
-                                                    <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                                                        {p.name || "Producto desconocido"}
+                            {/* Body con scroll */}
+                            <div className="p-5 max-h-[70vh] overflow-y-auto custom-scrollbar">
+                                {selectedProducts.length > 0 ? (
+                                    (() => {
+                                        // Detectar si es transacción de crédito u otro tipo sin productos válidos
+                                        const isCreditPayment =
+                                            selectedProducts.length === 1 &&
+                                            selectedProducts[0]?.companyId === "N/A" &&
+                                            selectedProducts[0]?.total === 0;
+
+                                        if (isCreditPayment) {
+                                            return (
+                                                <div className="flex flex-col items-center justify-center py-10 text-center">
+                                                    <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center mb-4">
+                                                        <span className="text-blue-600 text-2xl font-bold">💳</span>
+                                                    </div>
+                                                    <p className="text-gray-700 font-medium text-base">
+                                                        Esta transacción corresponde a un pago de crédito.
                                                     </p>
-                                                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                                                        ID compañía: {p.companie}
+                                                    <p className="text-gray-500 text-sm mt-1">
+                                                        No se registraron productos físicos asociados.
                                                     </p>
                                                 </div>
-                                                <span className="px-3 py-1 text-xs font-bold text-blue-800 bg-blue-100 rounded-full dark:bg-blue-900 dark:text-blue-200">
-                                                    x{p.quantity || 1}
-                                                </span>
-                                            </li>
-                                        ))}
-                                    </ul>
+                                            );
+                                        }
+
+                                        // Agrupar productos por compañía
+                                        console.log(selectedProducts)
+                                        const grouped = selectedProducts.reduce((acc: any, p: any) => {
+                                            const cid = p.companyId || "N/A";
+                                            if (!acc[cid]) acc[cid] = [];
+                                            acc[cid].push(p);
+                                            return acc;
+                                        }, {});
+
+                                        // Buscar nombre de la compañía
+                                        const getCompanyName = (id: string) => {
+                                            const found = companies.find((c) => c.iIdCompany === id);
+                                            return found ? found.vcname : "Compañía desconocida";
+                                        };
+
+                                        // Total general
+                                        const totalGeneral = selectedProducts.reduce(
+                                            (acc, p) => acc + (p.total || 0),
+                                            0
+                                        );
+
+                                        return (
+                                            <div className="space-y-6">
+                                                {Object.entries(grouped).map(([companyId, items]: any) => {
+                                                    const subtotal = items.reduce(
+                                                        (a: number, b: any) => a + b.total,
+                                                        0
+                                                    );
+                                                    const companyName = getCompanyName(companyId);
+
+                                                    return (
+                                                        <div
+                                                            key={companyId}
+                                                            className="border border-gray-200 rounded-lg overflow-hidden"
+                                                        >
+                                                            {/* Encabezado de compañía */}
+                                                            <div className="bg-gray-50 px-4 py-2 border-b border-gray-200">
+                                                                <h4 className="text-gray-800 font-semibold text-sm">
+                                                                    {companyName}{" "}
+                                                                    <span className="text-gray-500 text-xs">
+                                                                        ({items.length} producto
+                                                                        {items.length > 1 ? "s" : ""})
+                                                                    </span>
+                                                                </h4>
+                                                            </div>
+
+                                                            {/* Lista de productos */}
+                                                            <ul className="divide-y divide-gray-200">
+                                                                {items.map((p: any, i: number) => (
+                                                                    <li
+                                                                        key={i}
+                                                                        className="flex items-center justify-between p-3"
+                                                                    >
+                                                                        <div className="flex items-center gap-3">
+                                                                            {p.image ? (
+                                                                                <img
+                                                                                    src={p.image}
+                                                                                    alt={p.name}
+                                                                                    className="w-12 h-12 object-cover rounded-lg border border-gray-200"
+                                                                                />
+                                                                            ) : (
+                                                                                <div className="w-12 h-12 bg-gray-100 rounded-lg border border-gray-200 flex items-center justify-center text-gray-400 text-xs">
+                                                                                    IMG
+                                                                                </div>
+                                                                            )}
+                                                                            <div>
+                                                                                <p className="text-sm font-semibold text-gray-900">
+                                                                                    {p.name}
+                                                                                </p>
+                                                                                <p className="text-xs text-gray-500">
+                                                                                    Cantidad: {p.quantity}
+                                                                                </p>
+                                                                                <p className="text-xs text-gray-500">
+                                                                                    Precio unitario: $
+                                                                                    {p.priceUnit?.toFixed(2) || "0.00"}
+                                                                                </p>
+                                                                            </div>
+                                                                        </div>
+                                                                        <span className="text-sm font-bold text-blue-700">
+                                                                            ${p.total?.toFixed(2) || "0.00"}
+                                                                        </span>
+                                                                    </li>
+                                                                ))}
+                                                            </ul>
+
+                                                            {/* Subtotal */}
+                                                            <div className="bg-gray-50 text-right px-4 py-2 border-t border-gray-200 text-sm text-gray-700">
+                                                                Subtotal:{" "}
+                                                                <span className="font-semibold text-gray-900">
+                                                                    ${subtotal.toFixed(2)}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+
+                                                {/* Total general */}
+                                                <div className="text-right border-t pt-3">
+                                                    <p className="text-gray-800 font-semibold">
+                                                        Total general: ${totalGeneral.toFixed(2)}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        );
+                                    })()
                                 ) : (
                                     <p className="text-sm text-red-500">
-                                        ⚠ No hay productos disponibles en esta transacción. Puede tratarse de un error en el proceso de pago.
+                                        ⚠ No hay productos disponibles en esta transacción. Puede
+                                        tratarse de un error en el proceso de pago.
                                     </p>
                                 )}
                             </div>

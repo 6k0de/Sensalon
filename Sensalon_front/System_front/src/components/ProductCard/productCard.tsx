@@ -1,5 +1,7 @@
+import { useEffect, useMemo } from "react";
 import { useCartStore } from "../../hooks/useCartStore";
 import { Product } from "../../interfaces/products";
+import { useCompanieStore } from "../../hooks/useCompanieStore";
 
 interface ProductCardProps {
     product: Product;
@@ -15,6 +17,22 @@ export const ProductCard = ({
     badges = [],
 }: ProductCardProps) => {
     const { addToCart } = useCartStore();
+    const { companies, fetchCompanies } = useCompanieStore();
+
+    // Cargar empresas si aún no están en memoria
+    useEffect(() => {
+        if (!companies || companies.length === 0) {
+            fetchCompanies?.();
+        }
+    }, [companies, fetchCompanies]);
+
+    console.log(product)
+    const companyName = useMemo(() => {
+        const companyId = (product as any).iIdCompany || (product as any).iFIdCompany || (product as any).companyId;
+        if (!companyId) return "Sin empresa";
+        const found = companies?.find((c) => c.iIdCompany === companyId);
+        return found?.vcname ?? "Sin empresa";
+    }, [companies, product]);
 
     const handleAddToCart = () => {
         addToCart(product);
@@ -62,7 +80,7 @@ export const ProductCard = ({
                 {/* Info */}
                 <div className="text-center sm:text-left">
                     <p className="text-sm uppercase font-medium text-gray-500">
-                        {product.company?.vcname || "Sin empresa"}
+                        {companyName}
                     </p>
                     <h3 className="text-lg font-medium mt-1 mb-2 line-clamp-2">
                         {product.vcname}

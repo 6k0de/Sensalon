@@ -1,17 +1,23 @@
 import { useCallback, useEffect, useState } from "react";
 import { useProductStore } from "../../hooks/useProductStore";
-import { motion, AnimatePresence } from "framer-motion";
+import { AnimatePresence } from "framer-motion";
 import { useCartStore } from "../../hooks/useCartStore";
 import { Companie } from "../../interfaces/empresas";
 import { api } from "../../utils/axiosClients";
 import { Categorie } from "../../interfaces/categorias";
+import { isDistributorUser, readUser } from "../../helpers/detectedUserRole";
+import { isNewProduct } from "../../helpers/isNewProduct";
 export const ProductosView = () => {
-    const { products, fetchProducts } = useProductStore()
+    const {
+        products,       // usar si quieres mostrar spinner mientras refresca
+        fetchFromCache,
+        startAutoRefresh,
+        stopAutoRefresh,
+    } = useProductStore();
     const { addToCart } = useCartStore()
 
     const [visibleProducts, setVisibleProducts] = useState(12)
     const [sortedProducts, setSortedProducts] = useState(products)
-    const [loading, setLoading] = useState(false); // Estado de carga
 
     //Filtros
     const [sortOption, setSortOption] = useState("Mas popular")
@@ -25,7 +31,10 @@ export const ProductosView = () => {
     const [loadingFilters, setLoadingFilters] = useState<boolean>(true);
     const [priceError, setPriceError] = useState<string>("");
 
+    const user = readUser();
+    const isDistributor = isDistributorUser(user?.user);
 
+    console.log(isDistributor)
 
     const getAllBrandsandCategories = async () => {
         setLoadingFilters(true);
@@ -45,15 +54,17 @@ export const ProductosView = () => {
         getAllBrandsandCategories()
     }, [])
 
+    // 1) Al montar: leer cache y arrancar el auto-refresh
     useEffect(() => {
-        const loadProducts = async () => {
-            setLoading(true);
-            await fetchProducts();
-            setLoading(false);
-        };
-        if (products.length === 0) loadProducts();
-        else setSortedProducts(products);
-    }, [fetchProducts, products]);
+        fetchFromCache();                 // pinta lo que haya en localStorage
+        startAutoRefresh(5 * 60 * 1000);  // 5 minutos
+        return () => stopAutoRefresh();
+    }, [fetchFromCache, startAutoRefresh, stopAutoRefresh]);
+
+    // 2) Cada vez que cambien los productos, actualiza la lista visible
+    useEffect(() => {
+        setSortedProducts(products); // 0 productos es válido
+    }, [products]);
 
     const getEffectivePrice = (p: any): number => {
         // toma el primer precio disponible
@@ -86,15 +97,22 @@ export const ProductosView = () => {
         return sorted;
     }, []);
 
+    console.log(selectedBrands)
     useEffect(() => {
         let filtered = [...products];
 
         // marcas
+        console.log("Ejemplo de producto:", products[0]);
+
+        // 🔹 Filtro de marcas — admite ID o nombre
         if (selectedBrands.length > 0) {
-            filtered = filtered.filter((p) =>
-                selectedBrands.includes(p?.company?.vcname || '')
-            );
+            filtered = filtered.filter((p) => {
+                console.log(p)
+                const brandId = p.iIdCompany || p.iFIdCompany || p.company?.vcname || "";
+                return selectedBrands.includes(brandId);
+            });
         }
+
 
         // categorías
         if (selectedCategories.length > 0) {
@@ -150,10 +168,24 @@ export const ProductosView = () => {
         );
     };
 
-    console.log(sortedProducts)
+    const DistributorEmptyState = () => (
+        <div className="w-full bg-yellow-50 border border-yellow-200 rounded-xl p-6 text-yellow-900">
+            <h3 className="text-lg font-semibold mb-1">No se encuentran productos</h3>
+            <p className="text-sm">
+                Este usuario es <strong>Distribuidor</strong>, pero aún no tiene marcas asignadas.
+                Por favor contacta a un administrador para asignar marcas a tu cuenta.
+            </p>
+        </div>
+    );
 
+    // Empty state genérico si quieres (para otros roles)
+    const GenericEmptyState = () => (
+        <div className="w-full bg-gray-50 border border-gray-200 rounded-xl p-6 text-gray-700">
+            <h3 className="text-lg font-semibold mb-1">No hay productos para mostrar</h3>
+            <p className="text-sm">Intenta ajustar los filtros o vuelve a intentarlo más tarde.</p>
+        </div>
+    );
 
-    console.log(brands)
     return (
         <div className="flex-grow">
             <main className="container mx-auto px-4 py-8">
@@ -177,8 +209,8 @@ export const ProductosView = () => {
                                             <input
                                                 type="checkbox"
                                                 className="form-checkbox h-5 w-5 text-blue-600"
-                                                checked={selectedBrands.includes(brand.vcname)}
-                                                onChange={() => toggleBrand(brand.vcname)}
+                                                checked={selectedBrands.includes(brand.iIdCompany || "")}
+                                                onChange={() => toggleBrand(brand.iIdCompany)}
                                             />
                                             <label className="ml-2 text-gray-700">{brand.vcname}</label>
                                         </div>
@@ -276,9 +308,9 @@ export const ProductosView = () => {
                             </div>
                         </div>
 
-                        {loading ? (
-                            <div className="flex justify-center items-center min-h-[300px]">
-                                <div className="loader ease-linear rounded-full border-8 border-t-8 border-gray-200 h-16 w-16"></div>
+                        {sortedProducts.length === 0 ? (
+                            <div className="mt-2">
+                                {isDistributor ? <DistributorEmptyState /> : <GenericEmptyState />}
                             </div>
                         ) : (
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -286,7 +318,7 @@ export const ProductosView = () => {
                                     {visibleItems.map((product) => {
                                         const normalizedPath = product?.vcphoto?.replace(/\\/g, "/").split("/imagenes/")[1];
                                         const imageUrl = `https://api.sensalon.com.mx/imagenes/${normalizedPath}`;
-
+                                        const isNew = isNewProduct(product.dtcreated);
                                         return (
                                             <div className="bg-white rounded-lg shadow-md overflow-hidden group cursor-pointer transform transition duration-300 ease-in-out hover:scale-105">
                                                 <a href={`/productDetail/${product.iIdProduct}`} rel="noopener noreferrer">
@@ -295,6 +327,11 @@ export const ProductosView = () => {
                                                         alt={product.vcname}
                                                         className="w-full h-80 object-cover"
                                                     />
+                                                    {isNew && (
+                                                        <span className="absolute top-3 right-3 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-pink-100 text-pink-900 shadow-sm">
+                                                            Nuevo
+                                                        </span>
+                                                    )}
                                                     <div className="p-4">
                                                         <h3 className="font-medium mb-1 text-lg text-nowrap">{product.vcname}</h3>
                                                         <p className="text-md text-red-700 font-bold">${product.decprice1 ?? product.decprice2 ?? product.decprice3 ?? 'Precio no disponible'}</p>

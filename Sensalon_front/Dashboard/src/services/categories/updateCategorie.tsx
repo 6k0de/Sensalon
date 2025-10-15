@@ -1,13 +1,12 @@
-import axios from "axios";
+import { api } from "../../utils/axiosClients";
 
 export const UpdateCategorie = async (name: string, descripcion: string, id: string) => {
     
-    let resultado = await axios.post('http://localhost:3000/api/actualizarcategoria', {
+    let resultado = await api.post('/actualizarcategoria', {
         vcname: name,
         vcdescription: descripcion,
         iIdCategory: id
     })
-    console.log('hol')
     return resultado.data
 }
 

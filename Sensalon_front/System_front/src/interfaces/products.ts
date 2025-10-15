@@ -1,6 +1,7 @@
 export interface Product {
     iIdProduct: string;
     iFIdCompany: string;
+    iIdCompany?: string;
     vcname: string;
     vcdescription: string;
     vcweight: string;

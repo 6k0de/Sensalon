@@ -3,6 +3,7 @@ import { Service } from "../../interfaces/services";
 import axios from "axios";
 import { FaChevronDown } from "react-icons/fa6";
 import { formData } from "../../interfaces/formData";
+import { api } from "../../utils/axiosClients";
 
 export const SalonForms = ({
   formData,
@@ -21,7 +22,7 @@ export const SalonForms = ({
   const SalonData = formData.salonData || {};
 
   useEffect(() => {
-    axios.get("http://localhost:3000/api/services").then((res) => {
+    api.get("/services").then((res) => {
       setServices(res.data);
     });
   }, []);

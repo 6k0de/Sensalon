@@ -10,12 +10,13 @@ import { LoginAuth } from "../pages/Auth";
 import { Transactions } from "../pages/Transactions";
 import { Slider } from "../pages/Slider";
 import { BankConfiguration } from "../pages/BankConfiguration";
+import { Suppliers } from "../pages/Suppliers";
 
 export const AppRoutes = () => {
   return (
     <Router>
       <Routes>
-        <Route path="/login" element={<LoginAuth />} />
+        <Route path="/" element={<LoginAuth />} />
         <Route
           path="/inicio"
           element={
@@ -67,11 +68,11 @@ export const AppRoutes = () => {
           }
         />
         <Route
-          path="/categorias"
+          path="/proveedores"
           element={
             <ProtectedRoute>
               <Layout>
-                <Categories />
+                <Suppliers />
               </Layout>
             </ProtectedRoute>
           }

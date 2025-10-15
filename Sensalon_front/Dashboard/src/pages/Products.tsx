@@ -4,8 +4,8 @@ import { TableProducts } from "../components/Table/table";
 import { Product } from "../interfaces/products";
 import { SuccessToast } from "../components/Toast/successToast";
 import { ErrorToast } from "../components/Toast/errorToast";
-import axios from "axios";
 import { HEADER_TABLE_PRODUCTS } from "../utils/headers/Products";
+import { api } from "../utils/axiosClients";
 
 export const Products = () => {
   const [showModal, setShowModal] = useState(false);
@@ -19,7 +19,7 @@ export const Products = () => {
 
   const fetchProducts = async () => {
     try {
-      const response = await axios.get("http://localhost:3000/api/productos");
+      const response = await api.get("/productos");
       SetProducts(response.data);
     } catch (error) {
       console.error("Error fetching products:", error);

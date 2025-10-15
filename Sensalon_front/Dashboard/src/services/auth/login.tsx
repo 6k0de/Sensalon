@@ -1,9 +1,9 @@
-import axios from "axios";
+import { api } from "../../utils/axiosClients";
 
 export const LoginServices = async ({ username, password }: { username: string, password: string }) => {
     //PRODUCCION: https://api.sensalon.com.mx/
     try {
-        const response = await axios.post(`http://localhost:3000/api/loginA`, {
+        const response = await api.post(`/loginA`, {
             username,
             password
         });

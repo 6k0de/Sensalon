@@ -1,36 +1,110 @@
-import axios from 'axios'
-import { create } from 'zustand'
-import { ProductStore } from '../interfaces/productStore'
+// useProductStore.ts
+import { create } from "zustand";
+import { api } from "../utils/axiosClients";
 
-const getStoredProducts = () => {
-    const storeData = localStorage.getItem('user')
-    if(storeData){
-        const userData = JSON.parse(storeData)
-        return userData.products || []
-    }
+type Product = any; // ajusta a tu interfaz real
 
-    return []
-}
+type Store = {
+  products: Product[];
+  loading: boolean;
+  error: string | null;
+  fetchFromCache: () => void;
+  refreshFromServer: () => Promise<void>;
+  startAutoRefresh: (intervalMs?: number) => void;
+  stopAutoRefresh: () => void;
+  _timerId: number | null;
+};
 
-export const useProductStore = create<ProductStore>((set) => ({
-    products: getStoredProducts(),
-    fetchProducts: async () => {
+const readUser = () => {
+  try { return JSON.parse(localStorage.getItem("user") || "null"); }
+  catch { return null; }
+};
+
+const readCache = (): Product[] => {
+  try { return JSON.parse(localStorage.getItem("products:byUser") || "[]"); }
+  catch { return []; }
+};
+const writeCache = (products: Product[]) => {
+  localStorage.setItem("products:byUser", JSON.stringify(products));
+};
+
+export const useProductStore = create<Store>((set, get) => ({
+  products: [],
+  loading: false,
+  error: null,
+  _timerId: null,
+
+  // 1) Siempre pinta lo del localStorage
+  fetchFromCache: () => {
+    const cached = readCache();
+    set({ products: cached, error: null });
+  },
+
+  // 2) Trae del backend por usuario y guarda en cache + estado
+  refreshFromServer: async () => {
+    try {
+      set({ loading: true, error: null });
+
+      const u = readUser();
+      const userId = u?.user?.iIdUser || u?.user?.id;
+      const url = userId ? `/products/${userId}` : `/productos`;
+
+      const resp = await api.get(url);
+
+      // Normaliza: /products/:id -> { products: [...] }, /productos -> [...]
+      const fresh: Product[] = Array.isArray(resp.data)
+        ? resp.data
+        : (resp.data?.products ?? []);
+
+      // Cache + estado
+      writeCache(fresh);
+      set({ products: fresh, loading: false });
+
+      // (Opcional) Guardar también en localStorage.user.products si hay usuario
+      if (userId) {
         try {
-            const storedProducts = getStoredProducts();
-            if (storedProducts.length > 0) {
-                set({ products: storedProducts }); 
-            } else {
-                const resp = await axios.get('https://api.sensalon.com.mx/api/productos');
-                set({ products: resp.data });
-                const user = localStorage.getItem('user');
-                if (user) {
-                    const userData = JSON.parse(user);
-                    userData.products = resp.data;
-                    localStorage.setItem('user', JSON.stringify(userData));
-                }
-            }
-        } catch (error) {
-            console.error('Error al cargar productos:', error);
-        }
+          const current = readUser() ?? {};
+          const next = { ...current, products: fresh };
+          localStorage.setItem("user", JSON.stringify(next));
+        } catch { }
+      }
+    } catch (e: any) {
+      set({
+        loading: false,
+        error:
+          e?.response?.data?.message ||
+          e?.message ||
+          "Error al refrescar productos",
+      });
     }
-}))
+  },
+
+  // 3) Auto-refresh simple
+  startAutoRefresh: (intervalMs = 5 * 60 * 1000) => {
+    const { _timerId } = get();
+    if (_timerId) window.clearInterval(_timerId);
+
+    // pinta cache inmediato y refresca ahora
+    get().fetchFromCache();
+    get().refreshFromServer();
+
+    const id = window.setInterval(() => {
+      const u = readUser();
+      if (!u) {
+        get().stopAutoRefresh();
+        return;
+      }
+      get().refreshFromServer();
+    }, intervalMs);
+
+    set({ _timerId: id as unknown as number });
+  },
+
+  stopAutoRefresh: () => {
+    const { _timerId } = get();
+    if (_timerId) {
+      window.clearInterval(_timerId);
+      set({ _timerId: null });
+    }
+  },
+}));

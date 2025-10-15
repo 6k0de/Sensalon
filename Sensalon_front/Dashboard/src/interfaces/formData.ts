@@ -3,6 +3,7 @@ import { SalonData } from "./salonData";
 
 export interface formData {
   iIdUser?: string;
+  iFIdUser?: string;
   iIdRole?: string;
   role: string;
   nombres: string;

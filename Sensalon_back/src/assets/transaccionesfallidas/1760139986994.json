@@ -1,0 +1,43 @@
+{
+  "idUser": "05351127-ef20-11ef-910f-0050562645d0",
+  "formattedProducts": [
+    {
+      "iIdProduct": "001d92fa-ee7d-11ef-910f-0050562645d0",
+      "name": "Shampoo Baby Powder",
+      "priceUnit": 185,
+      "quantity": 1,
+      "total": 185,
+      "categoryId": "{\"Categorias\":[{\"idCategoria\":\"e5625114-dcc1-11ef-9113-0050563b5fff\"},{\"idCategoria\":\"8ab08c2a-3426-4407-88aa-1d6bae800c94\"}]}",
+      "image": "/var/www/vhosts/sensalon.com.mx/api.sensalon.com.mx/assets/imagenes/1740677246047-174080907-Shampoo-Baby-Powder.jpg"
+    },
+    {
+      "iIdProduct": "00b4c059-ea3f-11ef-910f-0050562645d0",
+      "name": "Glam Pro 1.5",
+      "priceUnit": 1650,
+      "quantity": 1,
+      "total": 1650,
+      "categoryId": "{\"Categorias\":[{\"idCategoria\":\"28dfd617-dbec-4a8e-9cc2-8658306fca1b\"},{\"idCategoria\":\"e5625114-dcc1-11ef-9113-0050563b5fff\"}]}",
+      "image": "/var/www/vhosts/sensalon.com.mx/api.sensalon.com.mx/assets/imagenes/1740676441791-778825793-Glam-Pro-1.5.jpg"
+    },
+    {
+      "iIdProduct": "768b188e-7aeb-11f0-90e5-0050562645d0",
+      "name": "Vitamina C Hair Serum",
+      "priceUnit": 360,
+      "quantity": 1,
+      "total": 360,
+      "categoryId": "{\"Categorias\":[{\"idCategoria\":\"e5625114-dcc1-11ef-9113-0050563b5fff\"},{\"idCategoria\":\"8ab08c2a-3426-4407-88aa-1d6bae800c94\"}]}",
+      "image": "https://api.sensalon.com.mx/imagenes/1755381217317-390147509-VITAMIN-C-SERUM.jpg"
+    },
+    {
+      "iIdProduct": "46de1e17-7aeb-11f0-90e5-0050562645d0",
+      "name": "Vitamina C Hair Mask",
+      "priceUnit": 360,
+      "quantity": 1,
+      "total": 360,
+      "categoryId": "{\"Categorias\":[{\"idCategoria\":\"8ab08c2a-3426-4407-88aa-1d6bae800c94\"},{\"idCategoria\":\"e5625114-dcc1-11ef-9113-0050563b5fff\"}]}",
+      "image": "https://api.sensalon.com.mx/imagenes/1755381137330-814982974-VITAMIN-C-MASK.jpg"
+    }
+  ],
+  "errorMessage": "products.map is not a function",
+  "errorStack": "TypeError: products.map is not a function\n    at createOrderTransfer (/Users/w1zardsq/Documents/Proyectos/Sensalon/Sensalon_back/src/controllers/Payments/payments.ts:178:30)\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)"
+}

@@ -1,11 +1,9 @@
-import axios from "axios";
+import { api } from "../../utils/axiosClients";
 
 export const InsertCategorie = async (name: string, descripcion: string) => {
-
-    let resultado = await axios.post('http://localhost:3000/api/createcategorie', {
+    let resultado = await api.post('/createcategorie', {
         vcname: name,
         vcdescription: descripcion
     })
-    console.log('hol')
     return resultado.data
 }

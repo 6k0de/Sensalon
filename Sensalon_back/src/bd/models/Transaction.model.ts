@@ -26,6 +26,10 @@ export const TransactionModel = conn.define<Model<Transaction, TransactionCreati
         type: DataTypes.UUID,
         allowNull: false,
     },
+    iOrderPendingId: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+    },
     ishippingAddressId: {
         type: DataTypes.UUID,
         allowNull: true,

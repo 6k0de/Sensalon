@@ -6,6 +6,7 @@ import axios from "axios"
 import { TableCompanies } from "../components/Table/tableCompanies"
 import { SuccessToast } from "../components/Toast/successToast"
 import { ErrorToast } from "../components/Toast/errorToast"
+import { api } from "../utils/axiosClients"
 
 export const Companies = () => {
   const [companies, setCompanies] = useState<Companie[]>([])
@@ -20,7 +21,7 @@ export const Companies = () => {
 
   const fetchCompanies = async () => {
     try {
-      const response = await axios.get('http://localhost:3000/api/empresas')
+      const response = await api.get('/empresas')
       setCompanies(response.data)
     } catch (error) {
       console.error("Error fetching empresas:", error);

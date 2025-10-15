@@ -1,12 +1,11 @@
-import axios from "axios";
+import { api } from "../../utils/axiosClients";
 
 export const DeleteCompanies = async (id: string) => {
     try {
-        console.log('categoria a borrar: ', id);
-        const resultado = await axios.post(`http://localhost:3000/api/deletecompanies/${id}`);
+        const resultado = await api.post(`/deletecompanies/${id}`);
         return resultado.data;
     } catch (error) {
-        console.error('Error eliminando la categoria: ', error);
+        console.error('Error eliminando la compania: ', error);
         throw error; 
     }
 };

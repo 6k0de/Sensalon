@@ -8,6 +8,7 @@ import { formData } from "../../interfaces/formData";
 import { InsertUsers } from "../../services/users/insertUsers";
 import { transformToFormData } from "../../utils/transformInitialData";
 import { UpdateUsers } from "../../services/users/updateUsers";
+import { api } from "../../utils/axiosClients";
 
 export const ModalUsers = ({
   show,
@@ -57,7 +58,7 @@ export const ModalUsers = ({
       codigoPostal: "",
       direccion: "",
       rfc: "",
-      razonSocial: "",
+      vcrazonsocial: "",
       constanciaFiscal: undefined,
       empresasRelacionadas: JSON.stringify({ Empresas: [] }), // <-- agrega esto
     },
@@ -67,11 +68,11 @@ export const ModalUsers = ({
   const [RolesError, setRolesError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  
+
 
   useEffect(() => {
-    axios
-      .get("http://localhost:3000/api/roles")
+    api
+      .get("/roles")
       .then((res) => {
         setRoles(res.data);
       })
@@ -114,7 +115,7 @@ export const ModalUsers = ({
       let newFormData = {
         ...prevFormData,
         role: selectedName,
-        iIdRole: selectedId
+        iIdRole: selectedId,
       };
       // Si se selecciona Distribuidor, eliminar los datos de Salón
       if (selectedName === "Distribuidor") {
@@ -131,6 +132,7 @@ export const ModalUsers = ({
             codigoPostal: "",
             direccion: "",
             rfc: "",
+            vcrazonsocial: "",
             constanciaFiscal: undefined,
           },
           salonData: undefined, // Eliminar salonData
@@ -179,7 +181,7 @@ export const ModalUsers = ({
     console.log(initialData);
 
     if (mode === 1) {
-      formDataSend.append("p_UserId", initialData?.iIdUser || "");
+      formDataSend.append("p_UserId", initialData?.iIdUser || initialData?.iFIdUser || "");
       formDataSend.append("p_RolId", formData.iIdRole || "");
     }
 
@@ -269,8 +271,12 @@ export const ModalUsers = ({
       }
 
       formDataSend.append(
-        "distributorData[razonSocial]",
-        formData.distributorData?.razonSocial || "",
+        "distributorData[vcrazonsocial]",
+        formData.distributorData?.vcrazonsocial || "",
+      );
+      formDataSend.append(
+        "distributorData[credit]",
+            String(formData.distributorData?.credit ?? ""),
       );
     }
 

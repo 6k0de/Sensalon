@@ -43,7 +43,6 @@ export const getAllSalons = async (_: Request, res: Response) => {
 export const getAllUsersN = async (_: Request, res: Response) => {
   const usersData = await conn.query("CALL GetUserPerfilInfo()");
   if (usersData) {
-    console.log(usersData);
     res.status(200).json({
       value: 1,
       message: "Usuarios obtenidos con exito",
@@ -57,6 +56,26 @@ export const getAllUsersN = async (_: Request, res: Response) => {
     });
   }
 };
+
+export const getProductsByUserId = async (req: Request, res: Response) => {
+  const { id } = req.params
+
+  try {
+    const result: any = await conn.query(
+      "CALL GetRolUserLogin(:p_idUser)",
+      { replacements: { p_idUser: id } }
+    );
+
+    const rows =
+      Array.isArray(result) && Array.isArray(result[0]) ? result[0] :
+        Array.isArray(result) ? result : [];
+
+    return res.json({ products: rows });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "No se pudieron obtener productos" });
+  }
+}
 
 export const CreateUser = async (req: Request, res: Response) => {
   const salt = 12;
@@ -109,9 +128,9 @@ export const CreateUser = async (req: Request, res: Response) => {
         : null,
       p_vcdistributorData: distributorData
         ? JSON.stringify({
-            ...distributorData,
-            constanciaFiscal: constanciaFiscalPath,
-          })
+          ...distributorData,
+          constanciaFiscal: constanciaFiscalPath,
+        })
         : null,
     };
 
@@ -147,7 +166,13 @@ export const CreateUser = async (req: Request, res: Response) => {
   }
 };
 
+
+
 export const UpdateUser = async (req: Request, res: Response) => {
+  const BCRYPT_RE = /^\$2[aby]\$\d{2}\$[./A-Za-z0-9]{53}$/;
+
+  const looksLikeBcrypt = (s?: string) =>
+    typeof s === "string" && BCRYPT_RE.test(s);
   const salt = 12;
   const {
     p_UserId,
@@ -181,14 +206,45 @@ export const UpdateUser = async (req: Request, res: Response) => {
       logoPath = `/assets/logos/${req.files["logoSalon"][0].filename}`;
     }
   }
-  let newPassword;
-  if (password === "") {
-    console.log("Antes de encriptar", password);
-    newPassword = null;
-    console.log("despues de encriptar", newPassword);
-  } else {
-    newPassword = await bcrypt.hash(password, salt);
+  const [[row]]: any = await conn.query(
+    "SELECT vcpassword FROM users WHERE iIdUser = :id",
+    { replacements: { id: p_UserId } }
+  );
+  const existingHash = row?.vcpassword ?? null;
+
+  let passwordToSave = existingHash; // default: conservar
+
+  // 🔒 2️⃣ Lógica de comparación segura
+  if (password && password.trim() !== "") {
+    if (looksLikeBcrypt(password)) {
+      // Front mandó un hash
+      if (existingHash && password === existingHash) {
+        // mismo hash -> sin cambio
+        passwordToSave = existingHash;
+      } else {
+        // hash distinto -> ACEPTAR hash del cliente tal cual (no re-hashear)
+        // Si prefieres ignorar hashes distintos: usa passwordToSave = existingHash;
+        passwordToSave = password;
+      }
+    } else {
+      // Parece texto plano
+      if (existingHash) {
+        const same = await bcrypt.compare(password, existingHash);
+        passwordToSave = same ? existingHash : await bcrypt.hash(password, salt);
+      } else {
+        passwordToSave = await bcrypt.hash(password, salt);
+      }
+    }
   }
+
+  const rawCredit = distributorData?.credit ?? undefined;
+  const creditRequested =
+    rawCredit === undefined || rawCredit === null
+      ? undefined
+      : Math.max(0, Number(rawCredit) || 0);
+
+  console.log({ rawCredit })
+
   try {
     const parameters = {
       p_UserId,
@@ -196,41 +252,46 @@ export const UpdateUser = async (req: Request, res: Response) => {
       p_vcfirstname: nombres,
       p_vclastname: apellidos,
       p_vcusername: username,
-      p_vcpassword: newPassword,
+      p_vcpassword: passwordToSave,
       p_vcemail: email,
       p_vcdistributorData: distributorData
         ? JSON.stringify({
-            ...distributorData,
-            constanciaFiscal: constanciaFiscalPath,
-          })
+          ...distributorData,
+          constanciaFiscal: constanciaFiscalPath,
+        })
         : null,
       p_vcsalonData: salonData
         ? JSON.stringify({ ...salonData, logo: logoPath })
         : null,
     };
-    console.log("hola", parameters);
-    await conn
-      .query(
-        "CALL UserUpdate(:p_UserId, :p_RolId ,:p_vcfirstname, :p_vclastname, :p_vcusername, :p_vcpassword, :p_vcemail, :p_vcdistributorData, :p_vcsalonData)",
-        { replacements: parameters },
-      )
-      .then((result) => {
-        console.log(result);
-        const jsonString = (result[0] as unknown as { resultado: string })
-          .resultado;
-        const parsedResult = JSON.parse(jsonString); // Parsear el JSON
-        // Acceder al valor de "Actualizado"
-        const actualizado = parsedResult.Actualizado;
-        if (actualizado === "0") {
-          // Comparar como string
-          res.send({ valor: 0, message: "Usuario actualizado exitosamente" });
-        } else {
-          res.send({ valor: 1, message: "Error al actualizar usuario" });
-        }
-      })
-      .catch((error) => {
-        res.send({ valor: 2, message: error });
-      });
+    const sPResult = await conn.query("CALL UserUpdate(:p_UserId, :p_RolId ,:p_vcfirstname, :p_vclastname, :p_vcusername, :p_vcpassword, :p_vcemail, :p_vcdistributorData, :p_vcsalonData)",
+      { replacements: parameters },
+    )
+    const jsonString = (sPResult[0] as unknown as { resultado: string }).resultado;
+    const parsedResult = JSON.parse(jsonString || '{}'); // Parsear el JSON
+    // Acceder al valor de "Actualizado"
+    const actualizado = parsedResult.Actualizado;
+
+    if (actualizado === "0") {
+      // Comparar como string
+      if (creditRequested !== undefined) {
+        await conn.query(
+          `
+          UPDATE credits
+             SET totalamount = :amt,
+                 dtUpdate   = NOW()
+           WHERE iFIdUser = :uid
+             AND state = 0
+           LIMIT 1
+        `,
+          { replacements: { amt: creditRequested, uid: p_UserId } }
+        );
+      }
+
+      res.send({ valor: 0, message: "Usuario actualizado exitosamente" });
+    } else {
+      res.send({ valor: 1, message: "Error al actualizar usuario" });
+    }
   } catch (err) {
     console.error(err);
     res.status(500).json({
@@ -308,3 +369,21 @@ export const deleteUsersDistributor = async (req: Request, res: Response) => {
     });
   }
 };
+
+export const getOrdersByUserdId = async (req: Request, res: Response) => {
+  const { id } = req.params
+
+  try {
+    const parameters = {
+      p_UserId: id,
+    }
+    const result = await conn.query('CALL GetUserTransactionsWithShipping(:p_UserId)', { replacements: parameters })
+    res.status(200).json({ value: 0, message: "Ordenes encontradas", data: result })
+  } catch (error) {
+    res.status(500).json({
+      value: 1,
+      message: "Error al intentar obtener las ordenes",
+      error,
+    });
+  }
+}

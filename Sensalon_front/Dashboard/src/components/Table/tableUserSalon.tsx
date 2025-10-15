@@ -52,8 +52,6 @@ export const TableUserSalon = ({
       setTimeout(() => setShowToast(false), 3000);
     }
   };
-  console.log(fetch);
-  console.log(handleEdit);
   return (
     <>
       {/* Mostrar toasts si hay un mensaje */}

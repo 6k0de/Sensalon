@@ -3,6 +3,8 @@ import { Eye, EyeOff, User } from 'lucide-react';
 import { LoginServices } from '../../services/Auth/login';
 import { SuccessToast } from '../Toast/successToast';
 import { ErrorToast } from '../Toast/errorToast';
+import { Link } from 'react-router-dom';
+import { useCartStore } from '../../hooks/useCartStore';
 
 export const LoginForm = () => {
     const [showPassword, setShowPassword] = useState(false);
@@ -17,21 +19,22 @@ export const LoginForm = () => {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-
         // Resetea los toasts
         setShowSuccessToast(false);
         setShowErrorToast(false);
 
         // Llamada al servicio de inicio de sesión
         const result = await LoginServices({ username, password });
-
+        console.log(result)
         if (result.value === 0) {
-            setToastMessage(result.data.message);
+            setToastMessage(result.message);
             setShowSuccessToast(true);
             // Redirigir si es exitoso
+            const user = result.data.user ?? result.data
+            await useCartStore.getState().setCartFromBackend(user.iIdUser);
             setTimeout(() => {
                 setShowSuccessToast(false);
-                window.location.href = '/'; // Redirigir a la página principal
+                //window.location.href = '/'; // Redirigir a la página principal
             }, 1500);
         } else {
             // Mostrar toast de error
@@ -51,10 +54,10 @@ export const LoginForm = () => {
             </div>
             <div className="min-h-screen bg-gray-100 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
                 <div className="sm:mx-auto sm:w-full sm:max-w-md">
-                    <h1 className="text-center text-4xl font-extrabold text-gray-900 mb-2">SENSALON</h1>
-                    <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">Bienvenido de vuelta!</h2>
+                    <img src="/img/SENSALON.png" alt="" className='w-[20rem] h-[11rem] object-cover mx-auto' />
+                    <h2 className="text-center text-3xl font-extrabold text-gray-900">Bienvenido de vuelta!</h2>
                     <p className="mt-2 text-center text-sm text-gray-600 max-w">
-                        Inicia session para continuar con tu viaje hacia el cuidado personal'
+                        Inicia sesión para continuar con tu viaje hacia el cuidado capilar.
                     </p>
                 </div>
 
@@ -119,9 +122,9 @@ export const LoginForm = () => {
                             <div className="flex items-center justify-between">
 
                                 <div className="text-sm">
-                                    <a href="#" className="font-medium text-black hover:text-gray-800">
+                                    <Link to="/forgot-password" className="font-medium text-black hover:text-gray-800">
                                         Olvidaste tu contraseña?
-                                    </a>
+                                    </Link>
                                 </div>
                             </div>
 
@@ -132,7 +135,7 @@ export const LoginForm = () => {
                                 >
                                     Iniciar Sesión
                                 </button>
-                    
+
                             </div>
                         </form>
 
@@ -142,7 +145,7 @@ export const LoginForm = () => {
 
                 <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
                     <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
-                        <h3 className="text-lg font-medium text-gray-900 mb-4">Nuevo En SENSALON</h3>
+                        <h3 className="text-lg font-medium text-gray-900 mb-4">Nuevo En <span style={{ fontFamily: "SilverStreak" }}>SENSALON</span></h3>
                         <p className="text-sm text-gray-600 mb-4">
                             Unete a nosotros y comienza a descubrir la belleza que llevas dentro
                         </p>

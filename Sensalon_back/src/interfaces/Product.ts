@@ -16,3 +16,9 @@ export interface Product {
     dtupdate?: Date | null;
     dtdeletion?: Date | null;
 }
+
+export interface CartItem {
+  product: Product;
+  quantity: number;
+  total: number;
+}

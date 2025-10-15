@@ -5,12 +5,16 @@ import { useCompanieStore } from "../hooks/useCompanieStore";
 import BannerSlider from "../components/Banner/banner";
 import { api } from "../utils/axiosClients";
 import { ProductCard } from "../components/ProductCard/productCard";
+import { isDistributorUser, readUser } from "../helpers/detectedUserRole";
 
 export const Home = () => {
-    const { products, fetchProducts } = useProductStore()
+    const { products, startAutoRefresh, stopAutoRefresh, fetchFromCache, refreshFromServer } = useProductStore();
     const { categories, fetchCategories } = useCategorieStore()
     const { companies, fetchCompanies } = useCompanieStore()
     const [sliderImages, setSliderImages] = useState([])
+
+    const user = readUser();
+    const isDistributor = isDistributorUser(user?.user);
 
     const getAllSliderImage = async () => {
         const image = await api.get('/sliderImage')
@@ -22,15 +26,25 @@ export const Home = () => {
     }, [])
 
     useEffect(() => {
+        fetchFromCache();            // pinta lo que haya en localStorage
+        startAutoRefresh(5 * 60 * 1000); // 5 minutos
+        return () => stopAutoRefresh();
+    }, [fetchFromCache, startAutoRefresh, stopAutoRefresh]);
+
+    useEffect(() => {
+        refreshFromServer()
+    }, [])
+
+    useEffect(() => {
         const loadData = async () => {
             await Promise.all([
-                products.length === 0 && fetchProducts(),
+
                 categories.length === 0 && fetchCategories(),
                 companies.length === 0 && fetchCompanies()
             ])
         }
         loadData()
-    }, [products.length, categories.length, companies.length])
+    }, [categories.length, companies.length])
 
     console.log(products)
 
@@ -75,21 +89,34 @@ export const Home = () => {
                     <h2 className="text-3xl  font-bold mb-2">Nuevos Productos</h2>
                     <p>Nuestros últimos productos para el cuidado del cuerpo y el cabello, pensados para ti.</p>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mt-8">
-                        {productsNuevos.map((product) => {
+                        {isDistributor && products.length === 0 ? (
+                            <div className="col-span-full flex items-center justify-center text-center bg-yellow-50 rounded-2xl p-8 sm:p-10">
+                                <div className=" rounded-xl p-4 text-yellow-900">
+                                    <p>
+                                        No se encuentran productos porque tu cuenta de <strong>Distribuidor</strong> aún no tiene marcas asignadas.
+                                        Contacta a un administrador.
+                                    </p>
+                                </div>
+                            </div>
+                        ) : (
+                            <>
+                                {productsNuevos.map((product) => {
 
-                            const normalizedPath = product?.vcphoto
-                                ?.replace(/\\/g, "/")
-                                .split("/imagenes/")[1];
-                            const imageUrl = `https://api.sensalon.com.mx/imagenes/${normalizedPath}`;
+                                    const normalizedPath = product?.vcphoto
+                                        ?.replace(/\\/g, "/")
+                                        .split("/imagenes/")[1];
+                                    const imageUrl = `https://api.sensalon.com.mx/imagenes/${normalizedPath}`;
 
-                            return (
-                                <ProductCard
-                                    key={product.iIdProduct}
-                                    product={{ ...product, vcphoto: imageUrl }}
-                                    isNew
-                                />
-                            )
-                        })}
+                                    return (
+                                        <ProductCard
+                                            key={product.iIdProduct}
+                                            product={{ ...product, vcphoto: imageUrl }}
+                                            isNew
+                                        />
+                                    )
+                                })}
+                            </>
+                        )}
                     </div>
                 </div>
             </section>
@@ -99,20 +126,33 @@ export const Home = () => {
                     <h2 className="text-3xl font-bold">Más Vendidos</h2>
                     <p>Nuestros productos más populares, preferidos por nuestros clientes</p>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mt-8">
-                        {productsTopVentas.map((product) => {
-                            const normalizedPath = product?.vcphoto
-                                ?.replace(/\\/g, "/")
-                                .split("/imagenes/")[1];
-                            const imageUrl = `https://api.sensalon.com.mx/imagenes/${normalizedPath}`;
+                        {isDistributor && products.length === 0 ? (
+                            <div className="col-span-full flex items-center justify-center text-center bg-yellow-50 rounded-2xl p-8 sm:p-10">
+                                <div className="rounded-xl p-4 text-yellow-900">
+                                    <p>
+                                        No se encuentran productos porque tu cuenta de <strong>Distribuidor</strong> aún no tiene marcas asignadas.
+                                        Contacta a un administrador.
+                                    </p>
+                                </div>
+                            </div>
+                        ) : (
+                            <>
+                                {productsTopVentas.map((product) => {
+                                    const normalizedPath = product?.vcphoto
+                                        ?.replace(/\\/g, "/")
+                                        .split("/imagenes/")[1];
+                                    const imageUrl = `https://api.sensalon.com.mx/imagenes/${normalizedPath}`;
 
-                            return (
-                                <ProductCard
-                                    key={product.iIdProduct}
-                                    product={{ ...product, vcphoto: imageUrl }}
-                                    isBestSeller
-                                />
-                            );
-                        })}
+                                    return (
+                                        <ProductCard
+                                            key={product.iIdProduct}
+                                            product={{ ...product, vcphoto: imageUrl }}
+                                            isBestSeller
+                                        />
+                                    );
+                                })}
+                            </>
+                        )}
                     </div>
                 </div>
             </section>

@@ -7,6 +7,7 @@ import { SuccessToast } from "../Toast/successToast";
 import { ErrorToast } from "../Toast/errorToast";
 import { Spinner } from "../Spinner/spinner";
 import { ModalSuccesCancel } from "../Modals/modal.acceptcancel";
+import { BASE_URL_IMAGE } from "../../utils/axiosClients";
 
 export const TableProducts = ({ encabezados, data, fetch, outofstock, handleEdit }: { encabezados: string[], data: Product[] | any, fetch: { (): void } | null, outofstock: string | '', setShowModal: any, showModal: any, handleEdit: (product: Product) => void }) => {
     const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -90,7 +91,7 @@ export const TableProducts = ({ encabezados, data, fetch, outofstock, handleEdit
                                     : null;
                                 // Construir la URL completa de la imagen
                                 const imageUrl = normalizedPath
-                                    ? `http://localhost:3000/imagenes/${normalizedPath}`
+                                    ? `${BASE_URL_IMAGE}/${normalizedPath}`
                                     : 'ruta-imagen-por-defecto'; // Usa una imagen por defecto si vcphoto es nulo
 
                                 return (

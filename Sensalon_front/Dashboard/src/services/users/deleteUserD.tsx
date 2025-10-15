@@ -1,7 +1,7 @@
-import axios from "axios";
+import { api } from "../../utils/axiosClients";
 
 export const deleteUserDistributor = async (id: string) => {
   return (
-    await axios.delete(`http://localhost:3000/api/deleteuserdistributor/${id}`)
+    await api.delete(`/deleteuserdistributor/${id}`)
   ).data;
 };

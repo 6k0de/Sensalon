@@ -1,9 +1,9 @@
-import axios from "axios";
+import { api } from "../../utils/axiosClients";
 
 export const deleteSliderImages = async (id: string) => {
   try {
-    const response = await axios.delete(
-      `http://localhost:3000/api/sliderImage/${id}`,
+    const response = await api.delete(
+      `/sliderImage/${id}`,
     );
     return response.data;
   } catch (error: any) {

@@ -9,6 +9,7 @@ export interface User {
     vcusername: string;
     vcpassword: string;
     vcemail: string;
+    cashbackbalance: number;
     dtcreation?: Date;
     dtupdate?: Date;
     salonData?: Salon;

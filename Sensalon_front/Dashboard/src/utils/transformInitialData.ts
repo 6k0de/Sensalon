@@ -3,6 +3,7 @@ import { formData } from "../interfaces/formData";
 export const transformToFormData = (raw: any): formData => {
   console.log(raw)
   const base: formData = {
+    iIdUser: raw.iIdUser || "",
     role: raw.role || raw.vctyperole || "",
     iIdRole: raw.iIdRole || "",
     nombres: raw.nombres || "",
@@ -39,6 +40,8 @@ export const transformToFormData = (raw: any): formData => {
       direccion: raw.direccion || "",
       rfc: raw.rfc || "",
       constanciaFiscal: raw.constanciaFiscal || undefined,
+      vcrazonsocial: raw.vcrazonsocial || "",
+      credit: raw.credit || undefined,
       empresasRelacionadas:
         raw.empresasRelacionadas ??
         (raw.companies_ids_array

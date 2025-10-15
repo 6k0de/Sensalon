@@ -1,9 +1,9 @@
-import axios from "axios";
+import { api } from "../../utils/axiosClients";
 
 export const InsertUsers = async (formData: FormData) => {
   console.log(formData);
-  const resultado = await axios.post(
-    "http://localhost:3000/api/createuser",
+  const resultado = await api.post(
+    "/createuser",
     formData,
     {
       headers: {

@@ -1,9 +1,10 @@
 import axios from "axios";
+import { api } from "../../utils/axiosClients";
 
 export const uploadSliderImage = async (formData: FormData) => {
   try {
-    const response = await axios.post(
-      "http://localhost:3000/api/slider",
+    const response = await api.post(
+      "/slider",
       formData,
       {
         headers: {

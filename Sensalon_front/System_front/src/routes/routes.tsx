@@ -7,6 +7,15 @@ import { ProductDetail } from "../pages/ProductDetail";
 import { ShoppingCar } from "../pages/ShoppingCar";
 import { RegisterForm } from "../components/Auths";
 import { Salons } from "../pages/Salons";
+import { ForgotPassword } from "../components/Auths/PasswordRecovery/forgotPassword";
+import { VerifyToken } from "../components/Auths/PasswordRecovery/verifyCode";
+import { ResetPassword } from "../components/Auths/PasswordRecovery/resetPassword";
+import { PasswordResetSuccess } from "../components/Auths/PasswordRecovery/passwordSucces";
+import { ProtectedRoute } from "./ProtectedRout";
+import { PublicRoute } from "./PublicRoute";
+import { MyCredit } from "../pages/MyCredit";
+import { MyOrders } from "../pages/MyOrders";
+import { PaymentReviewInfo } from "../pages/PendingPaymentTransfer";
 
 export const AppRoutes = () => {
     return (
@@ -17,13 +26,65 @@ export const AppRoutes = () => {
                     <Route path="/" element={<Home key={window.location.pathname} />} />
                     <Route path="/productos" element={<ProductosView key={window.location.pathname} />} />
                     <Route path="/salons" element={<Salons key={window.location.pathname} />} />
-                    <Route path="/carrito" element={<ShoppingCar key={window.location.pathname} />} />
+                    <Route
+                        path="/carrito"
+                        element={
+                            <ProtectedRoute>
+                                <ShoppingCar key={window.location.pathname} />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="/myCredit"
+                        element={
+                            <ProtectedRoute>
+                                <MyCredit key={window.location.pathname} />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="/myOrders"
+                        element={
+                            <ProtectedRoute>
+                                <MyOrders key={window.location.pathname} />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route 
+                        path="/transferPending"
+                        element={
+                            <ProtectedRoute>
+                                <PaymentReviewInfo key={window.location.pathname} />
+                            </ProtectedRoute>
+                        }
+                    />
                     <Route path="/productDetail/:id" element={<ProductDetail key={window.location.pathname} />} />
                     <Route path="/terminos" element={<Terms key={window.location.pathname} />} />
                     <Route path="/avisoprivacidad" element={<Privacy key={window.location.pathname} />} />
                 </Route>
-                <Route path="/login" element={<Auth key={window.location.pathname} />} />
-                <Route path="/register" element={<RegisterForm key={window.location.pathname} />} />
+
+                {/* Auth */}
+                <Route
+                    path="/login"
+                    element={
+                        <PublicRoute>
+                            <Auth key={window.location.pathname} />
+                        </PublicRoute>
+                    } />
+                <Route
+                    path="/register"
+                    element={
+                        <PublicRoute>
+                            <RegisterForm key={window.location.pathname} />
+                        </PublicRoute>
+                    } />
+
+                {/* Password Recovery Flow */}
+                <Route path="/forgot-password" element={<ForgotPassword key={window.location.pathname} />} />
+                <Route path="/verify-token" element={<VerifyToken key={window.location.pathname} />} />
+                <Route path="/reset-password" element={<ResetPassword key={window.location.pathname} />} />
+                <Route path="/password-reset-success" element={<PasswordResetSuccess key={window.location.pathname} />} />
+
             </Routes>
         </Router>
     );

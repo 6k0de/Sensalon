@@ -1,8 +1,8 @@
-import axios from "axios";
+import { api } from "../../utils/axiosClients";
 
 export const UpdateProduct = async (formData: FormData) => {
     
-    let resultado = await axios.post('http://localhost:3000/api/actualizarproducto', formData, {
+    let resultado = await api.post('/actualizarproducto', formData, {
         headers: {
             'Content-Type': 'multipart/form-data'
         }

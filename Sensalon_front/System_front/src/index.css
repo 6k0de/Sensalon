@@ -2,6 +2,14 @@
 @tailwind components;
 @tailwind utilities;
 
+@font-face {
+  font-family: "SilverStreak";
+  src: url("/font/Silver%20Streak%20Expanded%20Light.otf") format("opentype");
+  font-weight: 300;            /* ajusta si quieres */
+  font-style: normal;
+  font-display: swap;         /* evita bloqueos de renderizado */
+}
+
 @keyframes scroll {
   0% {
     transform: translateX(0);
@@ -31,6 +39,7 @@
   0% {
     transform: rotate(0deg);
   }
+
   100% {
     transform: rotate(360deg);
   }

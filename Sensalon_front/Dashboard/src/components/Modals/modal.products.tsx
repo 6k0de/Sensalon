@@ -6,6 +6,7 @@ import { Categorie } from "../../interfaces/categories";
 import { InsertProducts } from "../../services/products/InsertProducts";
 import { Product } from "../../interfaces/products";
 import { UpdateProduct } from "../../services/products/updateProduct";
+import { api, BASE_URL_IMAGE } from "../../utils/axiosClients";
 
 export const ModalProduct = ({ show, onClose, data, mode }: { show: boolean, onClose: (message: string, type: "success" | "error" | null) => void, data: Product | any, mode: number }) => {
     // en la variable mode, 0 = creando y 1 = editando
@@ -33,14 +34,13 @@ export const ModalProduct = ({ show, onClose, data, mode }: { show: boolean, onC
     const [showDropdown, setShowDropdown] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
 
-
     useEffect(() => {
         axios.all([
-            axios.get('http://localhost:3000/api/empresas').catch((error) => {
+            api.get('/empresas').catch((error) => {
                 setEmpresasError("Error al obtener empresas: " + error.message);
                 return null;
             }),
-            axios.get('http://localhost:3000/api/categorias').catch((error) => {
+            axios.get('/categorias').catch((error) => {
                 setCategoriasError('Error al obtener las categorias' + error.message)
                 return null
             })
@@ -67,7 +67,7 @@ export const ModalProduct = ({ show, onClose, data, mode }: { show: boolean, onC
             }
             if (data?.vcphoto) {
                 const normalizedPath = data?.vcphoto.replace(/\\/g, '/').split('/imagenes/')[1];
-                const imageurl = `http://localhost:3000/imagenes/${normalizedPath}`;
+                const imageurl = `${BASE_URL_IMAGE}/${normalizedPath}`;
                 setImagePreview(imageurl);
             } else {
                 setImagePreview(null);

@@ -39,6 +39,11 @@ vclastname: {
     allowNull: false,
     unique: true,
   },
+  cashbackbalance: {
+    type: DataTypes.DECIMAL(10, 2),
+    defaultValue: 0.00,
+    allowNull: false,
+  },
   dtcreation: {
     type: DataTypes.DATE,
     defaultValue: DataTypes.NOW,

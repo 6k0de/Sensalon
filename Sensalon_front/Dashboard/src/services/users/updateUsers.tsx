@@ -1,8 +1,8 @@
-import axios from "axios";
+import { api } from "../../utils/axiosClients";
 
 export const UpdateUsers = async (formData: FormData) => {
-  const resultado = await axios.put(
-    "http://localhost:3000/api/updateuser",
+  const resultado = await api.put(
+    "/updateuser",
     formData,
     {
       headers: {
