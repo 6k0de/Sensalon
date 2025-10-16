@@ -109,7 +109,7 @@ export const BankConfiguration = () => {
   const formataccountnumber = (value: string): string => {
     return value.replace(/\D/g, "");
   };
-  const handleInputChange = (name: keyof BankAccountData, value: string) => {
+  const handleInputChange = (name: keyof BankAccountData, value: any) => {
     let formattedValue = value;
     if (name === "cardnumber") {
       formattedValue = formatcardnumber(value);
