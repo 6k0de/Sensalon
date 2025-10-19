@@ -40,7 +40,7 @@ export const ModalProduct = ({ show, onClose, data, mode }: { show: boolean, onC
                 setEmpresasError("Error al obtener empresas: " + error.message);
                 return null;
             }),
-            axios.get('/categorias').catch((error) => {
+            api.get('/categorias').catch((error) => {
                 setCategoriasError('Error al obtener las categorias' + error.message)
                 return null
             })
@@ -315,8 +315,8 @@ export const ModalProduct = ({ show, onClose, data, mode }: { show: boolean, onC
                                             className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-xl focus:ring-primary-500 focus:border-primary-500 w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500 flex justify-between items-center"
                                         >
                                             <p className="text-start">
-                                                {selectedCategories.Categorias.length > 0
-                                                    ? selectedCategories.Categorias
+                                                {selectedCategories?.Categorias?.length > 0
+                                                    ? selectedCategories?.Categorias
                                                         .map(catObj => categorias.find(c => c.iIdCategory === catObj.idCategoria)?.vcname)
                                                         .join(', ')
                                                     : "Seleccione las categorías"}

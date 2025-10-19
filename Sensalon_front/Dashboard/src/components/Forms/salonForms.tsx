@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from "react";
 import { Service } from "../../interfaces/services";
-import axios from "axios";
 import { FaChevronDown } from "react-icons/fa6";
 import { formData } from "../../interfaces/formData";
 import { api } from "../../utils/axiosClients";

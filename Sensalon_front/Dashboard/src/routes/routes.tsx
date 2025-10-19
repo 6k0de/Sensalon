@@ -4,13 +4,13 @@ import { Home } from "../pages/Home";
 import { Products } from "../pages/Products";
 import { Companies } from "../pages/Companies";
 import { Users } from "../pages/Users";
-import { Categories } from "../pages/Categories";
 import { ProtectedRoute } from "./ProtectedRoute"; // Importar el componente de ruta protegida
 import { LoginAuth } from "../pages/Auth";
 import { Transactions } from "../pages/Transactions";
 import { Slider } from "../pages/Slider";
 import { BankConfiguration } from "../pages/BankConfiguration";
 import { Suppliers } from "../pages/Suppliers";
+import { Categories } from "../pages/Categories";
 
 export const AppRoutes = () => {
   return (
@@ -73,6 +73,16 @@ export const AppRoutes = () => {
             <ProtectedRoute>
               <Layout>
                 <Suppliers />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route 
+          path="/categorias"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <Categories />
               </Layout>
             </ProtectedRoute>
           }

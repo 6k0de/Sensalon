@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react"
 import { ModalCategories } from "../components/Modals/modal.categories"
 import { Categorie } from "../interfaces/categories"
-import axios from "axios"
 import { TableCategories } from "../components/Table/tableCategories"
 import { SuccessToast } from "../components/Toast/successToast"
 import { ErrorToast } from "../components/Toast/errorToast"

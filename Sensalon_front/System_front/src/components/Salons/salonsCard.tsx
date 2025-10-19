@@ -5,7 +5,7 @@ interface SalonCardProps {
 }
 export const SalonCard: React.FC<SalonCardProps> = ({ salon }) => {
     console.log(salon)
-    const { nombreSalon, direccion, telefono, horaApertura, horaCierre, correo } =
+    const { nombreSalon, direccion, telefono, horaApertura, horaCierre } =
         salon
     const direccionCompleta = `${direccion}`
     // Generar un color de fondo basado en el nombre del salón para diferenciarlos visualmente

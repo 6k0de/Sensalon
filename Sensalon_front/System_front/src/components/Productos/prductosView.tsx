@@ -319,6 +319,16 @@ export const ProductosView = () => {
                                         const normalizedPath = product?.vcphoto?.replace(/\\/g, "/").split("/imagenes/")[1];
                                         const imageUrl = `https://api.sensalon.com.mx/imagenes/${normalizedPath}`;
                                         const isNew = isNewProduct(product.dtcreated);
+                                        console.log(isNew)
+                                        const i = product?.istock ?? 0;
+                                        const lim = product?.istocklimit ?? 0;
+                                        console.log(visibleItems)
+                                        const cls =
+                                            i === 0
+                                                ? 'bg-red-50 border border-red-200 text-red-700'
+                                                : i <= lim
+                                                    ? 'bg-yellow-50 border border-yellow-200 text-yellow-700'
+                                                    : 'bg-green-50 border border-green-200 text-green-700';
                                         return (
                                             <div className="bg-white rounded-lg shadow-md overflow-hidden group cursor-pointer transform transition duration-300 ease-in-out hover:scale-105">
                                                 <a href={`/productDetail/${product.iIdProduct}`} rel="noopener noreferrer">
@@ -333,7 +343,13 @@ export const ProductosView = () => {
                                                         </span>
                                                     )}
                                                     <div className="p-4">
-                                                        <h3 className="font-medium mb-1 text-lg text-nowrap">{product.vcname}</h3>
+                                                        <div className="flex flex-row justify-between items-center">
+                                                            <h3 className="font-medium mb-1 text-lg text-nowrap">{product.vcname}</h3>
+                                                            <p className={`text-xs mt-1 font-medium rounded-full p-2 border ${cls}`}>
+                                                                {i === 0 ? 'Sin stock' : `En stock`}
+                                                            </p>
+                                                        </div>
+
                                                         <p className="text-md text-red-700 font-bold">${product.decprice1 ?? product.decprice2 ?? product.decprice3 ?? 'Precio no disponible'}</p>
                                                     </div>
 
@@ -341,7 +357,7 @@ export const ProductosView = () => {
                                                 {/* Botones de acción */}
                                                 <div className="p-4">
                                                     <button
-                                                        className="w-full bg-gray-200 py-2 text-black rounded-lg hover:bg-gray-300 transition duration-300"
+                                                        className="w-full bg-gray-700 py-2 text-white rounded-lg hover:bg-gray-900 transition duration-300"
                                                         onClick={() => addToCart(product)}
                                                     >
                                                         Agregar al carrito

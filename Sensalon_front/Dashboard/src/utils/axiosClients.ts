@@ -1,8 +1,9 @@
 import axios from "axios";
 
-export const BASE_URL = 'http://localhost:3000';
-export const BASE_URL_IMAGE = 'http://localhost:3000/imagenes';
-export const BASE_URL_FILES = 'http://localhost:3000/api';
+export const BASE_URL = 'https://test-api.sensalon.com.mx'; //http://localhost:3000
+export const BASE_URL_IMAGE = 'https://test-api.sensalon.com.mx/imagenes'; //http://localhost:3000/imagenes
+export const BASE_URL_FILES = 'https://test-api.sensalon.com.mx/api'; //http://localhost:3000/api
+
 
 export const api = axios.create({
     baseURL: `${BASE_URL}/api`,

@@ -38,6 +38,14 @@ export const ProductCard = ({
         addToCart(product);
     };
 
+    const i = product?.istock ?? 0;
+    const lim = product?.istocklimit ?? 0;
+    const cls =
+        i === 0
+            ? 'bg-red-50 border border-red-200 text-red-700'
+            : i <= lim
+                ? 'bg-yellow-50 border border-yellow-200 text-yellow-700'
+                : 'bg-green-50 border border-green-200 text-green-700';
     return (
         <div className="flex flex-col rounded-xl transition">
             <a
@@ -82,9 +90,15 @@ export const ProductCard = ({
                     <p className="text-sm uppercase font-medium text-gray-500">
                         {companyName}
                     </p>
-                    <h3 className="text-lg font-medium mt-1 mb-2 line-clamp-2">
-                        {product.vcname}
-                    </h3>
+                    <div className="flex flex-row justify-between items-center">
+                        <h3 className="text-lg font-medium mt-1 mb-2 line-clamp-2">
+                            {product.vcname}
+                        </h3>
+                        <p className={`text-xs font-medium p-2 rounded-full ${cls}`}>
+                            {i === 0 ? 'Sin stock' : `En stock`}
+                        </p>
+                    </div>
+
                     <span className="text-red-700 text-md font-bold text-lg mb-2 block">
                         $
                         {Number(

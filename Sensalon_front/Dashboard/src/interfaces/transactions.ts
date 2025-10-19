@@ -1,4 +1,4 @@
-interface ProductItem {
+export interface ProductItem {
   iIdProduct: string
   name: string;
   quantity: number;

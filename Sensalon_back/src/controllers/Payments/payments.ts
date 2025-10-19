@@ -2,7 +2,7 @@ import MercadoPagoConfig, { Preference } from "mercadopago"
 import dotenv from "dotenv"
 import { Request, Response } from "express"
 import { validateOrCreateShipping } from "./validateAddres"
-import { CartItem } from "../../interfaces/Product"
+import { CartItem, Product } from "../../interfaces/Product"
 import { Users } from "../../bd/models/Users.model"
 import { CreateOrderPending } from "../../bd/models/OrderPending.model"
 import { ShippingAddresModel } from "../../bd/models/ShippingAdd.model"
@@ -14,14 +14,21 @@ import { Credit } from "../../bd/models/Credits.model"
 import { buildTransactionHtml } from "../../helpers/buildTransactionHtml"
 import { transporter } from "../nodemailer/config"
 import { formatProducts } from "../../helpers/formatProducts"
-import { Vexor } from "vexor"
-import {vexor} from '../../lib/vexor'
+import { Products } from "../../bd/models/Products.model"
+import { Op } from "sequelize"
+import conn from "../../bd/config/config"
+import { InventoryReservationModel } from "../../bd/models/InventoryReservation.model"
+
 dotenv.config()
 
 const client = new MercadoPagoConfig({
     accessToken: process.env.MERCADO_PAGO_ACCESS_TOKEN || "",
 })
+
+const RESERVATION_TTL_HOURS = 24;
+
 export const createOrderMercadoPago = async (req: Request, res: Response) => {
+    const BASE_URL_BACK = 'test-api.sensalon.com.mx/payments'
     try {
         const { products, email, idUser, shipping, addCredit, credit, useCashback, cashback, envio } = req.body
         let finalShippingaddresId = await validateOrCreateShipping(shipping, idUser)
@@ -92,20 +99,20 @@ export const createOrderMercadoPago = async (req: Request, res: Response) => {
         // 5. Preferencia
         console.log(process?.env?.MERCADO_PAGO_ACCESS_TOKEN)
         const preferenceClient = new Preference(client);
-         const response = await preferenceClient.create({
+        const response = await preferenceClient.create({
             body: {
                 items,
                 payer: { email: email || user.dataValues.vcemail },
                 back_urls: {
-                    success: `http://localhost:3000/payments/success?orderId=${preOrderGenerateId}`,
-                    failure: `http://localhost:3000/payments/failure?orderId=${preOrderGenerateId}`,
-                    pending: `http://localhost:3000/payments/pending?orderId=${preOrderGenerateId}`,
+                    success: `${BASE_URL_BACK}/success?orderId=${preOrderGenerateId}`,
+                    failure: `${BASE_URL_BACK}/failure?orderId=${preOrderGenerateId}`,
+                    pending: `${BASE_URL_BACK}/pending?orderId=${preOrderGenerateId}`,
                 },
                 //auto_return: "approved",
                 external_reference: String(preOrderGenerateId),
                 metadata: { idUser, shippingAddressId: finalShippingaddresId }
             },
-        }); 
+        });
 
         /* const paymentResponse = await vexor.pay.mercadopago({
             items
@@ -116,7 +123,7 @@ export const createOrderMercadoPago = async (req: Request, res: Response) => {
         return res.status(200).json({
             init_point: response.sandbox_init_point,
             preferenceId: response.id
-        }) 
+        })
 
     } catch (error) {
         console.error("Error al crear la orden:", error);
@@ -137,6 +144,8 @@ export const createOrderTransfer = async (req: Request, res: Response) => {
 
     const productsArr = JSON.parse(products)
     const formattedProducts = formatProducts(productsArr)
+    const t = await conn.transaction()
+    console.log(formattedProducts)
     try {
         const finalShippingaddresId = await validateOrCreateShipping(shipping, idUser)
 
@@ -172,6 +181,61 @@ export const createOrderTransfer = async (req: Request, res: Response) => {
         })
 
         const preOrderGenerateId = preOrder.getDataValue('iIdOrderPending')
+        console.log(productsArr)
+        const productdIds = productsArr.map((p: any) => p.product.iIdProduct)
+        console.log(productdIds)
+        const productsBD = await Products.findAll({
+            where: { iIdProduct: { [Op.in]: productdIds } },
+            transaction: t
+        })
+        console.log(productsBD)
+
+
+
+        const reservations = await InventoryReservationModel.findAll({
+            attributes: ['productId', [conn.fn('SUM', conn.col('qty')), 'qty']],
+            where: {
+                productId: { [Op.in]: productdIds },
+                status: 'reserved',
+                [Op.or]: [
+                    { expiresAt: null },
+                    { expiresAt: { [Op.gt]: new Date() } },
+                ],
+            },
+            group: ['productId'],
+            transaction: t
+        })
+
+        const reservedMap = new Map<string, number>()
+        reservations.forEach(r => {
+            reservedMap.set(r.getDataValue('productId'), Number(r.getDataValue('qty')) || 0)
+        })
+
+        for (const line of productsArr) {
+            const pdB = productsBD.find(x => x.getDataValue('iIdProduct') === line.product.iIdProduct)
+            if (!pdB) throw new Error(`Producto no existe: ${line.product.iIdProduct}`)
+
+            const alReadyReserver = reservedMap.get(line.product.iIdProduct) || 0
+            const visibleAvailable = (pdB.getDataValue('istock') || 0 - alReadyReserver)
+
+            if (visibleAvailable < line.quantity) {
+                throw new Error(`Sin disponibilidad visible para ${pdB.getDataValue('vcname') || line.product.iIdProduct}`);
+            }
+        }
+
+        const expiresAt = new Date(Date.now() + RESERVATION_TTL_HOURS * 60 * 60 * 1000);
+
+        for (const line of productsArr) {
+            await InventoryReservationModel.upsert({
+                orderId: String(preOrderGenerateId),
+                productId: line.product.iIdProduct,
+                qty: line.quantity,
+                status: 'reserved',
+                expiresAt,
+                reason: 'bank-transfer',
+                createdAt: new Date(),
+            }, { transaction: t });
+        }
 
         const transaction = await TransactionModel.create({
             status: "pending",
@@ -202,8 +266,9 @@ export const createOrderTransfer = async (req: Request, res: Response) => {
             html: htmlContent,
         });
 
+        await t.commit()
         return res.status(200).json({
-            message: "Orden creada correctamente",
+            message: "Orden y reservaciones creadas correctamente",
             data: 1,
             orderNumber: transaction.getDataValue('iIdTransaction'),
         });
@@ -219,43 +284,6 @@ export const createOrderTransfer = async (req: Request, res: Response) => {
     }
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 export const createOrderTransferPayCredit = async (req: Request, res: Response) => {

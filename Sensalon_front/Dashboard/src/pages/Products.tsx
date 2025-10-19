@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { ModalProduct } from "../components/Modals/modal.products";
-import { TableProducts } from "../components/Table/table";
+import { TableProducts } from "../components/Table/table.products";
 import { Product } from "../interfaces/products";
 import { SuccessToast } from "../components/Toast/successToast";
 import { ErrorToast } from "../components/Toast/errorToast";

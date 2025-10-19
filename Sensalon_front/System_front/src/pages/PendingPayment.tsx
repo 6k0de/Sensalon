@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Clock, RefreshCw, Home, ExternalLink, AlertCircle } from 'lucide-react'
 export const PaymentPendingPage: React.FC = () => {

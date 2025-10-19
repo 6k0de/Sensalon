@@ -1,4 +1,3 @@
-import axios from "axios";
 import { useEffect, useState } from "react";
 import { FaEye, FaEyeSlash } from "react-icons/fa6";
 import { Role } from "../../interfaces/roles";
@@ -21,7 +20,7 @@ export const ModalUsers = ({
 }: {
   show: boolean;
   onClose: () => void;
-  initialData?: formData | null;
+  initialData?: formData;
   mode?: number;
   onShowToast: (type: "success" | "error", message: string) => void;
   changeRol: string

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Product } from "../interfaces/products";
-import axios from "axios";
+import { api } from "../utils/axiosClients";
 
 
 export const useProductDetail = (id: string) => {
@@ -11,7 +11,7 @@ export const useProductDetail = (id: string) => {
     useEffect(() => {
         const fetchProductById = async () => {
             try {
-                const resp = await axios.get(`https://api.sensalon.com.mx/api/producto/${id}`)
+                const resp = await api.get(`/producto/${id}`)
                 if(!resp.data) throw new Error('Producto no encontrado')
                 setProduct(resp.data)
             } catch (error: any) {

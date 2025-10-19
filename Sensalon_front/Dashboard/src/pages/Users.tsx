@@ -4,12 +4,10 @@ import { useUserStore } from "../hooks/useUserStore";
 import { useSalonStore } from "../hooks/useSalonStore";
 import { useDistributorStore } from "../hooks/useDistributorStore";
 import { TableUserDist } from "../components/Table/tableUserDist";
-import { Distributor } from "../interfaces/distributors";
 import { TableUserSalon } from "../components/Table/tableUserSalon";
 import { TableUserN } from "../components/Table/tableUserN";
 import { SuccessToast } from "../components/Toast/successToast";
 import { ErrorToast } from "../components/Toast/errorToast";
-
 export const Users = () => {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>("")
@@ -23,7 +21,7 @@ export const Users = () => {
   const [modalKey, setModalKey] = useState(0); // 👈 clave para remontar
 
   const [mode, setMode] = useState(0);
-  const [selectedCompanie, setSelectedCompanie] = useState<Distributor | null>(
+  const [selectedCompanie, setSelectedCompanie] = useState<any | null>(
     null,
   );
   const { users, fetchUsers } = useUserStore();

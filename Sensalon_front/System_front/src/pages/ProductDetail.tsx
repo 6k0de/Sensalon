@@ -35,6 +35,7 @@ export const ProductDetail = () => {
         if (quantity < product.istock) setQuantity(quantity + 1);
     };
 
+    console.log(product)
     return (
         <main className="container mx-auto px-4 py-16">
             <div className="flex flex-col md:flex-row gap-8">
@@ -90,11 +91,11 @@ export const ProductDetail = () => {
                     <div className="flex items-center  gap-10 mb-8">
                         <button onClick={() => { addToCart(product) }} className="w-72 bg-black text-white py-3 px-6 rounded-full hover:bg-opacity-90 transition-colors flex items-center justify-center">
                             <ShoppingBag size={20} className="mr-2" />
-                            Add to Cart
+                            Agregar al carrito
                         </button>
-                        <button className="bg-white border border-black text-black py-3 px-4 rounded-full hover:bg-gray-100 transition-colors">
+                        {/* <button className="bg-white border border-black text-black py-3 px-4 rounded-full hover:bg-gray-100 transition-colors">
                             <Heart size={20} />
-                        </button>
+                        </button> */}
                     </div>
                 </div>
             </div>

@@ -93,7 +93,7 @@ export const TableProducts = ({ encabezados, data, fetch, outofstock, handleEdit
                                 const imageUrl = normalizedPath
                                     ? `${BASE_URL_IMAGE}/${normalizedPath}`
                                     : 'ruta-imagen-por-defecto'; // Usa una imagen por defecto si vcphoto es nulo
-
+                                
                                 return (
                                     <tr key={index} className="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
                                         {/* Celda de Imagen */}

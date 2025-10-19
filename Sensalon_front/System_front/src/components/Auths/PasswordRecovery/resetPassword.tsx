@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Lock, ArrowLeft, Eye, EyeOff } from "lucide-react";
+import { Lock, Eye, EyeOff } from "lucide-react";
 import { api } from "../../../utils/axiosClients";
 
 export const ResetPassword: React.FC = () => {

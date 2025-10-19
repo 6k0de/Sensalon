@@ -12,7 +12,13 @@ setupAssociations()
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 // CORS middleware
-app.use(cors());
+app.use(cors(
+  {
+    origin: ['http://localhost:5173','https://test-admin.sensalon.com.mx'],
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  }
+));
 app.use("/imagenes", express.static(path.join(__dirname, "assets/imagenes")));
 app.use("/archivos", express.static(path.join(__dirname, "assets/archivos")));
 app.use(

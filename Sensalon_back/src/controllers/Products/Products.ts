@@ -75,7 +75,7 @@ export const getProductSimilar = async(req: Request, res: Response) => {
     await conn.query('CALL GetSimilarProductsByCategory(:p_userId ,:p_productId)', 
         {
             replacements: {
-                p_userId: null,
+                p_userId: idUser,
                 p_productId: idProduct
             }
         }

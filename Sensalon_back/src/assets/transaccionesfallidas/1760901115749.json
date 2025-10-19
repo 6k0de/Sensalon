@@ -1,0 +1,46 @@
+{
+  "idUser": "05351127-ef20-11ef-910f-0050562645d0",
+  "formattedProducts": [
+    {
+      "iIdProduct": "00b4c059-ea3f-11ef-910f-0050562645d0",
+      "name": "Glam Pro 1.5",
+      "priceUnit": 1650,
+      "quantity": 2,
+      "total": 3300,
+      "companyId": "38dd1582-9d78-4f73-975f-76a67804fb96",
+      "categoryIds": [
+        "28dfd617-dbec-4a8e-9cc2-8658306fca1b",
+        "e5625114-dcc1-11ef-9113-0050563b5fff"
+      ],
+      "image": "/var/www/vhosts/sensalon.com.mx/api.sensalon.com.mx/assets/imagenes/1740676441791-778825793-Glam-Pro-1.5.jpg"
+    },
+    {
+      "iIdProduct": "18eb499d-eae6-11ef-910f-0050562645d0",
+      "name": "Izutech Bunni",
+      "priceUnit": 100,
+      "quantity": 1,
+      "total": 100,
+      "companyId": "38dd1582-9d78-4f73-975f-76a67804fb96",
+      "categoryIds": [
+        "28dfd617-dbec-4a8e-9cc2-8658306fca1b",
+        "e5625114-dcc1-11ef-9113-0050563b5fff"
+      ],
+      "image": "/var/www/vhosts/sensalon.com.mx/api.sensalon.com.mx/assets/imagenes/1740676459046-562996432-Peines-Izutech.jpg"
+    },
+    {
+      "iIdProduct": "190749f2-eae5-11ef-910f-0050562645d0",
+      "name": "Vulcann 3900",
+      "priceUnit": 1200,
+      "quantity": 3,
+      "total": 3600,
+      "companyId": "38dd1582-9d78-4f73-975f-76a67804fb96",
+      "categoryIds": [
+        "28dfd617-dbec-4a8e-9cc2-8658306fca1b",
+        "e5625114-dcc1-11ef-9113-0050563b5fff"
+      ],
+      "image": "/var/www/vhosts/sensalon.com.mx/api.sensalon.com.mx/assets/imagenes/1740676493659-626559730-SECADORAS.jpg"
+    }
+  ],
+  "errorMessage": "Producto no existe: undefined",
+  "errorStack": "Error: Producto no existe: undefined\n    at createOrderTransfer (/Users/w1zardsq/Documents/Proyectos/Sensalon/Sensalon_back/src/controllers/Payments/payments.ts:216:29)\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)"
+}

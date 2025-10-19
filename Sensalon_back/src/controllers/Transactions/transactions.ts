@@ -1,16 +1,4 @@
 
-
-/* const Transaction = __importDefault(require("../../bd/models/Transaction.model"));
-const Users= __importDefault(require("../../bd/models/Users.model"));
-const CashbackConf = require("../../bd/models/CashbackConf.model");
-const Cashback = require("../../bd/models/Cashback.model");
-const CreditPay = require("../../bd/models/CreditPay.model");
-const Credits = require("../../bd/models/Credits.model");
-const sequelize_1 = require("sequelize");
-const ShippingAdd = require("../../bd/models/ShippingAdd.model");
-const config_1 = require("../nodemailer/config");
-const Companies = require("../../bd/models/Companies.model"); */
-
 import { Request, Response } from "express";
 import { TransactionModel } from "../../bd/models/Transaction.model";
 import { Users } from "../../bd/models/Users.model";
@@ -18,6 +6,7 @@ import { applyCreditPayment } from "../../helpers/applyCreditPayment";
 import { applyCashback } from "../../helpers/applyCashback";
 import { handleEmails } from "../../helpers/handleEmails";
 import { saveFailedTransaction } from "../../middlewares/transactionFailure";
+import { approveOrderById } from "../../helpers/approveOrderDiscountProducts";
 
 export const GetAllTransactions = async (_: Request, res: Response) => {
     try {
@@ -64,6 +53,7 @@ export const updateStatusTransaction = async (req: Request, res: Response) => {
 
         // 🟢 Caso: Pago normal con transferencia
         if (transaction.dataValues.paymentMethod === "Transferencia Bancaria" && status === "approved") {
+            await approveOrderById(String(transaction.getDataValue('iOrderPendingId')));
             await applyCashback(transaction, user);
             await handleEmails(transaction, user, true);
         }

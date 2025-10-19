@@ -31,6 +31,7 @@ payment.use((req, res, next) => {
   next();
 });
 
+const BASE_URL_FRONT = 'test.sensalon.com.mx'
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, path.join(__dirname, "../assets/comprobantetransf")); // Carpeta donde se guardarÃ¡n los archivos
@@ -119,7 +120,7 @@ payment.get('/success', async (req: Request, res: Response) => {
       console.error('Error al enviar el correo:', error);
     }
 
-    const redirectUrl = `http://localhost:5174/pagoExitoso?` +
+    const redirectUrl = `${BASE_URL_FRONT}/pagoExitoso?` +
       `orderNumber=${idTransaction}` +
       `&amount=${preOrder.dataValues.total}` +
       `&method=${transaction.dataValues.paymentMethod}` +
@@ -129,7 +130,7 @@ payment.get('/success', async (req: Request, res: Response) => {
 
   } catch (error: any) {
     console.error("Error en success:", error);
-    const redirectUrl = `http://localhost:5174/ordenFallida?` +
+    const redirectUrl = `${BASE_URL_FRONT}/ordenFallida?` +
       `orderId=${orderId}` +
       `&paymentId=${payment_id || ""}` +
       `&status=${status || "rejected"}` +

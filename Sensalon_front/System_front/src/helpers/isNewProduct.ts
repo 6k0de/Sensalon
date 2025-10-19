@@ -1,4 +1,5 @@
 export const isNewProduct = (dt: string | Date | undefined | null) => {
+  console.log(dt)
   if (!dt) return false;
   const created = new Date(dt);
   if (isNaN(created.getTime())) return false;
