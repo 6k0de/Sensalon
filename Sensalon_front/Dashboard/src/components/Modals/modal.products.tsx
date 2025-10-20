@@ -7,6 +7,7 @@ import { InsertProducts } from "../../services/products/InsertProducts";
 import { Product } from "../../interfaces/products";
 import { UpdateProduct } from "../../services/products/updateProduct";
 import { api, BASE_URL_IMAGE } from "../../utils/axiosClients";
+import { ErrorToast } from "../Toast/errorToast";
 
 export const ModalProduct = ({ show, onClose, data, mode }: { show: boolean, onClose: (message: string, type: "success" | "error" | null) => void, data: Product | any, mode: number }) => {
     // en la variable mode, 0 = creando y 1 = editando
@@ -32,6 +33,10 @@ export const ModalProduct = ({ show, onClose, data, mode }: { show: boolean, onC
     const [imagePreview, setImagePreview] = useState<string | null>(null);
     const [selectedFile, setSelectedFile] = useState<File | null>(data?.vcphoto || null); // Estado para el archivo de imagen
     const [showDropdown, setShowDropdown] = useState(false);
+    const [toastType, setToastType] = useState<"success" | "error" | null>(null);
+    const [showToast, setShowToast] = useState(true);
+    const [toastMessage, setToastMessage] = useState<string | null>(null);
+
     const dropdownRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -116,6 +121,12 @@ export const ModalProduct = ({ show, onClose, data, mode }: { show: boolean, onC
 
     const handelsubmit = (e: any) => {
         e.preventDefault()
+        if (!empresa || empresa === 'Seleccione una empresa') { setToastMessage("Seleccione una empresa"); setToastType("error"); setShowToast(true); setTimeout(() => { setShowToast(false); setToastType(null); setToastMessage(null) }, 3000); return };
+        if (!nombre.trim()) { setToastMessage("Ingrese el nombre del producto"); setToastType("error"); setShowToast(true); setTimeout(() => { setShowToast(false); setToastType(null); setToastMessage(null) }, 3000); return };
+        if (!precio1 || !precio2 || !precio3) { setToastMessage("Ingrese los tres precios"); setToastType("error"); setShowToast(true); setTimeout(() => { setShowToast(false); setToastType(null); setToastMessage(null) }, 3000); return };
+        if (!existencia) { setToastMessage("Ingrese la existencia"); setToastType("error"); setShowToast(true); setTimeout(() => { setShowToast(false); setToastType(null); setToastMessage(null) }, 3000); return };
+        if (!existenciaMinima) { setToastMessage("Ingrese la existencia mínima"); setToastType("error"); setShowToast(true); setTimeout(() => { setShowToast(false); setToastType(null); setToastMessage(null) }, 3000); return };
+        if (mode === 0 && !selectedFile) { setToastMessage("Debe seleccionar una imagen del producto"); setToastType("error"); setShowToast(true); setTimeout(() => { setShowToast(false); setToastType(null); setToastMessage(null) }, 3000); return };
         const formData = new FormData()
         //console.log(empresa.value, nombre.value, peso.value + unidades.value, precio1.value, precio2.value, precio3.value, JSON.stringify(selectedCategories), existencia.value, existenciaminima.value)
         formData.append('iFIdCompany', empresa);
@@ -138,7 +149,10 @@ export const ModalProduct = ({ show, onClose, data, mode }: { show: boolean, onC
         if (mode === 0) {
             InsertProducts(formData).then((res) => {
                 if (res.valor != 0) {
-                    onClose(res.message, "error");
+                    setToastMessage(res.message);
+                    setToastType("error");
+                    setShowToast(true);
+                    setTimeout(() => { setShowToast(false); setToastType(null); setToastMessage(null) }, 3000);
                 } else {
                     onClose(res.message, "success");
                 }
@@ -148,9 +162,12 @@ export const ModalProduct = ({ show, onClose, data, mode }: { show: boolean, onC
             formData.append('piIdProduct', data?.iIdProduct)
             UpdateProduct(formData).then((res) => {
                 if (res.valor != 0) {
-                    onClose(res.message, 'error')
+                    setToastMessage(res.message);
+                    setToastType("error");
+                    setShowToast(true);
+                    setTimeout(() => { setShowToast(false); setToastType(null); setToastMessage(null) }, 3000);
                 } else {
-                    onClose(res.message, 'success')
+                    onClose(res.message, "success");
                 }
             })
         }
@@ -158,6 +175,11 @@ export const ModalProduct = ({ show, onClose, data, mode }: { show: boolean, onC
 
     return (
         <>
+            <div className="fixed top-0 right-0 z-[1000] p-4">
+                {toastMessage && toastType === "error" && (
+                    <ErrorToast message={toastMessage} showToast={showToast} />
+                )}
+            </div>
             <div id="crud-modal" aria-hidden="true" className={`fixed inset-0 z-50 flex items-center justify-center transition-opacity ${show ? "opacity-100" : "opacity-0 pointer-events-none"} duration-300 ease-in-out`}>
                 <div className="fixed inset-0 bg-[#1d1d1b] bg-opacity-50 transition-opacity duration-300 ease-in-out"></div>
                 <div className={`sm:m-12 mt-12 md:relative w-full max-w-5xl max-h-full bg-white rounded-xl shadow dark:bg-gray-700 transform transition-transform ${show ? "scale-100" : "scale-95"} duration-300 ease-in-out `}>

@@ -1,13 +1,11 @@
-import { Heart, Minus, Plus, ShoppingBag } from 'lucide-react'
+import { Minus, Plus, ShoppingBag } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useProductDetail } from '../hooks/useProductDetail'
 import { useCartStore } from '../hooks/useCartStore'
 import axios from 'axios'
 import { Product } from '../interfaces/products'
-
-
-
+ 
 export const ProductDetail = () => {
     const { id } = useParams<{ id: string }>()
     const { addToCart } = useCartStore()
