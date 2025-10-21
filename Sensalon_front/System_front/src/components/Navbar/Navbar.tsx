@@ -104,7 +104,6 @@ export const Navbar = () => {
   const toggleCart = () => setShowCart(!showCart);
 
   const totalPrice = cart.reduce((total, item) => {
-    const user = readUser();
 
     let userPrice = item.product.decprice3; // default
     if (isGuestUser(user)) {
@@ -140,7 +139,7 @@ export const Navbar = () => {
       minimumFractionDigits: 2,
     }).format(value || 0);
   };
-  console.log(cart)
+  console.log(isNormal)
 
 
   return (

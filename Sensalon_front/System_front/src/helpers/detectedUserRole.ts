@@ -34,7 +34,6 @@ export function getRoleInfo(
   user: any,
   map: RoleMap = DEFAULT_ROLE_MAP
 ): { id?: string; name: string; isGuest: boolean } {
-  // 👇 Si no hay user en localStorage, es visitante (no logeado)
   if (!user) return { id: map.user, name: "user", isGuest: true };
 
   const id =
@@ -42,6 +41,8 @@ export function getRoleInfo(
     user?.user?.iFIdRole ??
     user?.user?.iIdRole ??
     user?.user?.role?.iIdRole ??
+    user?.iFIdRole ??
+    user?.iIdRole ??
     map.user;
 
   const nameRaw =
@@ -49,13 +50,22 @@ export function getRoleInfo(
     user?.user?.vctyperole ??
     user?.user?.vcrole ??
     user?.user?.role?.vctyperole ??
+    user?.vctyperole ??
+    user?.vcrole ??
     "user";
 
-  const name =
+  let name =
     typeof nameRaw === "string" ? nameRaw.toLowerCase().trim() : "user";
+
+  // 👇 Si no hay nombre pero sí hay un ID coincidente, dedúcelo
+  if (name === "user") {
+    const roleEntry = Object.entries(map).find(([_, roleId]) => roleId === id);
+    if (roleEntry) name = roleEntry[0];
+  }
 
   return { id, name, isGuest: false };
 }
+
 
 export function isRole(
   user: any,

@@ -29,7 +29,6 @@ export const ProductCard = ({
         }
     }, [companies, fetchCompanies]);
 
-    console.log(product)
     const companyName = useMemo(() => {
         const companyId = (product as any).iIdCompany || (product as any).iFIdCompany || (product as any).companyId;
         if (!companyId) return "Sin empresa";

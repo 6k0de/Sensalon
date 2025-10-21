@@ -46,8 +46,6 @@ export const Home = () => {
         loadData()
     }, [categories.length, companies.length])
 
-    console.log(products)
-
     const productsNuevos = useMemo(
         () =>
             [...products]
@@ -63,8 +61,6 @@ export const Home = () => {
                 .slice(0, 4),
         [products]
     );
-
-    console.log(companies)
 
     return (
         <main className="py-5">
@@ -168,8 +164,6 @@ export const Home = () => {
                                 {[...companies, ...companies].map((empresa, index) => {
                                     // Ruta de la imagen en public/img/marcas
                                     const logoUrl = `/img/marcas/${empresa.vcname}.webp`;
-
-                                    console.log(logoUrl)
                                     return (
                                         <div
                                             key={index}
