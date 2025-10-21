@@ -1,10 +1,10 @@
 // helpers locales
 export const readUser = () => {
-    try {
-        return JSON.parse(localStorage.getItem("user") || "null");
-    } catch {
-        return null;
-    }
+  try {
+    return JSON.parse(localStorage.getItem("user") || "null");
+  } catch {
+    return null;
+  }
 };
 
 // Ajusta estas comprobaciones a tu shape real del user
@@ -17,37 +17,44 @@ export type RoleMap = Partial<Record<RoleKey, string>>;
 // (puedes sobrescribirlos desde donde importas con el segundo argumento de isRole*)
 export const DEFAULT_ROLE_MAP: RoleMap = {
   distributor: "542c2e4e-7177-11ef-a9b1-0050563b", // Distribuidor
-  salon:       "542c325b-7177-11ef-a9b1-0050563b", // Salon (ejemplo)
-  admin:       "a3f8994a-64d3-11ef-b0bc-9828a641", // Administrador (ejemplo)
-  user:        "8337416f-7177-11ef-a9b1-0050563b", // Usuario normal (tu id por defecto)
+  salon: "542c325b-7177-11ef-a9b1-0050563b", // Salon (ejemplo)
+  admin: "a3f8994a-64d3-11ef-b0bc-9828a641", // Administrador (ejemplo)
+  user: "8337416f-7177-11ef-a9b1-0050563b", // Usuario normal (tu id por defecto)
 };
 
 // sinónimos por nombre que suelen aparecer
 const NAME_ALIASES: Record<RoleKey, string[]> = {
   distributor: ["distribuidor", "distributor", "Distribuidor", "Distributor"],
-  salon:       ["salon", "salón", "Salon", "Salón"],
-  admin:       ["administrador", "admin", "Administrador", "Admin"],
-  user:        ["usuario", "user", "Usuario", "User"],
+  salon: ["salon", "salón", "Salon", "Salón"],
+  admin: ["administrador", "admin", "Administrador", "Admin"],
+  user: ["usuario", "user", "Usuario", "User"],
 };
 
-export function getRoleInfo(user: any) {
-  if (!user) return { id: undefined as string | undefined, name: "" };
+export function getRoleInfo(
+  user: any,
+  map: RoleMap = DEFAULT_ROLE_MAP
+): { id?: string; name: string; isGuest: boolean } {
+  // 👇 Si no hay user en localStorage, es visitante (no logeado)
+  if (!user) return { id: map.user, name: "user", isGuest: true };
 
-  // intenta múltiples ubicaciones comunes
   const id =
-    user.roleId ||
-    user.iFIdRole ||
-    user.iIdRole ||
-    user.role?.iIdRole;
+    user?.user?.roleId ??
+    user?.user?.iFIdRole ??
+    user?.user?.iIdRole ??
+    user?.user?.role?.iIdRole ??
+    map.user;
 
   const nameRaw =
-    user.roleName ||
-    user.vctyperole ||
-    user.vcrole ||
-    user.role?.vctyperole;
+    user?.user?.roleName ??
+    user?.user?.vctyperole ??
+    user?.user?.vcrole ??
+    user?.user?.role?.vctyperole ??
+    "user";
 
-  const name = typeof nameRaw === "string" ? nameRaw.toLowerCase().trim() : "";
-  return { id, name };
+  const name =
+    typeof nameRaw === "string" ? nameRaw.toLowerCase().trim() : "user";
+
+  return { id, name, isGuest: false };
 }
 
 export function isRole(
@@ -55,16 +62,21 @@ export function isRole(
   role: RoleKey,
   map: RoleMap = DEFAULT_ROLE_MAP
 ) {
-  const { id, name } = getRoleInfo(user);
+  const { id, name, isGuest } = getRoleInfo(user, map);
 
-  // por ID exacto (si está configurado)
+  // Si no está logeado y pedimos "user", debe retornar false
+  if (isGuest) return false;
+
+  // Comparar por ID exacto
   if (id && map[role] && id === map[role]) return true;
 
-  // por nombre/alias
-  if (name && NAME_ALIASES[role].some((alias) => alias === name)) return true;
+  // Comparar por nombre o alias
+  if (name && NAME_ALIASES[role].some(alias => alias === name)) return true;
 
   return false;
 }
+
+
 
 export const isDistributorUser = (user: any, map?: RoleMap) =>
   isRole(user, "distributor", map);
@@ -77,4 +89,11 @@ export const isAdminUser = (user: any, map?: RoleMap) =>
 
 export const isNormalUser = (user: any, map?: RoleMap) =>
   isRole(user, "user", map);
+
+export const isGuestUser = (user: any) => {
+  const { isGuest } = getRoleInfo(user);
+  return isGuest;
+};
+
+
 

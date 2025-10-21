@@ -13,28 +13,41 @@ export const useCartStore = create<CartState>()(
           const existingItem = state.cart.find(
             (item) => item.product.iIdProduct === product.iIdProduct
           );
+          const stock = Number(product.istock ?? 0);
+
+          // Si no hay stock, no agregamos nada
+          if (stock <= 0) {
+            return state; // opcional: podrías mostrar un toast de “sin stock”
+          }
+
           if (existingItem) {
+            // Evitar pasar el stock máximo
+            const newQty = Math.min(existingItem.quantity + 1, stock);
             return {
               cart: state.cart.map((item) =>
                 item.product.iIdProduct === product.iIdProduct
-                  ? { ...item, quantity: item.quantity + 1 }
+                  ? { ...item, quantity: newQty }
                   : item
               ),
             };
           } else {
-            return { cart: [...state.cart, { product, quantity: 1 }] };
+            // Primera vez que se agrega
+            return {
+              cart: [...state.cart, { product, quantity: 1 }],
+            };
           }
         }),
 
       updateQuantity: (productId, quantity) =>
         set((state) => ({
-          cart: state.cart
-            .map((item) =>
-              item.product.iIdProduct === productId
-                ? { ...item, quantity }
-                : item
-            )
-            .filter((item) => item.quantity > 0),
+          cart: state.cart.map((item) => {
+            if (item.product.iIdProduct === productId) {
+              const stock = Number(item.product.istock ?? 0);
+              const newQty = Math.max(0, Math.min(quantity, stock)); // entre 1 y stock
+              return { ...item, quantity: newQty };
+            }
+            return item;
+          }),
         })),
 
       removeFromCart: (productId) =>

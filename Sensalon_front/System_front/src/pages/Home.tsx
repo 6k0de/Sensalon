@@ -14,7 +14,7 @@ export const Home = () => {
     const [sliderImages, setSliderImages] = useState([])
 
     const user = readUser();
-    const isDistributor = isDistributorUser(user?.user);
+    const isDistributor = isDistributorUser(user);
 
     const getAllSliderImage = async () => {
         const image = await api.get('/sliderImage')

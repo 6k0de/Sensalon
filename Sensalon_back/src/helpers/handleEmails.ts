@@ -18,7 +18,7 @@ export const handleEmails = async (transaction: any, user: any, isApproved?: boo
   // Email a administradores
   await transporter.sendMail({
     from: "pedidos@sensalon.com.mx",
-    to: "borrelizzy@gmail.com", // pedidos@sensalon.com.mx, pedidosaprobados@sensalon.com.mx
+    to: "pedidos@sensalon.com.mx, pedidosaprobados@sensalon.com.mx", // borrelizzy@gmail.com
     subject: `Nueva Orden - ${transaction.iIdTransaction}`,
     html: htmlContent,
   });

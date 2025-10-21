@@ -16,6 +16,7 @@ import { PublicRoute } from "./PublicRoute";
 import { MyCredit } from "../pages/MyCredit";
 import { MyOrders } from "../pages/MyOrders";
 import { PaymentReviewInfo } from "../pages/PendingPaymentTransfer";
+import { PaymentErrorPage } from "../pages/ErrorPayment";
 
 export const AppRoutes = () => {
     return (
@@ -58,6 +59,14 @@ export const AppRoutes = () => {
                             </ProtectedRoute>
                         }
                     />
+                    <Route
+                        path='/payments/failure'
+                        element={
+                            <ProtectedRoute>
+                                <PaymentErrorPage key={window.location.pathname} />
+                            </ProtectedRoute>
+                        }
+                        />
                     <Route path="/productDetail/:id" element={<ProductDetail key={window.location.pathname} />} />
                     <Route path="/terminos" element={<Terms key={window.location.pathname} />} />
                     <Route path="/avisoprivacidad" element={<Privacy key={window.location.pathname} />} />

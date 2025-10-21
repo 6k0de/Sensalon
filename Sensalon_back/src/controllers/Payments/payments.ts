@@ -22,7 +22,7 @@ import { InventoryReservationModel } from "../../bd/models/InventoryReservation.
 dotenv.config()
 
 const client = new MercadoPagoConfig({
-    accessToken: process.env.MERCADO_PAGO_ACCESS_TOKEN || "",
+    accessToken: 'APP_USR-7149811552619412-102016-a72d40656fa777da46aa2e95d45b519e-2936752270',
 })
 
 const RESERVATION_TTL_HOURS = 24;
@@ -167,7 +167,19 @@ export const createOrderTransfer = async (req: Request, res: Response) => {
             cashback,
             envio,
         });
-
+        console.log(subtotal, total)
+        console.log({
+            iIdUser: idUser,
+            iIdShippingAddress: finalShippingaddresId,
+            products: formattedProducts,
+            subtotal,
+            shipping: envio,
+            cashback: cashback,
+            credit: credit,
+            total,
+            status: "pending"
+        })
+        
         const preOrder = await CreateOrderPending.create({
             iIdUser: idUser,
             iIdShippingAddress: finalShippingaddresId,
@@ -181,6 +193,8 @@ export const createOrderTransfer = async (req: Request, res: Response) => {
         })
 
         const preOrderGenerateId = preOrder.getDataValue('iIdOrderPending')
+        console.log(preOrderGenerateId)
+        
         console.log(productsArr)
         const productdIds = productsArr.map((p: any) => p.product.iIdProduct)
         console.log(productdIds)
@@ -261,7 +275,7 @@ export const createOrderTransfer = async (req: Request, res: Response) => {
         console.log(htmlContent)
         await transporter.sendMail({
             from: "pedidos@sensalon.com.mx",
-            to: "borrelizzy@gmail.com", //pedidos@sensalon.com.mx, 
+            to: "pedidos@sensalon.com.mx", // borrelizzy@gmail.com, 
             subject: `Nueva Orden de Compra - ${transaction.getDataValue('iIdTransaction')}`,
             html: htmlContent,
         });
@@ -271,7 +285,7 @@ export const createOrderTransfer = async (req: Request, res: Response) => {
             message: "Orden y reservaciones creadas correctamente",
             data: 1,
             orderNumber: transaction.getDataValue('iIdTransaction'),
-        });
+        }); 
     } catch (error: any) {
         console.error("Error al guardar la transacción:", error);
         await saveFailedTransaction({

@@ -34,7 +34,7 @@ export const LoginForm = () => {
             await useCartStore.getState().setCartFromBackend(user.iIdUser);
             setTimeout(() => {
                 setShowSuccessToast(false);
-                //window.location.href = '/'; // Redirigir a la página principal
+                window.location.href = '/'; // Redirigir a la página principal
             }, 1500);
         } else {
             // Mostrar toast de error

@@ -2,6 +2,8 @@ import { useEffect, useMemo } from "react";
 import { useCartStore } from "../../hooks/useCartStore";
 import { Product } from "../../interfaces/products";
 import { useCompanieStore } from "../../hooks/useCompanieStore";
+import { MdOutlineAddShoppingCart } from "react-icons/md";
+import { isAdminUser, isDistributorUser, isGuestUser, isNormalUser, isSalonUser, readUser } from "../../helpers/detectedUserRole";
 
 interface ProductCardProps {
     product: Product;
@@ -18,6 +20,7 @@ export const ProductCard = ({
 }: ProductCardProps) => {
     const { addToCart } = useCartStore();
     const { companies, fetchCompanies } = useCompanieStore();
+    const user = readUser();
 
     // Cargar empresas si aún no están en memoria
     useEffect(() => {
@@ -34,10 +37,6 @@ export const ProductCard = ({
         return found?.vcname ?? "Sin empresa";
     }, [companies, product]);
 
-    const handleAddToCart = () => {
-        addToCart(product);
-    };
-
     const i = product?.istock ?? 0;
     const lim = product?.istocklimit ?? 0;
     const cls =
@@ -46,6 +45,17 @@ export const ProductCard = ({
             : i <= lim
                 ? 'bg-yellow-50 border border-yellow-200 text-yellow-700'
                 : 'bg-green-50 border border-green-200 text-green-700';
+
+    let userPrice = product.decprice3; // default
+    if (isGuestUser(user)) {
+        userPrice = product.decprice3; // invitado => 3
+    } else if (isDistributorUser(user) || isAdminUser(user)) {
+        userPrice = product.decprice1;
+    } else if (isSalonUser(user)) {
+        userPrice = product.decprice2;
+    } else if (isNormalUser(user)) {
+        userPrice = product.decprice3;
+    }
     return (
         <div className="flex flex-col rounded-xl transition">
             <a
@@ -102,7 +112,7 @@ export const ProductCard = ({
                     <span className="text-red-700 text-md font-bold text-lg mb-2 block">
                         $
                         {Number(
-                            product.decprice1 ?? product.decprice2 ?? product.decprice3 ?? 0
+                            userPrice ?? 0
                         ).toFixed(2)}
                     </span>
                 </div>
@@ -110,12 +120,11 @@ export const ProductCard = ({
 
             {/* Botón */}
             <button
-                onClick={handleAddToCart}
-                className=" mt-3 w-1/2 text-white  py-2  rounded-full  bg-black  hover:bg-gray-800  transition  duration-300 mx-auto md:mx-0 md:w-1/2     "
+                onClick={() => addToCart(product)}
+                className=" mt-3 w-40 text-white py-2 rounded-full bg-black hover:bg-gray-800 transition duration-300 mx-auto md:mx-0 md:w-20"
             >
-                Agregar al carrito
+                <MdOutlineAddShoppingCart size={22} className="inline-block" />
             </button>
-
 
         </div>
 

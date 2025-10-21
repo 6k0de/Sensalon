@@ -5,7 +5,7 @@ import { useProductStore } from '../../hooks/useProductStore';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { Product } from '../../interfaces/products';
 import './index.css'
-import { isNormalUser, readUser } from '../../helpers/detectedUserRole';
+import { isAdminUser, isDistributorUser, isGuestUser, isNormalUser, isSalonUser, readUser } from '../../helpers/detectedUserRole';
 import { api } from '../../utils/axiosClients';
 export const Navbar = () => {
   const { cart, updateQuantity, removeFromCart } = useCartStore();
@@ -41,7 +41,8 @@ export const Navbar = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
   const user = readUser()
-  const isNormal = isNormalUser(user?.user)
+  const isNormal = isNormalUser(user)
+  const isGuest = isGuestUser(user);
   console.log(isNormal)
   useEffect(() => {
     const userType = localStorage.getItem('userType');
@@ -52,8 +53,8 @@ export const Navbar = () => {
   }, []);
 
   useEffect(() => {
-    if (isNormal) {
-      api.get(`/chasback/${user.user.iIdUser}`).then((res) => {
+    if (isNormal && !isGuest) {
+      api.get(`/chasback/${user?.user?.iIdUser}`).then((res) => {
         setCashbackBalance(res.data.data.cashbackbalance || 0)
       }).catch((err) => {
         console.log(err)
@@ -103,13 +104,20 @@ export const Navbar = () => {
   const toggleCart = () => setShowCart(!showCart);
 
   const totalPrice = cart.reduce((total, item) => {
-    const price = item.product.decprice1 !== null && item.product.decprice1 !== undefined
-      ? item.product.decprice1
-      : item.product.decprice2 !== null && item.product.decprice2 !== undefined
-        ? item.product.decprice2
-        : item.product.decprice3 || 0;
+    const user = readUser();
 
-    return total + (price * item.quantity);
+    let userPrice = item.product.decprice3; // default
+    if (isGuestUser(user)) {
+      userPrice = item.product.decprice3; // invitado => 3
+    } else if (isDistributorUser(user) || isAdminUser(user)) {
+      userPrice = item.product.decprice1;
+    } else if (isSalonUser(user)) {
+      userPrice = item.product.decprice2;
+    } else if (isNormalUser(user)) {
+      userPrice = item.product.decprice3;
+    }
+
+    return total + (userPrice * item.quantity);
   }, 0);
 
 
@@ -133,6 +141,8 @@ export const Navbar = () => {
     }).format(value || 0);
   };
   console.log(cart)
+
+
   return (
     <header className="border-b sticky top-0 bg-white z-10">
       <div className="container mx-auto px-4 flex justify-between items-center">
@@ -173,6 +183,17 @@ export const Navbar = () => {
                 {filteredProducts.map((product: Product) => {
                   const normalizedPath = product.vcphoto.replace(/\\/g, '/').split('/imagenes/')[1];
                   const imageUrl = `https://api.sensalon.com.mx/imagenes/${normalizedPath}`;
+                  const user = readUser();
+                  let userPrice = product.decprice3; // default
+                  if (isGuestUser(user)) {
+                    userPrice = product.decprice3; // invitado => 3
+                  } else if (isDistributorUser(user) || isAdminUser(user)) {
+                    userPrice = product.decprice1;
+                  } else if (isSalonUser(user)) {
+                    userPrice = product.decprice2;
+                  } else if (isNormalUser(user)) {
+                    userPrice = product.decprice3;
+                  }
 
                   return (
                     <div
@@ -187,7 +208,7 @@ export const Navbar = () => {
                       />
                       <div>
                         <p className="font-semibold text-md">{product.vcname}</p>
-                        <p className="text-sm text-gray-500">${product.decprice1 ?? product.decprice2 ?? product.decprice3 ?? 'Precio no disponible'}</p>
+                        <p className="text-sm text-gray-500">{userPrice}</p>
                       </div>
                     </div>
                   );
@@ -196,7 +217,7 @@ export const Navbar = () => {
             )}
           </div>
 
-          {isNormal && cashbackBalance >= 0 && (
+          {isNormal && !isGuest && cashbackBalance >= 0 && (
             <div className="flex items-center gap-3 rounded-xl  bg-white p-3">
               <div className="rounded-lg bg-blue-50 p-2">
                 <Wallet className="w-5 h-5 text-blue-500" />
@@ -229,7 +250,18 @@ export const Navbar = () => {
                       {cart.map(({ product, quantity }) => {
                         const normalizedPath = product?.vcphoto?.replace(/\\/g, '/').split('/imagenes/')[1];
                         const imageUrl = `https://api.sensalon.com.mx/imagenes/${normalizedPath}`;
-
+                        const user = readUser();
+                        let userPrice = product.decprice3; // default
+                        if (isGuestUser(user)) {
+                          userPrice = product.decprice3; // invitado => 3
+                        } else if (isDistributorUser(user) || isAdminUser(user)) {
+                          userPrice = product.decprice1;
+                        } else if (isSalonUser(user)) {
+                          userPrice = product.decprice2;
+                        } else if (isNormalUser(user)) {
+                          userPrice = product.decprice3;
+                        }
+                        
                         return (
                           <div key={product.iIdProduct} className="flex items-center mb-4">
                             <img
@@ -239,18 +271,20 @@ export const Navbar = () => {
                             />
                             <div className="flex-1">
                               <h3 className="font-semibold">{product.vcname}</h3>
-                              <p className="text-sm text-gray-500">${product.decprice1 ?? product.decprice2 ?? product.decprice3 ?? 'Precio no disponible'}</p>
+                              <p className="text-sm text-gray-500">${userPrice}</p>
                               <div className="flex items-center  space-x-4 mt-1">
                                 <button
                                   onClick={() => updateQuantity(product.iIdProduct, quantity - 1)}
-                                  className="bg-gray-200 px-4 rounded"
+                                  disabled={quantity <= 0}
+                                  className={`px-4 rounded ${quantity <= 0 ? 'bg-gray-50 text-gray-400 cursor-not-allowed' : 'bg-gray-200'}`}
                                 >
                                   -
                                 </button>
                                 <span>{quantity}</span>
                                 <button
                                   onClick={() => updateQuantity(product.iIdProduct, quantity + 1)}
-                                  className="bg-gray-200 px-4 rounded"
+                                  disabled={quantity >= product.istock}
+                                  className={`px-4 rounded ${quantity >= product.istock ? 'bg-gray-50 text-gray-400 cursor-not-allowed' : 'bg-gray-200'}`}
                                 >
                                   +
                                 </button>

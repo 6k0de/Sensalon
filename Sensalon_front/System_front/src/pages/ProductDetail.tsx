@@ -3,19 +3,21 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useProductDetail } from '../hooks/useProductDetail'
 import { useCartStore } from '../hooks/useCartStore'
-import axios from 'axios'
 import { Product } from '../interfaces/products'
- 
+import { isAdminUser, isDistributorUser, isGuestUser, isNormalUser, isSalonUser, readUser } from '../helpers/detectedUserRole'
+import { api } from '../utils/axiosClients'
+
 export const ProductDetail = () => {
+    const user = readUser();
     const { id } = useParams<{ id: string }>()
     const { addToCart } = useCartStore()
     const { product, loading, error } = useProductDetail(id || '')
     const navigate = useNavigate()
     const [productosSimilares, setProductosSimilares] = useState<Product[]>([])
     const [quantity, setQuantity] = useState(1)
-
+    console.log(user)
     useEffect(() => {
-        axios.get(`https://api.sensalon.com.mx/api/productosSimilares?idProduct=${id}`).then((res) => {
+        api.get(`/productosSimilares?idProduct=${id}?idUser=${user?.iIdUser}`).then((res) => {
             setProductosSimilares(res.data)
         })
     }, [])
@@ -33,7 +35,18 @@ export const ProductDetail = () => {
         if (quantity < product.istock) setQuantity(quantity + 1);
     };
 
-    console.log(product)
+    let userPrice = product.decprice3; // default
+    if (isGuestUser(user)) {
+        userPrice = product.decprice3; // invitado => 3
+    } else if (isDistributorUser(user) || isAdminUser(user)) {
+        userPrice = product.decprice1;
+    } else if (isSalonUser(user)) {
+        userPrice = product.decprice2;
+    } else if (isNormalUser(user)) {
+        userPrice = product.decprice3;
+    }
+    console.log(productosSimilares)
+
     return (
         <main className="container mx-auto px-4 py-16">
             <div className="flex flex-col md:flex-row gap-8">
@@ -43,6 +56,7 @@ export const ProductDetail = () => {
                             {product.vcphoto.split(',').map((path: string, index: number) => {
                                 const normalizedPath = path.replace(/\\/g, '/').split('/imagenes/')[1];
                                 const imageUrl = `https://api.sensalon.com.mx/imagenes/${normalizedPath}`;
+
 
                                 return (
                                     <img
@@ -62,7 +76,7 @@ export const ProductDetail = () => {
                     <h1 className="text-3xl font-bold mb-4">{product?.vcname}</h1>
                     <p className='text-sm'></p>
 
-                    <p className="text-2xl font-bold mb-6">${product.decprice1 ?? product.decprice2 ?? product.decprice3 ?? 'Precio no disponible'}</p>
+                    <p className="text-2xl font-bold mb-6">${userPrice}</p>
                     <p className="text-gray-700 mb-8">{product?.vcdescription}</p>
                     <div className="mb-10">
                         <h3 className="font-semibold mb-4">Tamaño el producto</h3>
@@ -101,21 +115,34 @@ export const ProductDetail = () => {
             <section className="mt-16">
                 <h2 className="text-2xl font-bold mb-8">Productos similares</h2>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                    {productosSimilares.map((product) => {
-                        const normalizedPath = product.vcphoto.replace(/\\/g, "/").split("/imagenes/")[1];
+                    {productosSimilares?.map((product) => {
+                        const normalizedPath = product?.vcphoto.replace(/\\/g, "/").split("/imagenes/")[1];
                         const imageUrl = `https://api.sensalon.com.mx/imagenes/${normalizedPath}`;
+                        let userPrice = product.decprice3; // default
+                        if (isGuestUser(user)) {
+                            userPrice = product.decprice3; // invitado => 3
+                        } else if (isDistributorUser(user) || isAdminUser(user)) {
+                            userPrice = product.decprice1;
+                        } else if (isSalonUser(user)) {
+                            userPrice = product.decprice2;
+                        } else if (isNormalUser(user)) {
+                            userPrice = product.decprice3;
+                        }
+                        console.log(product)
                         return (
-                            <div key={product.iIdProduct} className="group">
+                            <div key={product?.iIdProduct} className="group">
                                 <div className="mb-4 relative overflow-hidden rounded-lg">
-                                    <img src={imageUrl} alt={product.vcname} width={300} height={300} className="w-full h-64 object-cover" />
+                                    <img src={imageUrl} alt={product?.vcname} width={300} height={300} className="w-full h-64 object-cover" />
                                     <div className="absolute flex-col gap-4 inset-0 bg-black bg-opacity-40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                                         <button onClick={() => addToCart(product)} className="bg-white text-black px-4 py-2 rounded-full text-sm font-medium">Agregar al carrito</button>
-                                        <button onClick={() => navigate(`/productDetail/${product.iIdProduct}`)} className="bg-white text-black px-4 py-2 rounded-full text-sm font-medium">Ver producto</button>
+                                        <button onClick={() => navigate(`/productDetail/${product?.iIdProduct}`)} className="bg-white text-black px-4 py-2 rounded-full text-sm font-medium">Ver producto</button>
                                     </div>
                                 </div>
-                                <h3 className="font-medium">{product.vcname}</h3>
-                                <h4 className='text-sm'>{product.vcdescription}</h4>
-                                <p className="text-lg font-bold">${product.decprice1 ?? product.decprice2 ?? product.decprice3 ?? 'Precio no disponible'}</p>
+                                <h3 className="font-medium">{product?.vcname}</h3>
+                                <h4 className='text-sm'>{product?.vcdescription}</h4>
+                                <p className="text-lg font-bold">
+                                    ${userPrice ?? "Precio no disponible"}
+                                </p>
                             </div>
                         )
                     })}

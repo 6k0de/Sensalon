@@ -9,12 +9,11 @@ import { api, payment } from '../utils/axiosClients';
 import { ShippingAddress } from '../interfaces/shippingAdd';
 import { deleteShipping } from '../services/Shipping/deleteShipping';
 import { ModalSuccesCancel } from '../components/Modal/modal.acceptcancel';
-import { MercadoPagoButton } from '../components/Buttons/mercadoPago';
+//import { MercadoPagoButton } from '../components/Buttons/mercadoPago';
 import { BankTransferButton } from '../components/Buttons/transferencia';
 import { TransferModal } from '../components/Modal/modal.banktransfer';
 import { createOrderTransfer } from '../services/Pay/Pay';
-import { getEffectivePrice } from '../helpers/getEffectivePrice';
-import { isDistributorUser, isNormalUser, readUser } from '../helpers/detectedUserRole';
+import { isAdminUser, isDistributorUser, isGuestUser, isNormalUser, isSalonUser, readUser } from '../helpers/detectedUserRole';
 
 export const ShoppingCar = () => {
     const { cart, updateQuantity, removeFromCart } = useCartStore();
@@ -28,7 +27,7 @@ export const ShoppingCar = () => {
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [addressToDelete, setAddressToDelete] = useState<string | null>(null);
     const [deliveryCost, setDeliveryCost] = useState<any>([])
-    const [mpLoading, setMpLoading] = useState(false)
+    //const [mpLoading, setMpLoading] = useState(false)
     const [bankLoading, setBankLoading] = useState(false)
     const [modalOpen, setModalOpen] = useState(false)
     const [brands, setBrands] = useState<{ iIdCompany: string; vcname: string }[]>([]);
@@ -42,8 +41,8 @@ export const ShoppingCar = () => {
 
 
     const userData = readUser()
-    const isDistributor = isDistributorUser(userData?.user)
-    const isNormal = isNormalUser(userData?.user)
+    const isDistributor = isDistributorUser(userData)
+    const isNormal = isNormalUser(userData)
 
     const isAuthenticated = localStorage.getItem("auth") === "true";
     // Lo parseas (con seguridad para evitar errores si no existe)
@@ -78,6 +77,7 @@ export const ShoppingCar = () => {
             })
         } else if (isDistributor) {
             api.get(`/credit/${userData?.user?.iIdUser}`).then((res) => {
+                console.log(res)
                 setCredit(res?.data?.totalamount || 0)
                 setCreditState(res?.data?.state === 1 || false)
             }).catch((err) => {
@@ -130,13 +130,20 @@ export const ShoppingCar = () => {
     }, []);
 
     const subtotal = cart.reduce((sum, item) => {
-        const price = item.product.decprice1 !== null && item.product.decprice1 !== undefined
-            ? item.product.decprice1
-            : item.product.decprice2 !== null && item.product.decprice2 !== undefined
-                ? item.product.decprice2
-                : item.product.decprice3 || 0;
+        const user = readUser();
+        let userPrice = item.product.decprice3; // default
+        if (isGuestUser(user)) {
+            userPrice = item.product.decprice3; // invitado => 3
+        } else if (isDistributorUser(user) || isAdminUser(user)) {
+            userPrice = item.product.decprice1;
+        } else if (isSalonUser(user)) {
+            userPrice = item.product.decprice2;
+        } else if (isNormalUser(user)) {
+            userPrice = item.product.decprice3;
+        }
 
-        return sum + (price * item.quantity);
+
+        return sum + (userPrice * item.quantity);
     }, 0);
     console.log(deliveryCost.secobraenvio)
 
@@ -339,26 +346,47 @@ export const ShoppingCar = () => {
     };
 
 
-    const handleMercadoPago = async () => {
+    /* const handleMercadoPago = async () => {
         setMpLoading(true)
         try {
+
+            const user = readUser();
+            const getUserPrice = (p: any) => {
+                const p1 = Number(p?.decprice1 ?? 0);
+                const p2 = Number(p?.decprice2 ?? 0);
+                const p3 = Number(p?.decprice3 ?? 0);
+
+                if (isDistributorUser(user) || isAdminUser(user)) return p1 || p2 || p3;
+                if (isSalonUser(user)) return p2 || p1 || p3;
+                return p3 || p2 || p1; // público
+            };
+
+            const productsPayload = cart.map((item) => {
+                const unitPrice = getUserPrice(item.product);
+                const quantity = Number(item.quantity) || 0;
+                const total = Number((unitPrice * quantity).toFixed(2));
+
+                return {
+                    product: {
+                        iIdProduct: item.product.iIdProduct,
+                        vcname: item.product.vcname,
+                        iFIdCompany: item.product.iFIdCompany || item.product.iIdCompany,
+                        vcdescription: item.product.vcdescription,
+                        vccategories: item.product.vccategories,
+                        vcphoto: item.product.vcphoto,
+                    },
+                    quantity,
+                    unitPrice, // <- útil en backend
+                    total,     // <- precio * cantidad según rol
+                };
+            });
 
             const payload = {
                 idUser,
                 email: parsed.user.vcemail || parsed.vcemail,
                 shipping: selectedAddressId, // o el objeto completo si es nueva
                 envio: shipping, // tu costo de envío calculado
-                products: cart.map(item => ({
-                    product: {
-                        iIdProduct: item.product.iIdProduct,
-                        vcname: item.product.vcname,
-                        vcdescription: item.product.vcdescription,
-                        vccategories: item.product.vccategories,
-                        imageUrl: item.product.vcphoto,
-                    },
-                    quantity: item.quantity,
-                    total: (item.product.decprice1 || item.product.decprice2 || item.product.decprice3) * item.quantity,
-                })),
+                products: productsPayload,
                 addCredit: isDistributor && useCredit,
                 credit: isDistributor && useCredit ? appliedCredit : 0,
                 useCashback: !isDistributor && useCashback,
@@ -368,7 +396,7 @@ export const ShoppingCar = () => {
             const res = await payment.post("/createOrder", payload);
             if (res.data.init_point) {
                 console.log(res.data)
-                //window.location.href = res.data.init_point; // redirige a MP
+                window.location.href = res.data.init_point; // redirige a MP
             } else {
                 throw new Error("No se recibió init_point");
             }
@@ -380,7 +408,7 @@ export const ShoppingCar = () => {
         } finally {
             setMpLoading(false);
         }
-    }
+    } */
 
     if (!isAuthenticated) {
         return (
@@ -413,29 +441,38 @@ export const ShoppingCar = () => {
             formData.append("credit", String(isDistributor && useCredit ? appliedCredit : 0));
             formData.append("useCashback", String(!isDistributor && useCashback));
             formData.append("cashback", String(!isDistributor && useCashback ? appliedCashback : 0));
+            const user = readUser();
+            const getUserPrice = (p: any) => {
+                const p1 = Number(p?.decprice1 ?? 0);
+                const p2 = Number(p?.decprice2 ?? 0);
+                const p3 = Number(p?.decprice3 ?? 0);
 
-            // productos serializados
-            formData.append(
-                "products",
-                JSON.stringify(
-                    cart.map((item) => ({
-                        product: {
-                            iIdProduct: item.product.iIdProduct,
-                            vcname: item.product.vcname,
-                            iFIdCompany: item.product.iFIdCompany || item.product.iIdCompany,
-                            vcdescription: item.product.vcdescription,
-                            vccategories: item.product.vccategories,
-                            vcphoto: item.product.vcphoto,
-                        },
-                        quantity: item.quantity,
-                        total:
-                            (item.product.decprice1 ||
-                                item.product.decprice2 ||
-                                item.product.decprice3) * item.quantity,
-                    }))
-                )
-            );
+                if (isDistributorUser(user) || isAdminUser(user)) return p1 || p2 || p3;
+                if (isSalonUser(user)) return p2 || p1 || p3;
+                return p3 || p2 || p1; // público
+            };
 
+            const productsPayload = cart.map((item) => {
+                const unitPrice = getUserPrice(item.product);
+                const quantity = Number(item.quantity) || 0;
+                const total = Number((unitPrice * quantity).toFixed(2));
+
+                return {
+                    product: {
+                        iIdProduct: item.product.iIdProduct,
+                        vcname: item.product.vcname,
+                        iFIdCompany: item.product.iFIdCompany || item.product.iIdCompany,
+                        vcdescription: item.product.vcdescription,
+                        vccategories: item.product.vccategories,
+                        vcphoto: item.product.vcphoto,
+                    },
+                    quantity,
+                    unitPrice, // <- útil en backend
+                    total,     // <- precio * cantidad según rol
+                };
+            });
+
+            formData.append("products", JSON.stringify(productsPayload));
             // ✅ Archivo recibido del modal
             formData.append("file", file);
 
@@ -501,7 +538,17 @@ export const ShoppingCar = () => {
                                                 .split("/imagenes/")[1];
                                             const imageUrl = `https://api.sensalon.com.mx/imagenes/${normalizedPath}`;
                                             console.log(product)
-
+                                            const user = readUser();
+                                            let userPrice = product.decprice3; // default
+                                            if (isGuestUser(user)) {
+                                                userPrice = product.decprice3; // invitado => 3
+                                            } else if (isDistributorUser(user) || isAdminUser(user)) {
+                                                userPrice = product.decprice1;
+                                            } else if (isSalonUser(user)) {
+                                                userPrice = product.decprice2;
+                                            } else if (isNormalUser(user)) {
+                                                userPrice = product.decprice3;
+                                            }
                                             return (
                                                 <div
                                                     key={product.iIdProduct}
@@ -518,14 +565,15 @@ export const ShoppingCar = () => {
                                                         <h3 className="font-semibold">{product.vcname}</h3>
                                                     </div>
                                                     <p className="font-semibold">
-                                                        ${(getEffectivePrice(product) * (Number(quantity) || 1)).toFixed(2)}
+                                                        ${(userPrice * (Number(quantity) || 1)).toFixed(2)}
                                                     </p>
                                                     <div className="flex items-center">
                                                         <button
                                                             onClick={() =>
                                                                 updateQuantity(product.iIdProduct, quantity - 1)
                                                             }
-                                                            className="p-2 bg-gray-200 rounded-md hover:bg-gray-300"
+                                                            disabled={quantity <= 0}
+                                                            className={`p-2 rounded-md ${quantity <= 0 ? 'bg-gray-50 text-gray-400 cursor-not-allowed' : 'bg-gray-200'}`}
                                                         >
                                                             <Minus size={20} />
                                                         </button>
@@ -534,7 +582,8 @@ export const ShoppingCar = () => {
                                                             onClick={() =>
                                                                 updateQuantity(product.iIdProduct, quantity + 1)
                                                             }
-                                                            className="p-2 bg-gray-200 rounded-md hover:bg-gray-300"
+                                                            disabled={quantity >= product.istock}
+                                                            className={`p-2 rounded-md ${quantity >= product.istock ? 'bg-gray-50 text-gray-400 cursor-not-allowed' : 'bg-gray-200'}`}
                                                         >
                                                             <Plus size={20} />
                                                         </button>
@@ -851,7 +900,7 @@ export const ShoppingCar = () => {
                                                     >
                                                         Máximo
                                                     </button>
-                                                   {/*  <button
+                                                    {/*  <button
                                                         type="button"
                                                         onClick={() => setCashbackToUse(0)}
                                                         className="px-2 py-1 rounded border border-gray-300 text-gray-700 bg-white hover:bg-gray-100"
@@ -971,13 +1020,13 @@ export const ShoppingCar = () => {
                                             className="w-full"
                                             disabled={!selectedAddressId || cart.length <= 0}
                                         />
-                                        <MercadoPagoButton
+                                        {/* <MercadoPagoButton
                                             size="lg"
                                             onClick={handleMercadoPago}
                                             loading={mpLoading}
                                             className="w-full"
                                             disabled={!selectedAddressId || cart.length <= 0}
-                                        />
+                                        /> */}
                                     </div>
                                 </div>
                                 <TransferModal

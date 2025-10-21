@@ -1,6 +1,7 @@
 // useProductStore.ts
 import { create } from "zustand";
 import { api } from "../utils/axiosClients";
+import { isGuestUser, isNormalUser } from "../helpers/detectedUserRole";
 
 type Product = any; // ajusta a tu interfaz real
 
@@ -55,10 +56,27 @@ export const useProductStore = create<Store>((set, get) => ({
       const fresh: Product[] = Array.isArray(resp.data)
         ? resp.data
         : (resp.data?.products ?? []);
+      const PUBLIC_CATEGORY_ID = "e5625114-dcc1-11ef-9113-0050563b5fff";
+      const isGuest = isGuestUser(u)
+      const isNormal = isNormalUser(u)
+
+      const filtered = (isGuest || isNormal)
+        ? fresh.filter((product) => {
+          try {
+            const cats = JSON.parse(product.vccategories || "{}");
+            const list = cats.Categorias || [];
+            return list.some(
+              (c: any) => c.idCategoria === PUBLIC_CATEGORY_ID
+            );
+          } catch {
+            return false;
+          }
+        })
+        : fresh;
 
       // Cache + estado
-      writeCache(fresh);
-      set({ products: fresh, loading: false });
+      writeCache(filtered);
+      set({ products: filtered, loading: false });
 
       // (Opcional) Guardar también en localStorage.user.products si hay usuario
       if (userId) {

@@ -14,9 +14,10 @@ app.use(express.urlencoded({ extended: false }));
 // CORS middleware
 app.use(cors(
   {
-    origin: ['http://localhost:5173','https://test-admin.sensalon.com.mx'],
-    methods: ["GET", "POST", "PUT", "DELETE"],
-    allowedHeaders: ["Content-Type", "Authorization"],
+    origin: [
+      "https://sensalon.com.mx",
+      "https://admin.sensalon.com.mx",
+    ]
   }
 ));
 app.use("/imagenes", express.static(path.join(__dirname, "assets/imagenes")));

@@ -1,0 +1,19 @@
+{
+  "idUser": "05351127-ef20-11ef-910f-0050562645d0",
+  "formattedProducts": [
+    {
+      "iIdProduct": "78efc27c-ab75-11f0-922f-0050562645d0",
+      "name": "Producto de prueba",
+      "priceUnit": 7,
+      "quantity": 30,
+      "total": 210,
+      "companyId": "c123de78-c15c-4409-8141-f447f9a84ca5",
+      "categoryIds": [
+        "4e78e3b3-9d17-403f-b7c6-18dcc4473f57"
+      ],
+      "image": "/var/www/vhosts/sensalon.com.mx/test-api.sensalon.com.mx/assets/imagenes/1760718148591-558280918-libretas.png"
+    }
+  ],
+  "errorMessage": "Sin disponibilidad visible para Producto de prueba",
+  "errorStack": "Error: Sin disponibilidad visible para Producto de prueba\n    at createOrderTransfer (/Users/w1zardsq/Documents/Proyectos/Sensalon/Sensalon_back/src/controllers/Payments/payments.ts:222:23)\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)"
+}

@@ -5,8 +5,9 @@ import { useCartStore } from "../../hooks/useCartStore";
 import { Companie } from "../../interfaces/empresas";
 import { api } from "../../utils/axiosClients";
 import { Categorie } from "../../interfaces/categorias";
-import { isDistributorUser, readUser } from "../../helpers/detectedUserRole";
+import { isAdminUser, isDistributorUser, isGuestUser, isNormalUser, isSalonUser, readUser } from "../../helpers/detectedUserRole";
 import { isNewProduct } from "../../helpers/isNewProduct";
+
 export const ProductosView = () => {
     const {
         products,       // usar si quieres mostrar spinner mientras refresca
@@ -32,7 +33,7 @@ export const ProductosView = () => {
     const [priceError, setPriceError] = useState<string>("");
 
     const user = readUser();
-    const isDistributor = isDistributorUser(user?.user);
+    const isDistributor = isDistributorUser(user);
 
     console.log(isDistributor)
 
@@ -172,8 +173,8 @@ export const ProductosView = () => {
         <div className="w-full bg-yellow-50 border border-yellow-200 rounded-xl p-6 text-yellow-900">
             <h3 className="text-lg font-semibold mb-1">No se encuentran productos</h3>
             <p className="text-sm">
-                Este usuario es <strong>Distribuidor</strong>, pero aún no tiene marcas asignadas.
-                Por favor contacta a un administrador para asignar marcas a tu cuenta.
+                Este usuario es <strong>Distribuidor</strong>, puede que no haya productos de esta marca, no se tenga asignada esta marca o que aún no se le haya asignado ninguna marca.
+                Por favor contacta a un administrador para cualquier aclaración.
             </p>
         </div>
     );
@@ -319,10 +320,18 @@ export const ProductosView = () => {
                                         const normalizedPath = product?.vcphoto?.replace(/\\/g, "/").split("/imagenes/")[1];
                                         const imageUrl = `https://api.sensalon.com.mx/imagenes/${normalizedPath}`;
                                         const isNew = isNewProduct(product.dtcreated);
-                                        console.log(isNew)
+                                        let userPrice = product.decprice3; // default
+                                        if (isGuestUser(user)) {
+                                            userPrice = product.decprice3; // invitado => 3
+                                        } else if (isDistributorUser(user) || isAdminUser(user)) {
+                                            userPrice = product.decprice1;
+                                        } else if (isSalonUser(user)) {
+                                            userPrice = product.decprice2;
+                                        } else if (isNormalUser(user)) {
+                                            userPrice = product.decprice3;
+                                        }
                                         const i = product?.istock ?? 0;
                                         const lim = product?.istocklimit ?? 0;
-                                        console.log(visibleItems)
                                         const cls =
                                             i === 0
                                                 ? 'bg-red-50 border border-red-200 text-red-700'
@@ -350,7 +359,7 @@ export const ProductosView = () => {
                                                             </p>
                                                         </div>
 
-                                                        <p className="text-md text-red-700 font-bold">${product.decprice1 ?? product.decprice2 ?? product.decprice3 ?? 'Precio no disponible'}</p>
+                                                        <p className="text-md text-red-700 font-bold">${userPrice ?? 'Precio no disponible'}</p>
                                                     </div>
 
                                                 </a>
