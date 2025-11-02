@@ -22,13 +22,15 @@ import { InventoryReservationModel } from "../../bd/models/InventoryReservation.
 dotenv.config()
 
 const client = new MercadoPagoConfig({
-    accessToken: 'APP_USR-7149811552619412-102016-a72d40656fa777da46aa2e95d45b519e-2936752270',
+    accessToken: process.env.MERCADO_PAGO_ACCESS_TOKEN!, //MERCADO_PAGO_ACCESS_TOKEN
 })
 
 const RESERVATION_TTL_HOURS = 24;
 
 export const createOrderMercadoPago = async (req: Request, res: Response) => {
-    const BASE_URL_BACK = 'test-api.sensalon.com.mx/payments'
+    const BASE_URL_BACK_PROD = 'api.sensalon.com.mx/payments'
+    //const BASE_URL_BACK_PREPROD = 'test-api.sensalon.com.mx/payments'
+    /* const BASE_URL_BACK_DEV = '' */
     try {
         const { products, email, idUser, shipping, addCredit, credit, useCashback, cashback, envio } = req.body
         let finalShippingaddresId = await validateOrCreateShipping(shipping, idUser)
@@ -75,17 +77,20 @@ export const createOrderMercadoPago = async (req: Request, res: Response) => {
         const cashbackValue = useCashback ? cashback : 0;
         const creditValue = addCredit ? credit : 0;
         const total = subtotal + shippingValue - cashbackValue - creditValue;
-
+        console.log(products)
         const preOrder = await CreateOrderPending.create({
             iIdUser: idUser,
             iIdShippingAddress: finalShippingaddresId,
-            products: products.map((p: { product: { iIdProduct: any; vcname: any; iFIdCompany: any }; total: number; quantity: number }) => ({
-                id: p.product.iIdProduct,
+            products: products.map((p: { product: { iIdProduct: string; vcname: string; iFIdCompany: string, vccategories: string, vcphoto: string }; total: number; quantity: number, unitPrice: number }) => ({
+                iIdProduct: p.product.iIdProduct,
                 name: p.product.vcname,
+                priceUnit: p.unitPrice,
                 price: p.total / p.quantity,
                 quantity: p.quantity,
                 total: p.total,
                 companyId: p.product.iFIdCompany,
+                categoryIds: p.product.vccategories,
+                image: p.product.vcphoto
             })),
             subtotal,
             shipping: shippingValue,
@@ -104,24 +109,19 @@ export const createOrderMercadoPago = async (req: Request, res: Response) => {
                 items,
                 payer: { email: email || user.dataValues.vcemail },
                 back_urls: {
-                    success: `${BASE_URL_BACK}/success?orderId=${preOrderGenerateId}`,
-                    failure: `${BASE_URL_BACK}/failure?orderId=${preOrderGenerateId}`,
-                    pending: `${BASE_URL_BACK}/pending?orderId=${preOrderGenerateId}`,
+                    success: `${BASE_URL_BACK_PROD}/success?orderId=${preOrderGenerateId}`,
+                    failure: `${BASE_URL_BACK_PROD}/failure?orderId=${preOrderGenerateId}`,
+                    pending: `${BASE_URL_BACK_PROD}/pending?orderId=${preOrderGenerateId}`,
                 },
-                //auto_return: "approved",
+                auto_return: "approved",
                 external_reference: String(preOrderGenerateId),
                 metadata: { idUser, shippingAddressId: finalShippingaddresId }
             },
         });
 
-        /* const paymentResponse = await vexor.pay.mercadopago({
-            items
-        })
-
-        console.log(paymentResponse) */
 
         return res.status(200).json({
-            init_point: response.sandbox_init_point,
+            init_point: response.init_point,
             preferenceId: response.id
         })
 
@@ -179,7 +179,7 @@ export const createOrderTransfer = async (req: Request, res: Response) => {
             total,
             status: "pending"
         })
-        
+
         const preOrder = await CreateOrderPending.create({
             iIdUser: idUser,
             iIdShippingAddress: finalShippingaddresId,
@@ -194,7 +194,7 @@ export const createOrderTransfer = async (req: Request, res: Response) => {
 
         const preOrderGenerateId = preOrder.getDataValue('iIdOrderPending')
         console.log(preOrderGenerateId)
-        
+
         console.log(productsArr)
         const productdIds = productsArr.map((p: any) => p.product.iIdProduct)
         console.log(productdIds)
@@ -285,7 +285,7 @@ export const createOrderTransfer = async (req: Request, res: Response) => {
             message: "Orden y reservaciones creadas correctamente",
             data: 1,
             orderNumber: transaction.getDataValue('iIdTransaction'),
-        }); 
+        });
     } catch (error: any) {
         console.error("Error al guardar la transacción:", error);
         await saveFailedTransaction({

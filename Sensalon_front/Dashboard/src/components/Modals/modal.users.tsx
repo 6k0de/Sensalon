@@ -180,7 +180,7 @@ export const ModalUsers = ({
       formDataSend.append("p_RolId", formData.iIdRole || "");
     }
 
-    formDataSend.append("role", formData.role);
+    formDataSend.append("role", formData.role || 'Usuario');
     formDataSend.append("nombres", formData.nombres);
     formDataSend.append("apellidos", formData.apellidos);
     formDataSend.append("username", formData.username);

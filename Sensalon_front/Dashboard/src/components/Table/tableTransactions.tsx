@@ -62,13 +62,21 @@ export const TableTransactions = ({ encabezados, data, outofstock, fetch }: Tabl
             setShowModal(true)
             return
         }
-
+        console.log(products)
         let parsed
         try {
-            parsed = typeof products === "string" ? JSON.parse(products) : products
+            // 1️⃣ Si viene como texto plano tipo "[{\"...\"}]" -> lo parseamos doble
+            if (typeof products === "string") {
+                parsed = JSON.parse(products);
+                if (typeof parsed === "string") {
+                    parsed = JSON.parse(parsed);
+                }
+            } else {
+                parsed = products;
+            }
         } catch (error) {
-            console.error("Error al parsear productos:", error)
-            parsed = []
+            console.error("❌ Error al parsear productos:", error);
+            parsed = [];
         }
 
         // Soporte para estructuras antiguas
@@ -77,7 +85,7 @@ export const TableTransactions = ({ encabezados, data, outofstock, fetch }: Tabl
                 ? [{ name: parsed.Producto, companyId: "N/A", quantity: 1, total: 0 }]
                 : []
         }
-
+        console.log(parsed)
         // Estandarizar campos clave
         parsed = parsed.map((p: any) => ({
             name: p.name || p.productName || "Producto desconocido",
@@ -214,7 +222,7 @@ export const TableTransactions = ({ encabezados, data, outofstock, fetch }: Tabl
                                         {transaction.amount || "N/A"}
                                     </td>
                                     <td className="px-5 py-2 font-medium text-gray-900 whitespace-nowrap dark:text-white">
-                                        {transaction.iuserId || "N/A"}
+                                        {transaction?.user?.vcfirstname +' '+ transaction?.user?.vclastname || "N/A"}
                                     </td>
                                     <td className="px-5 py-2 font-medium text-gray-900 whitespace-nowrap dark:text-white">
                                         {transaction.merchantOrderId || "N/A"}

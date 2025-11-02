@@ -17,6 +17,8 @@ import { MyCredit } from "../pages/MyCredit";
 import { MyOrders } from "../pages/MyOrders";
 import { PaymentReviewInfo } from "../pages/PendingPaymentTransfer";
 import { PaymentErrorPage } from "../pages/ErrorPayment";
+import { PaymentSuccessPage } from "../pages/SuccesPayment";
+import { PaymentPendingPage } from "../pages/PendingPayment";
 
 export const AppRoutes = () => {
     return (
@@ -51,7 +53,7 @@ export const AppRoutes = () => {
                             </ProtectedRoute>
                         }
                     />
-                    <Route 
+                    <Route
                         path="/transferPending"
                         element={
                             <ProtectedRoute>
@@ -66,7 +68,23 @@ export const AppRoutes = () => {
                                 <PaymentErrorPage key={window.location.pathname} />
                             </ProtectedRoute>
                         }
-                        />
+                    />
+                    <Route
+                        path='/payments/success'
+                        element={
+                            <ProtectedRoute>
+                                <PaymentSuccessPage key={window.location.pathname} />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path='/payments/pending'
+                        element={
+                            <ProtectedRoute>
+                                <PaymentPendingPage key={window.location.pathname} />
+                            </ProtectedRoute>
+                        }
+                    />
                     <Route path="/productDetail/:id" element={<ProductDetail key={window.location.pathname} />} />
                     <Route path="/terminos" element={<Terms key={window.location.pathname} />} />
                     <Route path="/avisoprivacidad" element={<Privacy key={window.location.pathname} />} />

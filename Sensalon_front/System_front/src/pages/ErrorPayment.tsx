@@ -1,70 +1,44 @@
-import React from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import React, { useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import {
     XCircle,
-    RefreshCw,
-    Home,
     Mail,
     Phone,
-    MessageCircle,
     AlertTriangle,
 } from 'lucide-react'
 
 export const PaymentErrorPage: React.FC = () => {
-    const navigate = useNavigate()
     const [searchParams] = useSearchParams()
 
     // Valores que vienen del backend
-    const transactionId = searchParams.get('transactionId') || 'N/A'
+    const transactionId = searchParams.get('transactionId') || searchParams.get('idTransaction') || 'N/A'
     const status = searchParams.get('status') || 'rejected'
     const errorMessage =
         searchParams.get('error') ||
-        'No pudimos procesar tu pago. Intenta con otro método de pago.'
+        'No se pudo procesar el pago intentelo de nuevo.'
     const paymentMethod = searchParams.get('method') || 'Desconocido'
     const date = searchParams.get('date')
         ? new Date(searchParams.get('date') as string).toLocaleString('es-MX')
         : new Date().toLocaleString('es-MX')
 
     // Datos de contacto
-    const supportEmail = 'soporte@mitienda.com'
-    const supportPhone = '+54 11 1234-5678'
+    const supportEmail = 'roman.pizano@sensalon.com.mx'
+    const supportPhone = '+52 33 2597 0877'
 
-    const handleRetry = () => {
-        navigate('/')
-    }
-    const handleContactSupport = () => {
-        window.open(
-            `mailto:${supportEmail}?subject=Error en pago - ${transactionId}&body=Hola, tengo un problema con mi pago. ID de referencia: ${transactionId}`,
-        )
-    }
-    const handleCallSupport = () => {
-        window.open(`tel:${supportPhone}`)
-    }
+    useEffect(() => {
+        localStorage.removeItem("cart-storage");
+    }, []);
+    /*  const handleContactSupport = () => {
+         window.open(
+             `mailto:${supportEmail}?subject=Error en pago - ${transactionId}&body=Hola, tengo un problema con mi pago. ID de referencia: ${transactionId}`,
+         )
+     }
+     const handleCallSupport = () => {
+         window.open(`tel:${supportPhone}`)
+     } */
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-red-50 to-pink-50">
-            {/* Header */}
-            <header className="bg-white shadow-sm border-b">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex justify-between items-center py-4">
-                        <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 bg-red-600 rounded-full flex items-center justify-center">
-                                <XCircle className="w-5 h-5 text-white" />
-                            </div>
-                            <h1 className="text-xl font-semibold text-gray-900">
-                                Error en el Pago
-                            </h1>
-                        </div>
-                        <button
-                            onClick={() => navigate('/')}
-                            className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 transition-colors"
-                        >
-                            <Home className="w-4 h-4" />
-                            Inicio
-                        </button>
-                    </div>
-                </div>
-            </header>
+        <div className="">
 
             {/* Main */}
             <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -76,8 +50,7 @@ export const PaymentErrorPage: React.FC = () => {
                         Error en el Pago
                     </h2>
                     <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-                        No pudimos procesar tu pago. Por favor, revisa la información e
-                        intenta nuevamente.
+                        {paymentMethod === 'MercadoPago' ? <span>Mercado pago rechazo su pago</span> : <span>Se rechazo el pago </span>}
                     </p>
                 </div>
 
@@ -147,24 +120,6 @@ export const PaymentErrorPage: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Botones de acción */}
-                <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
-                    <button
-                        onClick={handleRetry}
-                        className="flex items-center justify-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                    >
-                        <RefreshCw className="w-5 h-5" />
-                        Intentar Nuevamente
-                    </button>
-                    <button
-                        onClick={handleContactSupport}
-                        className="flex items-center justify-center gap-2 bg-gray-100 text-gray-700 px-6 py-3 rounded-lg font-medium hover:bg-gray-200 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
-                    >
-                        <MessageCircle className="w-5 h-5" />
-                        Contactar Soporte
-                    </button>
-                </div>
-
                 {/* Opciones de soporte */}
                 <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
                     <h3 className="text-lg font-semibold text-gray-900 mb-4">
@@ -172,7 +127,7 @@ export const PaymentErrorPage: React.FC = () => {
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <button
-                            onClick={handleContactSupport}
+                            onClick={() => { }}
                             className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors"
                         >
                             <Mail className="w-6 h-6 text-blue-600" />
@@ -182,7 +137,7 @@ export const PaymentErrorPage: React.FC = () => {
                             </div>
                         </button>
                         <button
-                            onClick={handleCallSupport}
+                            onClick={() => { }}
                             className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:border-green-300 hover:bg-green-50 transition-colors"
                         >
                             <Phone className="w-6 h-6 text-green-600" />

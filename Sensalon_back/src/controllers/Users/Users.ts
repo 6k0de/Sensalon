@@ -274,15 +274,15 @@ export const UpdateUser = async (req: Request, res: Response) => {
 
     if (actualizado === "0") {
       // Comparar como string
-      if (creditRequested !== undefined) {
+      if (creditRequested !== undefined && creditRequested > 0) {
         await conn.query(
           `
-          UPDATE credits
-             SET totalamount = :amt,
-                 dtUpdate   = NOW()
-           WHERE iFIdUser = :uid
-             AND state = 0
-           LIMIT 1
+            UPDATE credits
+              SET totalamount = :amt,
+                  dtUpdate   = NOW()
+            WHERE iFIdUser = :uid
+              AND state = 0
+            LIMIT 1
         `,
           { replacements: { amt: creditRequested, uid: p_UserId } }
         );

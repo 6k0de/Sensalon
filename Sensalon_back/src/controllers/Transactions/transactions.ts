@@ -14,7 +14,7 @@ export const GetAllTransactions = async (_: Request, res: Response) => {
             include: [{
                 model: Users,
                 as: 'user', // Asegúrate de que el alias 'user' coincide con el definido en las asociaciones
-                attributes: ['vcusername'] // Especifica aquí los atributos que quieres obtener del usuario
+                attributes: ['vcfirstname', 'vclastname'] // Especifica aquí los atributos que quieres obtener del usuario
             }]
         });
         if (transactions.length > 0) {

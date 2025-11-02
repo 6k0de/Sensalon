@@ -1,9 +1,8 @@
-import React from "react"
-import { useNavigate, useSearchParams } from "react-router-dom"
-import { CheckCircle, Copy, Home, Download } from "lucide-react"
+import React, { useEffect } from "react"
+import { useSearchParams } from "react-router-dom"
+import { CheckCircle, Copy} from "lucide-react"
 
 export const PaymentSuccessPage: React.FC = () => {
-    const navigate = useNavigate()
     const [searchParams] = useSearchParams()
 
     // Recuperar parámetros enviados por el backend
@@ -21,34 +20,12 @@ export const PaymentSuccessPage: React.FC = () => {
         alert("ID copiado al portapapeles")
     }
 
-    const handleDownloadReceipt = () => {
-        console.log(transactionId)
-    }
+   useEffect(() => {
+       localStorage.removeItem("cart-storage");
+     }, []);
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50">
-            {/* Header */}
-            <header className="bg-white shadow-sm border-b">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex justify-between items-center py-4">
-                        <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 bg-green-600 rounded-full flex items-center justify-center">
-                                <CheckCircle className="w-5 h-5 text-white" />
-                            </div>
-                            <h1 className="text-xl font-semibold text-gray-900">
-                                Pago Exitoso
-                            </h1>
-                        </div>
-                        <button
-                            onClick={() => navigate("/")}
-                            className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 transition-colors"
-                        >
-                            <Home className="w-4 h-4" />
-                            Inicio
-                        </button>
-                    </div>
-                </div>
-            </header>
+        <div className="bg">
 
             {/* Main */}
             <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -126,23 +103,6 @@ export const PaymentSuccessPage: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Botones */}
-                <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                    <button
-                        onClick={handleDownloadReceipt}
-                        className="flex items-center justify-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                    >
-                        <Download className="w-5 h-5" />
-                        Descargar Comprobante
-                    </button>
-                    <button
-                        onClick={() => navigate("/")}
-                        className="flex items-center justify-center gap-2 bg-gray-100 text-gray-700 px-6 py-3 rounded-lg font-medium hover:bg-gray-200 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
-                    >
-                        <Home className="w-5 h-5" />
-                        Volver al Inicio
-                    </button>
-                </div>
             </main>
         </div>
     )

@@ -19,6 +19,7 @@ import { ShippingAddresModel } from "../bd/models/ShippingAdd.model";
 import { updateStatusTransaction } from "../controllers/Transactions/transactions";
 import { Credit } from "../bd/models/Credits.model";
 import { CashBack } from "../bd/models/Cashback.model";
+import { Users } from "../bd/models/Users.model";
 
 dotenv.config();
 export const payment = Router();
@@ -31,7 +32,9 @@ payment.use((req, res, next) => {
   next();
 });
 
-const BASE_URL_FRONT = 'test.sensalon.com.mx'
+const BASE_URL_FRONT_PROD = 'https://sensalon.com.mx/payments'
+//const BASE_URL_FRONT_PREPROD = 'https://test.sensalon.com.mx/payments'
+//const BASE_URL_FRONT_DEV = 'http://localhost:5173/payments'
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, path.join(__dirname, "../assets/comprobantetransf")); // Carpeta donde se guardarÃ¡n los archivos
@@ -89,14 +92,43 @@ payment.get('/success', async (req: Request, res: Response) => {
       iOrderPendingId: Number(orderId),
     })
 
-    if(preOrder.getDataValue('credit') > 0) {
-      await Credit.update({ state: 1, totalpayamount: preOrder.getDataValue('credit') }, { where: { iFIdUser: preOrder.dataValues.iIdUser } });
+    // 👇 Crédito: acumula deuda (lo usado se suma al total pendiente)
+    if (preOrder.getDataValue('credit') > 0) {
+      const usedCredit = Number(preOrder.getDataValue('credit')) || 0;
+
+      const userCredit = await Credit.findOne({
+        where: { iFIdUser: preOrder.dataValues.iIdUser },
+      });
+
+      if (userCredit) {
+        // suma lo usado al total por pagar
+        const current = Number(userCredit.getDataValue('totalpayamount')) || 0;
+        const newTotal = current + usedCredit;
+
+        await Credit.update(
+          { totalpayamount: newTotal, state: 1 }, // state=1 => con deuda activa
+          { where: { iIdCredits: userCredit.dataValues.iIdCredits } }
+        );
+      }
     }
 
-    if(preOrder.getDataValue('cashback') > 0) {
+
+    if (preOrder.getDataValue('cashback') > 0) {
+      const usedCashback = preOrder.getDataValue('cashback');
       const cash = await CashBack.findOne({ where: { FiIdUser: preOrder.dataValues.iIdUser } });
-      if(cash) {
-        await CashBack.update({  cashbackamount: preOrder.getDataValue('cashback') + cash.getDataValue('cashbackamount') }, { where: { iIdCashback: cash.dataValues.iIdCashback } });
+
+      if (cash) {
+        const currentAmount = cash.getDataValue('cashbackamount') || 0;
+        const newAmount = Math.max(0, currentAmount - usedCashback); // evitar valores negativos
+        await CashBack.update(
+          { cashbackamount: newAmount },
+          { where: { iIdCashback: cash.dataValues.iIdCashback } }
+        );
+        await Users.update({
+          cashbackbalance: newAmount
+        },
+          { where: { iIdUser: preOrder.dataValues.iIdUser } }
+        )
       }
     }
 
@@ -110,7 +142,7 @@ payment.get('/success', async (req: Request, res: Response) => {
 
       const info = await transporter.sendMail({
         from: 'pedidos@sensalon.com.mx',
-        to: 'borrelizzy@gmail.com',
+        to: 'pedidos@sensalon.com.mx', //borrelizzy@gmail.com
         subject: `Nueva Orden de Compra - ${idTransaction}`,
         html: htmlContent
       });
@@ -120,7 +152,7 @@ payment.get('/success', async (req: Request, res: Response) => {
       console.error('Error al enviar el correo:', error);
     }
 
-    const redirectUrl = `${BASE_URL_FRONT}/pagoExitoso?` +
+    const redirectUrl = `${BASE_URL_FRONT_PROD}/success?` +
       `orderNumber=${idTransaction}` +
       `&amount=${preOrder.dataValues.total}` +
       `&method=${transaction.dataValues.paymentMethod}` +
@@ -130,7 +162,7 @@ payment.get('/success', async (req: Request, res: Response) => {
 
   } catch (error: any) {
     console.error("Error en success:", error);
-    const redirectUrl = `${BASE_URL_FRONT}/ordenFallida?` +
+    const redirectUrl = `${BASE_URL_FRONT_PROD}/ordenFallida?` +
       `orderId=${orderId}` +
       `&paymentId=${payment_id || ""}` +
       `&status=${status || "rejected"}` +
@@ -140,3 +172,92 @@ payment.get('/success', async (req: Request, res: Response) => {
     res.redirect(302, redirectUrl);
   }
 })
+
+payment.get('/failure', async (req: Request, res: Response) => {
+  const { payment_id, status, merchant_order_id, orderId } = req.query;
+  try {
+    const preOrder = await CreateOrderPending.findOne({ where: { iIdOrderPending: Number(orderId) } });
+    if (!preOrder) throw new Error("Orden no encontrada");
+
+    const transaction = await TransactionModel.create({
+      mercadoPagoPaymentId: String(payment_id),
+      status: String(status || ""),
+      amount: preOrder.dataValues.total,
+      iuserId: preOrder.dataValues.iIdUser,
+      ishippingAddressId: preOrder.dataValues.iIdShippingAddress,
+      merchantOrderId: String(merchant_order_id),
+      paymentMethod: 'MercadoPago',
+      products: preOrder.dataValues.products,
+      iOrderPendingId: Number(orderId),
+    })
+
+    const idTransaction = transaction.dataValues.iIdTransaction;
+
+    await preOrder.update({ status: "failed" });
+
+    const redirectUrl = `${BASE_URL_FRONT_PROD}/failure?` +
+      `orderId=${orderId}` +
+      `&idTransaction=${idTransaction}` +
+      `&paymentId=${payment_id || ""}` +
+      `&status=${status || "rejected"}` +
+      `&method=${transaction.dataValues.paymentMethod}` +
+      `&date=${encodeURIComponent(new Date().toISOString())}`;
+    res.redirect(302, redirectUrl);
+
+  } catch (error: any) {
+    console.error("Error en success:", error);
+    const redirectUrl = `${BASE_URL_FRONT_PROD}/ordenFallida?` +
+      `orderId=${orderId}` +
+      `&paymentId=${payment_id || ""}` +
+      `&status=${status || "rejected"}` +
+      `&method=MercadoPago` +
+      `&date=${encodeURIComponent(new Date().toISOString())}` +
+      `&message=${encodeURIComponent(error.message || "Error en el pago")}`;
+    res.redirect(302, redirectUrl);
+  }
+})
+
+payment.get('/pending', async (req: Request, res: Response) => {
+  const { payment_id, status, merchant_order_id, orderId } = req.query;
+  try {
+    const preOrder = await CreateOrderPending.findOne({ where: { iIdOrderPending: Number(orderId) } });
+    if (!preOrder) throw new Error("Orden no encontrada");
+
+    const transaction = await TransactionModel.create({
+      mercadoPagoPaymentId: String(payment_id),
+      status: String(status || ""),
+      amount: preOrder.dataValues.total,
+      iuserId: preOrder.dataValues.iIdUser,
+      ishippingAddressId: preOrder.dataValues.iIdShippingAddress,
+      merchantOrderId: String(merchant_order_id),
+      paymentMethod: 'MercadoPago',
+      products: preOrder.dataValues.products,
+      iOrderPendingId: Number(orderId),
+    })
+
+    const idTransaction = transaction.dataValues.iIdTransaction;
+
+    await preOrder.update({ status: "pending" });
+
+    const redirectUrl = `${BASE_URL_FRONT_PROD}/pending?` +
+      `orderId=${orderId}` +
+      `&idTransaction=${idTransaction}` +
+      `&paymentId=${payment_id || ""}` +
+      `&status=${status || "pending"}` +
+      `&method=${transaction.dataValues.paymentMethod}` +
+      `&date=${encodeURIComponent(new Date().toISOString())}`;
+    res.redirect(302, redirectUrl);
+
+  } catch (error: any) {
+    console.error("Error en success:", error);
+    const redirectUrl = `${BASE_URL_FRONT_PROD}/ordenFallida?` +
+      `orderId=${orderId}` +
+      `&paymentId=${payment_id || ""}` +
+      `&status=${status || "pending"}` +
+      `&method=MercadoPago` +
+      `&date=${encodeURIComponent(new Date().toISOString())}` +
+      `&message=${encodeURIComponent(error.message || "Error en el pago")}`;
+    res.redirect(302, redirectUrl);
+  }
+})
+

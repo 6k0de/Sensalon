@@ -37,9 +37,9 @@ export const CardsOrders = ({ order }: { order: Order }) => {
                     </div>
                     <div className="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto">
                         <div className="text-right">
-                            <p className="text-xs text-gray-500">Subtotal </p>
+                            <p className="text-xs text-gray-500">Total </p>
                             <p className="font-bold text-gray-900">${order.total.toFixed(2)}</p>
-                            <span className='text-xs'>No incluye el envio</span>
+                           {/*  <span className='text-xs'>No incluye el envio</span> */}
                         </div>
                         <button
                             onClick={() => setIsExpanded(!isExpanded)}

@@ -9,7 +9,7 @@ import { api, payment } from '../utils/axiosClients';
 import { ShippingAddress } from '../interfaces/shippingAdd';
 import { deleteShipping } from '../services/Shipping/deleteShipping';
 import { ModalSuccesCancel } from '../components/Modal/modal.acceptcancel';
-//import { MercadoPagoButton } from '../components/Buttons/mercadoPago';
+import { MercadoPagoButton } from '../components/Buttons/mercadoPago';
 import { BankTransferButton } from '../components/Buttons/transferencia';
 import { TransferModal } from '../components/Modal/modal.banktransfer';
 import { createOrderTransfer } from '../services/Pay/Pay';
@@ -27,7 +27,7 @@ export const ShoppingCar = () => {
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [addressToDelete, setAddressToDelete] = useState<string | null>(null);
     const [deliveryCost, setDeliveryCost] = useState<any>([])
-    //const [mpLoading, setMpLoading] = useState(false)
+    const [mpLoading, setMpLoading] = useState(false)
     const [bankLoading, setBankLoading] = useState(false)
     const [modalOpen, setModalOpen] = useState(false)
     const [brands, setBrands] = useState<{ iIdCompany: string; vcname: string }[]>([]);
@@ -346,7 +346,7 @@ export const ShoppingCar = () => {
     };
 
 
-    /* const handleMercadoPago = async () => {
+    const handleMercadoPago = async () => {
         setMpLoading(true)
         try {
 
@@ -408,7 +408,7 @@ export const ShoppingCar = () => {
         } finally {
             setMpLoading(false);
         }
-    } */
+    } 
 
     if (!isAuthenticated) {
         return (
@@ -900,13 +900,13 @@ export const ShoppingCar = () => {
                                                     >
                                                         Máximo
                                                     </button>
-                                                    {/*  <button
+                                                     <button
                                                         type="button"
                                                         onClick={() => setCashbackToUse(0)}
                                                         className="px-2 py-1 rounded border border-gray-300 text-gray-700 bg-white hover:bg-gray-100"
                                                     >
                                                         Limpiar
-                                                    </button> */}
+                                                    </button> 
                                                 </div>
                                             </div>
 
@@ -983,13 +983,13 @@ export const ShoppingCar = () => {
                                                     >
                                                         Máximo
                                                     </button>
-                                                    {/* <button
+                                                    <button
                                                         type="button"
                                                         onClick={() => setCreditToUse(0)}
                                                         className="px-2 py-1 rounded border border-gray-300 text-gray-700 bg-white hover:bg-gray-100"
                                                     >
                                                         Limpiar
-                                                    </button> */}
+                                                    </button> 
                                                 </div>
                                             </div>
 
@@ -1020,13 +1020,13 @@ export const ShoppingCar = () => {
                                             className="w-full"
                                             disabled={!selectedAddressId || cart.length <= 0}
                                         />
-                                        {/* <MercadoPagoButton
+                                        <MercadoPagoButton
                                             size="lg"
                                             onClick={handleMercadoPago}
                                             loading={mpLoading}
                                             className="w-full"
                                             disabled={!selectedAddressId || cart.length <= 0}
-                                        /> */}
+                                        />
                                     </div>
                                 </div>
                                 <TransferModal

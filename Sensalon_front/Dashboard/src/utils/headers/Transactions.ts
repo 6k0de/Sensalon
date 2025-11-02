@@ -3,7 +3,7 @@ export const HEADER_TABLE_TRANSACTIONS:string[] = [
     "Mercado Pago PaymentId",
     "Estatus",
     "Cantidad",
-    "Nombre Usuario",
+    "Nombre Completo",
     "Orden Compra",
     "Metodo Pago",
     "Productos",

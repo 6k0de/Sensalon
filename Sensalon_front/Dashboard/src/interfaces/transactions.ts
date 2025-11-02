@@ -17,6 +17,7 @@ export interface Transaction {
   products?: any;
   urltransferrecipt?: string | null;
   cashbackapplied?: number | null;
+  user?: { vcfirstname: string, vclastname: string }
   createdAt: Date;
   updatedAt: Date;
 }
