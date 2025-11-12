@@ -4,25 +4,32 @@ import { Companie } from "../../interfaces/companies";
 import axios from 'axios'
 import { Categorie } from "../../interfaces/categories";
 import { InsertProducts } from "../../services/products/InsertProducts";
-import { Product } from "../../interfaces/products";
+import { Product, ProductType } from "../../interfaces/products";
 import { UpdateProduct } from "../../services/products/updateProduct";
-import { api, BASE_URL_IMAGE_PROD } from "../../utils/axiosClients";
+import { api, BASE_URL_IMAGE_DEV, } from "../../utils/axiosClients";
 import { ErrorToast } from "../Toast/errorToast";
+import { ProductAutocomplete } from "../Autocomplete";
+import { ColorPickerField } from "../ColorPicker";
 
 export const ModalProduct = ({ show, onClose, data, mode }: { show: boolean, onClose: (message: string, type: "success" | "error" | null) => void, data: Product | any, mode: number }) => {
     // en la variable mode, 0 = creando y 1 = editando
     const [empresasError, setEmpresasError] = useState<string | null>(null);
     const [categoriasError, setCategoriasError] = useState<string | null>(null);
+    const [productsError, setProductsError] = useState<string | null>(null);
 
     const [empresas, SetEmpresas] = useState<Companie[]>([]);
     const [categorias, SetCategorias] = useState<Categorie[]>([]);
-
+    const [products, SetProducts] = useState<any[]>([])
+    console.log(data)
     // Variables de estado para los campos del formulario
+    const [tipoProducto, setTipoProducto] = useState<ProductType>(data?.producttype || 'SIMPLE')
     const [empresa, setEmpresa] = useState<string>(data?.iFIdCompany || '');
     const [nombre, setNombre] = useState<string>(data?.vcname || '');
+    const [idProductRelacionado, setIdProductoRelacionado] = useState<string>(data?.relatedproductId)
+    const [colorVariant, setColorVariant] = useState(data?.variantcolor || '')
     const [descripcion, setDescripcion] = useState<string>(data?.vcdescription || '');
-    const [peso, setPeso] = useState<string>(data?.vcweight?.match(/\d+/g)?.[0] || "");;
-    const [unidades, setUnidades] = useState<string>(data?.vcweight?.match(/[a-zA-Z]+/g)[0] || 'g');
+    const [peso, setPeso] = useState<string>(data?.vcweight?.match(/\d+/g)?.[0] || "");
+    const [unidades, setUnidades] = useState<string>(data?.vcweight?.match?.(/[a-zA-Z]+/g)[0] || 'g');
     const [cantidad, setCantidad] = useState<string>(data?.vcquantity || '');
     const [precio1, setPrecio1] = useState<string>(data?.decprice1 || '');
     const [precio2, setPrecio2] = useState<string>(data?.decprice2 || '');
@@ -36,22 +43,31 @@ export const ModalProduct = ({ show, onClose, data, mode }: { show: boolean, onC
     const [toastType, setToastType] = useState<"success" | "error" | null>(null);
     const [showToast, setShowToast] = useState(true);
     const [toastMessage, setToastMessage] = useState<string | null>(null);
+    const [packageItems, setPackageItems] = useState<{ product_id: string; product_name: string; quantity: number; }[]>([]);
+    const [selectedProduct, setSelectedProduct] = useState<string>('');
+    const [packageQty, setPackageQty] = useState<number>(1);
 
     const dropdownRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         axios.all([
-            api.get('/empresas').catch((error) => {
-                setEmpresasError("Error al obtener empresas: " + error.message);
+            api.get('/empresas').catch((_) => {
+                setEmpresasError("Error al obtener empresas: ");
                 return null;
             }),
-            api.get('/categorias').catch((error) => {
-                setCategoriasError('Error al obtener las categorias' + error.message)
+            api.get('/categorias').catch((_) => {
+                setCategoriasError('Error al obtener las categorias')
+                return null
+            }),
+            api.get("/productos").catch((_) => {
+                setProductsError('Error al obtener los productos')
                 return null
             })
-        ]).then(axios.spread((resemp, rescat) => {
+
+        ]).then(axios.spread((resemp, rescat, resprod) => {
             if (resemp) SetEmpresas(resemp.data)
             if (rescat) SetCategorias(rescat.data)
+            if (resprod) SetProducts(resprod.data)
         }))
     }, [])
 
@@ -72,8 +88,7 @@ export const ModalProduct = ({ show, onClose, data, mode }: { show: boolean, onC
             }
             if (data?.vcphoto) {
                 const normalizedPath = data?.vcphoto.replace(/\\/g, '/').split('/imagenes/')[1];
-                const imageurl = `${BASE_URL_IMAGE_PROD}/${normalizedPath}`;
-                console.log(imageurl)
+                const imageurl = `${BASE_URL_IMAGE_DEV}/${normalizedPath}`;
                 setImagePreview(imageurl);
             } else {
                 setImagePreview(null);
@@ -122,21 +137,39 @@ export const ModalProduct = ({ show, onClose, data, mode }: { show: boolean, onC
 
     const handelsubmit = (e: any) => {
         e.preventDefault()
-        if (!empresa || empresa === 'Seleccione una empresa') { setToastMessage("Seleccione una empresa"); setToastType("error"); setShowToast(true); setTimeout(() => { setShowToast(false); setToastType(null); setToastMessage(null) }, 3000); return };
-        if (!nombre.trim()) { setToastMessage("Ingrese el nombre del producto"); setToastType("error"); setShowToast(true); setTimeout(() => { setShowToast(false); setToastType(null); setToastMessage(null) }, 3000); return };
+        if (tipoProducto !== "PACKAGE" && (!empresa || empresa === "Seleccione una empresa")) {
+            setToastMessage("Seleccione una empresa");
+            setToastType("error");
+            setShowToast(true);
+            setTimeout(() => {
+                setShowToast(false);
+                setToastType(null);
+                setToastMessage(null);
+            }, 3000);
+            return;
+        } if (!nombre.trim()) { setToastMessage("Ingrese el nombre del producto"); setToastType("error"); setShowToast(true); setTimeout(() => { setShowToast(false); setToastType(null); setToastMessage(null) }, 3000); return };
         if (!precio1 || !precio2 || !precio3) { setToastMessage("Ingrese los tres precios"); setToastType("error"); setShowToast(true); setTimeout(() => { setShowToast(false); setToastType(null); setToastMessage(null) }, 3000); return };
         if (!existencia) { setToastMessage("Ingrese la existencia"); setToastType("error"); setShowToast(true); setTimeout(() => { setShowToast(false); setToastType(null); setToastMessage(null) }, 3000); return };
         if (!existenciaMinima) { setToastMessage("Ingrese la existencia mínima"); setToastType("error"); setShowToast(true); setTimeout(() => { setShowToast(false); setToastType(null); setToastMessage(null) }, 3000); return };
         if (mode === 0 && !selectedFile) { setToastMessage("Debe seleccionar una imagen del producto"); setToastType("error"); setShowToast(true); setTimeout(() => { setShowToast(false); setToastType(null); setToastMessage(null) }, 3000); return };
         const formData = new FormData()
         //console.log(empresa.value, nombre.value, peso.value + unidades.value, precio1.value, precio2.value, precio3.value, JSON.stringify(selectedCategories), existencia.value, existenciaminima.value)
-        formData.append('iFIdCompany', empresa);
+        if (tipoProducto === "PACKAGE" && !empresa) {
+            formData.append("iFIdCompany", "");
+        } else {
+            formData.append("iFIdCompany", empresa);
+        }
         formData.append('vccategories', JSON.stringify(selectedCategories));
         formData.append('vcname', nombre);
         formData.append('vcdescription', descripcion);
+        formData.append('producttype', tipoProducto)
+        formData.append('relatedproductId', idProductRelacionado)
+        formData.append('variantcolor', JSON.stringify(colorVariant))
+        if (tipoProducto === 'PACKAGE') {
+            formData.append('productsPackage', JSON.stringify(packageItems))
+        }
         formData.append('vcweight', peso + unidades);
         formData.append('vcquantity', cantidad);
-
         if (selectedFile) {
             formData.append('vcphoto', selectedFile);
         }
@@ -145,6 +178,10 @@ export const ModalProduct = ({ show, onClose, data, mode }: { show: boolean, onC
         formData.append('decprice3', precio3);
         formData.append('istock', existencia);
         formData.append('istocklimit', existenciaMinima);
+
+        for (const [key, value] of formData.entries()) {
+            console.log(`${key}:`, value);
+        }
 
 
         if (mode === 0) {
@@ -174,6 +211,51 @@ export const ModalProduct = ({ show, onClose, data, mode }: { show: boolean, onC
         }
     }
 
+    useEffect(() => {
+        if (mode === 1 && data) {
+            // ... tus otros valores previos
+
+            // Precargar color si existe
+            if (data?.variantcolor) {
+                try {
+                    const parsedColor = JSON.parse(data.variantcolor);
+                    setColorVariant(parsedColor);
+                } catch {
+                    setColorVariant('');
+                }
+            }
+
+            // Precargar productos del paquete
+            if (data?.producttype === 'PACKAGE' && data?.packageItems) {
+                try {
+                    const parsedItems = JSON.parse(data.packageItems);
+                    setPackageItems(parsedItems);
+                } catch {
+                    setPackageItems([]);
+                }
+            }
+        }
+    }, [data, mode]);
+
+
+    const addProductToPackage = () => {
+        if (!selectedProduct) return;
+        const product = products.find(p => p.iIdProduct === selectedProduct);
+        if (!product) return;
+        setPackageItems(prev => [...prev, { product_id: product.iIdProduct, product_name: product.vcname, quantity: packageQty }]);
+        setSelectedProduct('');
+        setPackageQty(1);
+    };
+
+    const removePackageItem = (id: string) => {
+        setPackageItems(prev => prev.filter(item => item.product_id !== id));
+    };
+
+    const updatePackageQty = (id: string, qty: number) => {
+        setPackageItems(prev =>
+            prev.map(p => (p.product_id === id ? { ...p, quantity: qty } : p))
+        );
+    };
     return (
         <>
             <div className="fixed top-0 right-0 z-[1000] p-4">
@@ -194,235 +276,363 @@ export const ModalProduct = ({ show, onClose, data, mode }: { show: boolean, onC
                         </button>
                     </div>
                     <form onSubmit={handelsubmit} className="p-4 md:p-5" encType="multipart/form-data">
+                        {/* Grid estable adaptable */}
                         <div className="grid gap-4 mb-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-12">
-                            <div className='col-span-2  lg:col-span-4'>
-                                <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Empresa:</label>
-                                <select id="empresas" name="empresa" value={empresa} onChange={(e) => setEmpresa(e.target.value)} className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-xl focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500">
-                                    <option selected>Seleccione una empresa</option>
-                                    {empresasError ?
-                                        <>
-                                            <option>Error al obtener las empresas</option>
-                                        </>
-                                        :
-                                        empresas.map((empresa) => (
-                                            <>
-                                                <option key={empresa.iIdCompany} value={empresa.iIdCompany}>{empresa.vcname}</option>
-                                            </>
-                                        ))}
-                                </select>
 
-                            </div>
-                            <div className='col-span-2 lg:col-span-4'>
-                                <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Nombre:</label>
-                                <input value={nombre} onChange={(e) => setNombre(e.target.value)} type="text" name="nombre" id="name" className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-xl focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500" placeholder="Type product name" />
-                            </div>
-
+                            {/* Tipo de producto */}
                             <div className="col-span-2 lg:col-span-4">
-                                <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Peso:</label>
-                                <div className="flex w-full">
+                                <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                                    Tipo de producto:
+                                </label>
+                                <select
+                                    value={tipoProducto}
+                                    onChange={(e) => setTipoProducto(e.target.value as ProductType)}
+                                    className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-xl focus:ring-primary-500 focus:border-primary-500 w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:text-white"
+                                >
+                                    <option value="">Seleccione tipo</option>
+                                    <option value="SIMPLE">Normal</option>
+                                    <option value="VARIANT">Variante</option>
+                                    <option value="PACKAGE">Paquete</option>
+                                </select>
+                            </div>
+
+                            {/* Empresa */}
+                            <div className="col-span-2 lg:col-span-4">
+                                <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                                    Empresa:
+                                </label>
+                                <select
+                                    value={empresa}
+                                    onChange={(e) => setEmpresa(e.target.value)}
+                                    className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-xl focus:ring-primary-500 focus:border-primary-500 w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:text-white"
+                                >
+                                    <option value="">Seleccione empresa</option>
+                                    {empresas.map((emp) => (
+                                        <option key={emp.iIdCompany} value={emp.iIdCompany}>
+                                            {emp.vcname}
+                                        </option>
+                                    ))}
+                                </select>
+                                {empresasError && (
+                                    <p className="text-red-500 text-sm mt-1">{empresasError}</p>
+                                )}
+                            </div>
+
+                            {/* Nombre o Producto Relacionado */}
+                            {tipoProducto === "VARIANT" ? (
+                                <>
+                                    <div className="col-span-2 lg:col-span-4">
+                                        <ProductAutocomplete
+                                            products={products}
+                                            onSelect={(id) => setIdProductoRelacionado(id)}
+                                            isPackage={false}
+                                            initialValue={idProductRelacionado}
+                                        />
+                                    </div>
+
+                                    <div className="col-span-2 lg:col-span-4">
+                                        <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                                            Nombre:
+                                        </label>
+                                        <input
+                                            value={nombre}
+                                            onChange={(e) => setNombre(e.target.value)}
+                                            type="text"
+                                            className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-xl block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:text-white"
+                                            placeholder="Nombre del producto"
+                                        />
+                                    </div>
+                                </>
+
+
+                            ) : (
+                                <div className="col-span-2 lg:col-span-4">
+                                    <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                                        Nombre:
+                                    </label>
+                                    <input
+                                        value={nombre}
+                                        onChange={(e) => setNombre(e.target.value)}
+                                        type="text"
+                                        className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-xl block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:text-white"
+                                        placeholder="Nombre del producto"
+                                    />
+                                </div>
+                            )}
+
+                            {/* Peso */}
+                            <div className={`col-span-2 ${tipoProducto === "VARIANT" ? "lg:col-span-4" : "lg:col-span-4"}`}>
+                                <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                                    Peso:
+                                </label>
+                                <div className="flex">
                                     <input
                                         type="number"
-                                        id="weight-input"
-                                        name="peso"
                                         value={peso}
                                         onChange={(e) => setPeso(e.target.value)}
-                                        className="block p-2 w-full z-20 text-sm text-gray-900 bg-gray-50 rounded-l-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:border-blue-500"
-                                        placeholder="Introduzca el peso"
-                                        required
+                                        className="flex-1 rounded-l-lg border border-gray-300 bg-gray-50 p-2 text-sm text-gray-900 dark:bg-gray-700 dark:text-white"
+                                        placeholder="Peso"
                                     />
                                     <select
-                                        id="unit-select"
-                                        name="unidades"
                                         value={unidades}
                                         onChange={(e) => setUnidades(e.target.value)}
-                                        className="block px-1 z-20 text-sm text-gray-900 bg-gray-50 border border-gray-300 rounded-r-xl focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:border-blue-500"
+                                        className="rounded-r-lg border border-gray-300 bg-gray-50 p-2 text-sm text-gray-900 dark:bg-gray-700 dark:text-white"
                                     >
-                                        <option value="g">Gramos(g)</option>
-                                        <option value="kg">Kilogramos(kg)</option>
-                                        <option value="L">Litros(L)</option>
-                                        <option value="ml">Mililitros(ml)</option>
+                                        <option value="g">g</option>
+                                        <option value="kg">kg</option>
+                                        <option value="ml">ml</option>
+                                        <option value="L">L</option>
                                     </select>
                                 </div>
                             </div>
 
-                        </div>
-
-                        <div className={`grid gap-4 mb-4 grid-cols-1 sm:grid-cols-2 ${mode == 1 ? 'lg:grid-cols-5' : 'lg:grid-cols-5'}`}>
-
-
-                            {mode == 0 &&
-                                <div className="col-span-2 lg:col-span-2">
-                                    <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Cantidad:</label>
-                                    <input value={cantidad} onChange={(e) => setCantidad(e.target.value)} type="number" name="cantidad" id="quantity" className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-xl focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500" placeholder="Enter quantity" />
+                            {/* Color solo si es VARIANT */}
+                            {tipoProducto === "VARIANT" && (
+                                <div className="col-span-2 lg:col-span-4">
+                                    <ColorPickerField value={colorVariant} onChange={(e: any) => { setColorVariant(e) }} />
                                 </div>
-                            }
+                            )}
 
-                            {mode == 1 &&
-                                <div className="col-span-2 lg:col-span-2">
-                                    <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Cantidad:</label>
-                                    <input value={cantidad} onChange={(e) => setCantidad(e.target.value)} type="number" name="cantidad" id="quantity" className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-xl focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500" placeholder="Enter quantity" />
+                            {/* Cantidad */}
+                            <div className={`col-span-2 ${tipoProducto === "VARIANT" ? "lg:col-span-4" : "lg:col-span-2"}`}>
+                                <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                                    Cantidad:
+                                </label>
+                                <input
+                                    type="number"
+                                    value={cantidad}
+                                    onChange={(e) => setCantidad(e.target.value)}
+                                    className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-xl w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:text-white"
+                                    placeholder="Cantidad"
+                                />
+                            </div>
+
+                            {/* Precios */}
+                            {[precio1, precio2, precio3].map((v, i) => (
+                                <div key={i} className="col-span-2 lg:col-span-2">
+                                    <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                                        Precio {i + 1}:
+                                    </label>
+                                    <input
+                                        type="number"
+                                        value={v}
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            if (i === 0) setPrecio1(val);
+                                            if (i === 1) setPrecio2(val);
+                                            if (i === 2) setPrecio3(val);
+                                        }}
+                                        className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-xl w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:text-white"
+                                        placeholder={`$${(i + 1) * 100}`}
+                                    />
                                 </div>
-                            }
-                            <div className="col-span-2 lg:col-span-1">
-                                <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Precio 1:</label>
-                                <input value={precio1} onChange={(e) => setPrecio1(e.target.value)} type="number" name="precio1" id="precio1" className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-xl focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500" placeholder="$100" />
-                            </div>
-                            <div className="col-span-2 lg:col-span-1">
-                                <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Precio 2:</label>
-                                <input value={precio2} onChange={(e) => setPrecio2(e.target.value)} type="number" name="precio2" id="precio2" className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-xl focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500" placeholder="$500" />
-                            </div>
-                            <div className="col-span-2 lg:col-span-1">
-                                <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Precio 3:</label>
-                                <input value={precio3} onChange={(e) => setPrecio3(e.target.value)} type="number" name="precio3" id="precio3" className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-xl focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500" placeholder="$1000" />
-                            </div>
+                            ))}
 
+                            {tipoProducto === 'PACKAGE' && (
+                                <div className="col-span-12">
+                                    <div className="flex flex-wrap items-center justify-center gap-2 mb-3">
+                                        <div className="flex-1 min-w-[250px]">
+                                            <ProductAutocomplete
+                                                products={products.filter(p => p.producttype !== 'PACKAGE')}
+                                                onSelect={(id) => setSelectedProduct(id)}
+                                                isPackage={true}
+                                                initialValue={packageItems}
+                                            />
+                                        </div>
 
+                                        <input
+                                            type="text"
+                                            min={0}
+                                            value={packageQty}
+                                            onChange={(e) => setPackageQty(Number(e.target.value))}
+                                            className="w-24 mt-[27px] border rounded-lg p-2 text-sm dark:bg-gray-600 dark:text-white"
+                                            placeholder="Cant."
+                                        />
 
-
-                        </div>
-
-                        <div className={`grid gap-4 mb-4 grid-cols-1 sm:grid-cols-2 ${mode == 1 ? 'lg:grid-cols-5' : 'lg:grid-cols-4'}`}>
-                            {mode == 0 &&
-                                <div className="col-span-2 lg:col-span-2" ref={dropdownRef}>
-                                    <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Categorías:</label>
-                                    <div className="relative">
                                         <button
                                             type="button"
-                                            onClick={() => setShowDropdown(!showDropdown)}
-                                            className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-xl focus:ring-primary-500 focus:border-primary-500 w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500 flex justify-between items-center"
+                                            onClick={addProductToPackage}
+                                            className="bg-blue-600 mt-[27px] text-white px-3 py-2 rounded-lg hover:bg-blue-700"
                                         >
-                                            <p className="text-start">
-                                                {selectedCategories.Categorias.length > 0
-                                                    ? selectedCategories.Categorias
-                                                        .map(catObj => categorias.find(c => c.iIdCategory === catObj.idCategoria)?.vcname)
-                                                        .join(', ')
-                                                    : "Seleccione las categorías"}
-                                            </p>
-                                            <FaChevronDown className="text-[#6B7280] " />
+                                            Agregar
                                         </button>
-
-                                        {showDropdown && (
-                                            <div className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-xl shadow-lg dark:bg-gray-600">
-                                                <ul className="p-2 max-h-48 overflow-y-auto">
-                                                    {categoriasError ?
-                                                        <>Error al obtener las categorias</>
-                                                        :
-                                                        categorias.map(category => (
-                                                            <li key={category.iIdCategory} className="flex items-center px-2 py-1">
+                                    </div>
+                                    {/* Tabla de productos agregados con scroll */}
+                                    <div className="relative border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden max-h-36 overflow-y-auto shadow-sm">
+                                        <table className="w-full text-sm">
+                                            <thead className="sticky top-0 bg-gray-100 dark:bg-gray-700 z-10">
+                                                <tr>
+                                                    <th className="p-2 text-left">Producto</th>
+                                                    <th className="p-2 text-center">Cantidad</th>
+                                                    <th className="p-2 text-center">Acción</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {packageItems.length > 0 ? (
+                                                    packageItems.map((item) => (
+                                                        <tr key={item.product_id} className="border-t dark:border-gray-600">
+                                                            <td className="p-2">{item.product_name}</td>
+                                                            <td className="p-2 text-center">
                                                                 <input
-                                                                    type="checkbox"
-                                                                    id={category.iIdCategory}
-                                                                    value={category.iIdCategory}
-                                                                    checked={selectedCategories.Categorias.some(c => c.idCategoria === category.iIdCategory)}
-                                                                    onChange={() => handleCategoryChange(category.iIdCategory)}
-                                                                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                                                    type="number"
+                                                                    min={1}
+                                                                    value={item.quantity}
+                                                                    onChange={(e) =>
+                                                                        updatePackageQty(item.product_id, Number(e.target.value))
+                                                                    }
+                                                                    className="w-16 text-center border rounded-lg p-1 dark:bg-gray-700 dark:text-white"
                                                                 />
-                                                                <label htmlFor={category.iIdCategory} className="ml-2 text-sm font-medium text-gray-900 dark:text-white">
-                                                                    {category.vcname}
-                                                                </label>
-                                                            </li>
-                                                        ))}
-                                                </ul>
-                                            </div>
-                                        )}
+                                                            </td>
+                                                            <td className="p-2 text-center">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => removePackageItem(item.product_id)}
+                                                                    className="text-red-500 hover:underline"
+                                                                >
+                                                                    Eliminar
+                                                                </button>
+                                                            </td>
+                                                        </tr>
+                                                    ))
+                                                ) : (
+                                                    <tr>
+                                                        <td colSpan={3} className="text-center text-gray-400 p-2">
+                                                            No hay productos añadidos aún
+                                                        </td>
+                                                    </tr>
+                                                )}
+                                            </tbody>
+                                        </table>
                                     </div>
                                 </div>
-                            }
-                            {mode == 1 &&
-                                <div className="col-span-2 lg:col-span-3" ref={dropdownRef}>
-                                    <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Categorías:</label>
-                                    <div className="relative">
-                                        <button
-                                            type="button"
-                                            onClick={() => setShowDropdown(!showDropdown)}
-                                            className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-xl focus:ring-primary-500 focus:border-primary-500 w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500 flex justify-between items-center"
-                                        >
-                                            <p className="text-start">
-                                                {selectedCategories?.Categorias?.length > 0
-                                                    ? selectedCategories?.Categorias
-                                                        .map(catObj => categorias.find(c => c.iIdCategory === catObj.idCategoria)?.vcname)
-                                                        .join(', ')
-                                                    : "Seleccione las categorías"}
-                                            </p>
-                                            <FaChevronDown className="text-[#6B7280] " />
-                                        </button>
+                            )}
 
-                                        {showDropdown && (
-                                            <div className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-xl shadow-lg dark:bg-gray-600">
-                                                <ul className="p-2 max-h-48 overflow-y-auto">
-                                                    {categoriasError ?
-                                                        <>Error al obtener las categorias</>
-                                                        :
-                                                        categorias.map(category => (
-                                                            <li key={category.iIdCategory} className="flex items-center px-2 py-1">
-                                                                <input
-                                                                    type="checkbox"
-                                                                    id={category.iIdCategory}
-                                                                    value={category.iIdCategory}
-                                                                    checked={selectedCategories.Categorias.some(c => c.idCategoria === category.iIdCategory)}
-                                                                    onChange={() => handleCategoryChange(category.iIdCategory)}
-                                                                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                                                                />
-                                                                <label htmlFor={category.iIdCategory} className="ml-2 text-sm font-medium text-gray-900 dark:text-white">
-                                                                    {category.vcname}
-                                                                </label>
-                                                            </li>
-                                                        ))}
-                                                </ul>
-                                            </div>
-                                        )}
-                                    </div>
+
+                            {/* Categorías */}
+                            <div className="col-span-2 lg:col-span-6">
+                                <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                                    Categorías:
+                                </label>
+                                <div className="relative">
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowDropdown(!showDropdown)}
+                                        className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-xl w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:text-white flex justify-between"
+                                    >
+                                        {categoriasError &&
+                                            <p className="text-red-500 text-sm mb-2">{categoriasError}</p>
+                                        }
+                                        {selectedCategories.Categorias.length > 0
+                                            ? selectedCategories.Categorias
+                                                .map((catObj) =>
+                                                    categorias.find(
+                                                        (c) => c.iIdCategory === catObj.idCategoria
+                                                    )?.vcname
+                                                )
+                                                .join(", ")
+                                            : "Seleccione las categorías"}
+                                        <FaChevronDown className="text-gray-400" />
+                                    </button>
+                                    {showDropdown && (
+                                        <div className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-xl shadow-lg dark:bg-gray-600">
+                                            <ul className="p-2 max-h-48 overflow-y-auto">
+                                                {categorias.map((cat) => (
+                                                    <li key={cat.iIdCategory} className="flex items-center px-2 py-1">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={selectedCategories.Categorias.some(
+                                                                (c) => c.idCategoria === cat.iIdCategory
+                                                            )}
+                                                            onChange={() => handleCategoryChange(cat.iIdCategory)}
+                                                            className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                                        />
+                                                        <label className="ml-2 text-sm">{cat.vcname}</label>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    )}
                                 </div>
-                            }
-
-                            <div className="col-span-2 lg:col-span-1">
-                                <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Existencia:</label>
-                                <input value={existencia} onChange={(e) => setExistencia(e.target.value)} type="number" name="existencia" id="stock" className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-xl focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500" placeholder="Producto en existencia" />
-                            </div>
-                            <div className="col-span-2 lg:col-span-1">
-                                <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Existencia mínima:</label>
-                                <input value={existenciaMinima} onChange={(e) => setExistenciaMinima(e.target.value)} type="number" name="existenciaminima" id="minStock" className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-xl focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500" placeholder="Minimo producto disponible" />
                             </div>
 
-                            {mode == 0 &&
-                                <div className="col-span-2 lg:col-span-2">
-                                    <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Imagen:</label>
-                                    <input type="file" onChange={handleImageChange} className="block w-full text-sm text-gray-900 border border-gray-300 rounded-xl cursor-pointer bg-gray-50 dark:bg-gray-700 dark:text-gray-400 focus:outline-none" accept="image/*" />
-                                    {imagePreview && <img src={imagePreview} alt="Imagen del producto" className="mt-1 mb-2 rounded-xl w-full max-h-48 object-cover" />}
-                                </div>
-                            }
+                            {/* Existencias */}
+                            <div className="col-span-2 lg:col-span-3">
+                                <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                                    Existencia:
+                                </label>
+                                <input
+                                    value={existencia}
+                                    onChange={(e) => setExistencia(e.target.value)}
+                                    type="number"
+                                    className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-xl w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:text-white"
+                                />
+                            </div>
 
-                            {mode == 0 && <div className="col-span-2 lg:col-span-2">
-                                <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Descripción:</label>
-                                <textarea value={descripcion} onChange={(e) => setDescripcion(e.target.value)} cols={3} rows={11} name="descripcion" className="block w-full text-sm p-2 text-gray-900 border border-gray-300 rounded-xl bg-gray-50 dark:text-gray-400 focus:outline-none dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400" />
-                            </div>}
+                            <div className="col-span-2 lg:col-span-3">
+                                <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                                    Existencia mínima:
+                                </label>
+                                <input
+                                    value={existenciaMinima}
+                                    onChange={(e) => setExistenciaMinima(e.target.value)}
+                                    type="number"
+                                    className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-xl w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:text-white"
+                                />
+                            </div>
 
-                            {
-                                mode == 1 &&
-                                <div className="col-span-2 lg:col-span-2">
-                                    <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Imagen:</label>
-                                    <input type="file" onChange={handleImageChange} className="block w-full text-sm text-gray-900 border border-gray-300 rounded-xl cursor-pointer bg-gray-50 dark:bg-gray-700 dark:text-gray-400 focus:outline-none" accept="image/*" />
-                                    {imagePreview && <img src={imagePreview} alt="Imagen del producto" className="mt-1 mb-2 w-full rounded-xl max-h-48 object-cover" />}
-                                </div>
-                            }
+                            {/* Imagen */}
+                            <div className={`col-span-2 ${tipoProducto === 'VARIANT' ? 'lg:col-span-6' : 'lg:col-span-6'}`}>
+                                <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                                    Imagen:
+                                </label>
+                                <input
+                                    type="file"
+                                    onChange={handleImageChange}
+                                    className="block w-full text-sm text-gray-900 border border-gray-300 rounded-xl cursor-pointer bg-gray-50 dark:bg-gray-700 dark:text-gray-400"
+                                    accept="image/*"
+                                />
+                                {imagePreview && (
+                                    <img
+                                        src={imagePreview}
+                                        alt="Imagen del producto"
+                                        className="mt-1 rounded-xl w-full max-h-48 object-cover"
+                                    />
+                                )}
+                            </div>
 
-                            {mode == 1 && <div className="col-span-2 lg:col-span-3">
-                                <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Descripción:</label>
-                                <textarea value={descripcion} onChange={(e) => setDescripcion(e.target.value)} cols={3} rows={11} name="descripcion" className="block  w-full text-sm p-2 text-gray-900 border border-gray-300 rounded-xl bg-gray-50 dark:text-gray-400 focus:outline-none dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400" />
-                            </div>}
-
-
+                            {/* Descripción */}
+                            <div className={`col-span-2 ${tipoProducto === 'VARIANT' ? 'lg:col-span-6' : 'lg:col-span-6'}`}>
+                                <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                                    Descripción:
+                                </label>
+                                <textarea
+                                    value={descripcion}
+                                    onChange={(e) => setDescripcion(e.target.value)}
+                                    rows={6}
+                                    className="block w-full text-sm p-2 text-gray-900 border border-gray-300 rounded-xl bg-gray-50 dark:text-gray-400 dark:bg-gray-700 dark:border-gray-600"
+                                />
+                            </div>
                         </div>
 
+                        {/* Botón */}
                         <div className="flex justify-end mt-4">
-                            <button type="submit" onClick={handelsubmit} className="flex text-white items-center bg-[#32322f] hover:bg-[#1d1d1b] focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-xl text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
-                                <svg className="me-1 -ms-1 w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                                    <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd"></path>
+                            <button
+                                type="submit"
+                                className="flex items-center text-white bg-[#32322f] hover:bg-[#1d1d1b] font-medium rounded-xl text-sm px-5 py-2.5 focus:ring-4 focus:ring-blue-300"
+                            >
+                                <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                    <path
+                                        fillRule="evenodd"
+                                        d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z"
+                                        clipRule="evenodd"
+                                    />
                                 </svg>
-                                {mode == 1 ? 'Editar producto' : ' Crear producto'}
+                                {mode === 1 ? "Editar producto" : "Crear producto"}
                             </button>
                         </div>
                     </form>
+
+
                 </div>
             </div>
         </>

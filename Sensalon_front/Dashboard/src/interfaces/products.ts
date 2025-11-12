@@ -15,3 +15,5 @@ export interface Product {
     dtupdate?: Date | null;
     dtdeletion?: Date | null;
 }
+
+export type ProductType = 'SIMPLE' | 'VARIANT' | 'PACKAGE';

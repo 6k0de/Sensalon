@@ -3,55 +3,111 @@ import conn from "../../bd/config/config";
 import { Products } from "../../bd/models/Products.model";
 
 export const insertProduct = (req: Request, res: Response) => {
-    const { iFIdCompany, vccategories, vcname, vcdescription, vcweight, vcquantity, decprice1, decprice2, decprice3, istock, istocklimit } = req.body
+    const {
+        iFIdCompany,
+        vccategories,
+        vcname,
+        vcdescription,
+        producttype,
+        relatedproductId,
+        variantcolor,
+        productsPackage,
+        vcweight,
+        vcquantity,
+        decprice1,
+        decprice2,
+        decprice3,
+        istock,
+        istocklimit
+    } = req.body;
+
     console.log({
-        iFIdCompany
-        , vccategories
-        , vcname
-        , vcdescription
-        , vcweight
-        , vcquantity
-        , decprice1
-        , decprice2
-        , decprice3
-        , istock
-        , istocklimit
-    })
-    if (req.file) {
-        const urlPhoto = req.file.path
-        console.log(urlPhoto)
-        conn.query(
-            'CALL ProductCategoriesInsert(:piFIdCompany, :pvccategories, :pvcname,:pvcdescription, :pvcweight, :pvcquantity, :pvcphoto, :pdecprice1, :pdecprice2, :pdecprice3, :pistock, :pistocklimit)',
-            {
-                replacements: {
-                    piFIdCompany: iFIdCompany,
-                    pvccategories: vccategories,
-                    pvcname: vcname,
-                    pvcdescription: vcdescription,
-                    pvcweight: vcweight,
-                    pvcquantity: vcquantity,
-                    pvcphoto: urlPhoto,
-                    pdecprice1: decprice1,
-                    pdecprice2: decprice2,
-                    pdecprice3: decprice3,
-                    pistock: istock,
-                    pistocklimit: istocklimit,
+        iFIdCompany,
+        vccategories,
+        vcname,
+        vcdescription,
+        producttype,
+        relatedproductId,
+        variantcolor,
+        productsPackage,
+        vcweight,
+        vcquantity,
+        decprice1,
+        decprice2,
+        decprice3,
+        istock,
+        istocklimit
+    });
+
+    const urlPhoto = req.file ? req.file.path : null;
+
+    // Asegurar que los JSON vengan en formato correcto
+    const parsedCategories = typeof vccategories === 'string' ? vccategories : JSON.stringify(vccategories);
+    const parsedVariantColor = typeof variantcolor === 'string' ? variantcolor : JSON.stringify(variantcolor);
+    const parsedProductsPackage = typeof productsPackage === 'string' ? productsPackage : JSON.stringify(productsPackage);
+
+    conn.query(
+        `CALL ProductCategoriesInsert(
+            :piFIdCompany,
+            :pvccategories,
+            :pvcname,
+            :pvcdescription,
+            :pproducttype,
+            :prelatedProductId,
+            :pvariantColor,
+            :pproductsPackage,
+            :pvcweight,
+            :pvcquantity,
+            :pvcphoto,
+            :pdecprice1,
+            :pdecprice2,
+            :pdecprice3,
+            :pistock,
+            :pistocklimit
+        )`,
+        {
+            replacements: {
+                piFIdCompany: iFIdCompany || null, // puede venir vacío
+                pvccategories: parsedCategories || null,
+                pvcname: vcname,
+                pvcdescription: vcdescription,
+                pproducttype: producttype,
+                prelatedProductId: relatedproductId || null,
+                pvariantColor: parsedVariantColor || null,
+                pproductsPackage: parsedProductsPackage || null,
+                pvcweight: vcweight,
+                pvcquantity: vcquantity,
+                pvcphoto: urlPhoto,
+                pdecprice1: decprice1,
+                pdecprice2: decprice2,
+                pdecprice3: decprice3,
+                pistock: istock,
+                pistocklimit: istocklimit,
+            }
+        }
+    )
+        .then((result: any) => {
+            try {
+                // El SP devuelve un JSON con el campo 'insertado'
+                const valor = JSON.parse(result[0].insertado);
+                const resultado = valor.insertado;
+
+                console.log('Resultado de insertar:', resultado);
+                if (resultado === '0' || resultado === 0) {
+                    res.send({ valor: 0, message: valor.mensaje });
+                } else {
+                    res.send({ valor: 1, message: valor.mensaje });
                 }
+            } catch (parseError) {
+                console.error('Error al parsear respuesta del SP:', parseError);
+                res.status(500).send({ valor: 1, message: 'Error procesando la respuesta del servidor' });
             }
-        ).then((result: any) => {
-            let valor = JSON.parse(result[0].insertado)
-            let resultado = valor.insertado
-            console.log('resultado de insertar', resultado);
-            if (resultado == 0) {
-                res.send({ valor: 0, message: 'Producto creado correctamente' })
-            } else {
-                res.send({ valor: 1, message: 'Error al crear el producto' })
-            }
-        }).catch((error) => {
-            console.error(error);
+        })
+        .catch((error) => {
+            console.error('Error al ejecutar SP:', error);
+            res.status(500).send({ valor: 1, message: 'Error al crear el producto' });
         });
-    }
-}
+};
 
 export const getAllProducts = async (_: Request, res: Response) => {
     const productos = await Products.findAll()
@@ -61,7 +117,7 @@ export const getAllProducts = async (_: Request, res: Response) => {
 export const getProductById = async (req: Request, res: Response) => {
     const id = req.params.id
     console.log(id)
-    const producto = await Products.findOne({ where: { iIdProduct: id} })
+    const producto = await Products.findOne({ where: { iIdProduct: id } })
     if (producto) {
         res.json(producto)
     } else {
@@ -69,10 +125,10 @@ export const getProductById = async (req: Request, res: Response) => {
     }
 }
 
-export const getProductSimilar = async(req: Request, res: Response) => {
+export const getProductSimilar = async (req: Request, res: Response) => {
     const { idProduct, idUser } = req.query
     console.log(idProduct)
-    await conn.query('CALL GetSimilarProductsByCategory(:p_userId ,:p_productId)', 
+    await conn.query('CALL GetSimilarProductsByCategory(:p_userId ,:p_productId)',
         {
             replacements: {
                 p_userId: idUser || null,
@@ -82,7 +138,7 @@ export const getProductSimilar = async(req: Request, res: Response) => {
     ).then((result: any) => {
         res.json(result)
     }).catch((error) => {
-        res.send({value: 1, message: 'Error al obtener productos similares', error})
+        res.send({ value: 1, message: 'Error al obtener productos similares', error })
     })
 }
 

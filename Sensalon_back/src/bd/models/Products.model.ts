@@ -27,6 +27,18 @@ export const Products = conn.define<Model<Product, ProductCreation>>('products',
         type: DataTypes.STRING(128),
         allowNull: false,
     },
+    producttype: {
+        type: DataTypes.ENUM('SIMPLE', 'PACKAGE', 'VARIANT'),
+        allowNull: false
+    },
+    relatedproductId: {
+        type: DataTypes.CHAR(36),
+        allowNull: true
+    },
+    variantcolor: {
+        type: DataTypes.STRING(60),
+        allowNull: true
+    },
     vcweight: {
         type: DataTypes.STRING(128),
         allowNull: false,

@@ -4,6 +4,9 @@ export interface Product {
     vccategories: string;
     vcname: string;
     vcdescription: string
+    producttype: any,
+    relatedproductId: string,
+    variantcolor: string,
     vcweight: string;
     vcquantity: string;
     vcphoto: string;
