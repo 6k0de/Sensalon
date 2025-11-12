@@ -408,7 +408,7 @@ export const ShoppingCar = () => {
         } finally {
             setMpLoading(false);
         }
-    } 
+    }
 
     if (!isAuthenticated) {
         return (
@@ -481,11 +481,19 @@ export const ShoppingCar = () => {
             if (res.data === 1) {
                 navigate(`/transferPending?orderNumber=${encodeURIComponent(res.orderNumber)}`);
             } else {
-                throw new Error(res.data.message || "Error desconocido");
+                setToastMessage(res.message || "Error al confirmar la compra");
+                setToastType("error");
+                setShowToast(true);
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error("Error al confirmar la compra:", error);
-            setToastMessage("Error al confirmar la compra");
+            // intentar rescatar mensaje del backend si viene en el error de axios
+            const backendMsg =
+                error?.response?.data?.message ||
+                error?.message ||
+                "Error al confirmar la compra";
+
+            setToastMessage(backendMsg);
             setToastType("error");
             setShowToast(true);
         } finally {
@@ -900,13 +908,13 @@ export const ShoppingCar = () => {
                                                     >
                                                         Máximo
                                                     </button>
-                                                     <button
+                                                    <button
                                                         type="button"
                                                         onClick={() => setCashbackToUse(0)}
                                                         className="px-2 py-1 rounded border border-gray-300 text-gray-700 bg-white hover:bg-gray-100"
                                                     >
                                                         Limpiar
-                                                    </button> 
+                                                    </button>
                                                 </div>
                                             </div>
 
@@ -989,7 +997,7 @@ export const ShoppingCar = () => {
                                                         className="px-2 py-1 rounded border border-gray-300 text-gray-700 bg-white hover:bg-gray-100"
                                                     >
                                                         Limpiar
-                                                    </button> 
+                                                    </button>
                                                 </div>
                                             </div>
 

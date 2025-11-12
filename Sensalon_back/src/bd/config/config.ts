@@ -17,8 +17,8 @@ export default conn
 
 
 //DESAROLLO
-/*
- const conn = new Sequelize("dev_sensalon", "dev_sensalon", "D3vSensalon", {
+
+/*  const conn = new Sequelize("dev_sensalon", "dev_sensalon", "D3vSensalon", {
   host: "74.208.27.35",
   dialect: "mysql",
   port: 3306,

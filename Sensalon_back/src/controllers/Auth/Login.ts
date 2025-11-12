@@ -15,7 +15,7 @@ export const Login = async (req: Request, res: Response) => {
         }
         const id = user.get('iIdUser');
         const result = await conn.query('CALL GetRolUserLogin(:p_idUser)', { replacements: { p_idUser: id } });
-        console.log('Productos enviados: ', result)
+        //console.log('Productos enviados: ', result)
         res.status(200).json({ user: user, products: result });
     }
     catch (error) {

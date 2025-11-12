@@ -226,16 +226,22 @@ export const createOrderTransfer = async (req: Request, res: Response) => {
         })
 
         for (const line of productsArr) {
-            const pdB = productsBD.find(x => x.getDataValue('iIdProduct') === line.product.iIdProduct)
-            if (!pdB) throw new Error(`Producto no existe: ${line.product.iIdProduct}`)
+            const pdB = productsBD.find(x => x.getDataValue('iIdProduct') === line.product.iIdProduct);
 
-            const alReadyReserver = reservedMap.get(line.product.iIdProduct) || 0
-            const visibleAvailable = (pdB.getDataValue('istock') || 0 - alReadyReserver)
+            if (!pdB) {
+                await t.rollback();
+                return res.status(417).json({ message: `Producto inexistente: ${line.product.vcname}` });
+            }
+
+            const alreadyReserved = reservedMap.get(line.product.iIdProduct) || 0;
+            const visibleAvailable = (pdB.getDataValue('istock') || 0) - alreadyReserved;
 
             if (visibleAvailable < line.quantity) {
-                throw new Error(`Sin disponibilidad visible para ${pdB.getDataValue('vcname') || line.product.iIdProduct}`);
+                await t.rollback();
+                return res.status(417).json({ message: `Sin disponibilidad visible para ${pdB.getDataValue('vcname')}` });
             }
         }
+
 
         const expiresAt = new Date(Date.now() + RESERVATION_TTL_HOURS * 60 * 60 * 1000);
 

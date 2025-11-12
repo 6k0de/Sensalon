@@ -1,0 +1,85 @@
+{
+  "idUser": "257491b3-ea8e-11ef-910f-0050562645d0",
+  "formattedProducts": [
+    {
+      "iIdProduct": "383a381b-e8d8-11ef-910f-0050562645d0",
+      "name": "Naturaplastia",
+      "priceUnit": 3100,
+      "quantity": 6,
+      "total": 18600,
+      "companyId": "e686c22f-26e3-42b2-a155-482c7627142f",
+      "categoryIds": [
+        "6e9b587f-63f5-40a2-9933-ab4f53deb416",
+        "e5625114-dcc1-11ef-9113-0050563b5fff"
+      ],
+      "image": "/var/www/vhosts/sensalon.com.mx/api.sensalon.com.mx/assets/imagenes/1740691050465-318310589-Naturaplastia.jpg"
+    },
+    {
+      "iIdProduct": "ecd554f3-eaf3-11ef-910f-0050562645d0",
+      "name": "Carnival Protein 1 Lt",
+      "priceUnit": 2900,
+      "quantity": 3,
+      "total": 8700,
+      "companyId": "8ea164ca-1a19-45b2-a554-c513759e4fb1",
+      "categoryIds": [
+        "6e9b587f-63f5-40a2-9933-ab4f53deb416",
+        "e5625114-dcc1-11ef-9113-0050563b5fff"
+      ],
+      "image": "/var/www/vhosts/sensalon.com.mx/api.sensalon.com.mx/assets/imagenes/1740690936559-604136606-Carnival-Protein-1Lt.jpg"
+    },
+    {
+      "iIdProduct": "07b25482-eb13-11ef-910f-0050562645d0",
+      "name": "Rio Protein 500 ml",
+      "priceUnit": 1700,
+      "quantity": 2,
+      "total": 3400,
+      "companyId": "8ea164ca-1a19-45b2-a554-c513759e4fb1",
+      "categoryIds": [
+        "e5625114-dcc1-11ef-9113-0050563b5fff",
+        "6e9b587f-63f5-40a2-9933-ab4f53deb416"
+      ],
+      "image": "/var/www/vhosts/sensalon.com.mx/api.sensalon.com.mx/assets/imagenes/1740689624358-487354906-Rio-Protein-500ml.jpg"
+    },
+    {
+      "iIdProduct": "7a56cd6d-84d5-11ef-a9b1-0050563b5fff",
+      "name": "Carnival Protein 500 ml",
+      "priceUnit": 1700,
+      "quantity": 2,
+      "total": 3400,
+      "companyId": "8ea164ca-1a19-45b2-a554-c513759e4fb1",
+      "categoryIds": [
+        "e5625114-dcc1-11ef-9113-0050563b5fff",
+        "6e9b587f-63f5-40a2-9933-ab4f53deb416"
+      ],
+      "image": "/var/www/vhosts/sensalon.com.mx/api.sensalon.com.mx/assets/imagenes/1740690315099-170816186-Carnival-Protein-500.jpg"
+    },
+    {
+      "iIdProduct": "e0e919d9-2521-11f0-af23-0050562645d0",
+      "name": "Gloss Mask - Caja",
+      "priceUnit": 6500,
+      "quantity": 1,
+      "total": 6500,
+      "companyId": "e686c22f-26e3-42b2-a155-482c7627142f",
+      "categoryIds": [
+        "e5625114-dcc1-11ef-9113-0050563b5fff",
+        "03110d9d-5f55-4fb6-900e-032a66c9e89c"
+      ],
+      "image": "/var/www/vhosts/sensalon.com.mx/api.sensalon.com.mx/assets/imagenes/1745948788593-805770213-SENSALON-PRODUCTOS.jpg"
+    },
+    {
+      "iIdProduct": "11e6458d-eb00-11ef-910f-0050562645d0",
+      "name": "Rio Protein 1 Lt",
+      "priceUnit": 2900,
+      "quantity": 2,
+      "total": 5800,
+      "companyId": "8ea164ca-1a19-45b2-a554-c513759e4fb1",
+      "categoryIds": [
+        "e5625114-dcc1-11ef-9113-0050563b5fff",
+        "6e9b587f-63f5-40a2-9933-ab4f53deb416"
+      ],
+      "image": "/var/www/vhosts/sensalon.com.mx/api.sensalon.com.mx/assets/imagenes/1740689760368-277129356-Rio-Protein-1Lt.jpg"
+    }
+  ],
+  "errorMessage": "Sin disponibilidad visible para Naturaplastia",
+  "errorStack": "Error: Sin disponibilidad visible para Naturaplastia\n    at createOrderTransfer (/Users/w1zardsq/Documents/Proyectos/Sensalon/Sensalon_back/src/controllers/Payments/payments.ts:236:23)\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)"
+}

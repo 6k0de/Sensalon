@@ -6,7 +6,7 @@ import { Categorie } from "../../interfaces/categories";
 import { InsertProducts } from "../../services/products/InsertProducts";
 import { Product } from "../../interfaces/products";
 import { UpdateProduct } from "../../services/products/updateProduct";
-import { api, BASE_URL_IMAGE } from "../../utils/axiosClients";
+import { api, BASE_URL_IMAGE_PROD } from "../../utils/axiosClients";
 import { ErrorToast } from "../Toast/errorToast";
 
 export const ModalProduct = ({ show, onClose, data, mode }: { show: boolean, onClose: (message: string, type: "success" | "error" | null) => void, data: Product | any, mode: number }) => {
@@ -21,7 +21,7 @@ export const ModalProduct = ({ show, onClose, data, mode }: { show: boolean, onC
     const [empresa, setEmpresa] = useState<string>(data?.iFIdCompany || '');
     const [nombre, setNombre] = useState<string>(data?.vcname || '');
     const [descripcion, setDescripcion] = useState<string>(data?.vcdescription || '');
-    const [peso, setPeso] = useState<string>(data?.vcweight?.match(/\d+/g)[0] || '');
+    const [peso, setPeso] = useState<string>(data?.vcweight?.match(/\d+/g)?.[0] || "");;
     const [unidades, setUnidades] = useState<string>(data?.vcweight?.match(/[a-zA-Z]+/g)[0] || 'g');
     const [cantidad, setCantidad] = useState<string>(data?.vcquantity || '');
     const [precio1, setPrecio1] = useState<string>(data?.decprice1 || '');
@@ -72,7 +72,8 @@ export const ModalProduct = ({ show, onClose, data, mode }: { show: boolean, onC
             }
             if (data?.vcphoto) {
                 const normalizedPath = data?.vcphoto.replace(/\\/g, '/').split('/imagenes/')[1];
-                const imageurl = `${BASE_URL_IMAGE}/${normalizedPath}`;
+                const imageurl = `${BASE_URL_IMAGE_PROD}/${normalizedPath}`;
+                console.log(imageurl)
                 setImagePreview(imageurl);
             } else {
                 setImagePreview(null);
