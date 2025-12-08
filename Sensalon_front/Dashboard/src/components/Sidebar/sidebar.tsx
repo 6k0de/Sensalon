@@ -9,6 +9,8 @@ import {
   FaImages,
   FaSliders,
   FaTruck,
+  FaWarehouse,
+  FaTag
 } from "react-icons/fa6";
 
 export const Sidebar = () => {
@@ -44,6 +46,34 @@ export const Sidebar = () => {
               />
               <span className="flex-1 ms-3 whitespace-nowrap text-lg">
                 Transacciones / Ventas
+              </span>
+            </Link>
+          </li>
+          <li>
+            <Link
+              to="/almacen"
+              className="flex items-center p-2 text-[#1d1d1b] rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group"
+            >
+              <FaWarehouse
+                className="w-5 h-5 text-gray-500 transition duration-75 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white"
+                aria-hidden="true"
+              />
+              <span className="flex-1 ms-3 whitespace-nowrap text-lg">
+                Entrada almacen
+              </span>
+            </Link>
+          </li>
+           <li>
+            <Link
+              to="/descuentos"
+              className="flex items-center p-2 text-[#1d1d1b] rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group"
+            >
+              <FaTag
+                className="w-5 h-5 text-gray-500 transition duration-75 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white"
+                aria-hidden="true"
+              />
+              <span className="flex-1 ms-3 whitespace-nowrap text-lg">
+                Codigo de descuentos
               </span>
             </Link>
           </li>

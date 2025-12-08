@@ -11,6 +11,9 @@ import { Slider } from "../pages/Slider";
 import { BankConfiguration } from "../pages/BankConfiguration";
 import { Suppliers } from "../pages/Suppliers";
 import { Categories } from "../pages/Categories";
+import { Warehouse } from "../pages/Warehouse";
+import { WareHouseForm } from "../components/WareHouseForm";
+import { DiscountCodesPage } from "../pages/Discounts";
 
 export const AppRoutes = () => {
   return (
@@ -68,11 +71,41 @@ export const AppRoutes = () => {
           }
         />
         <Route
+          path="/almacen"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <Warehouse />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/entradaAlmacen"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <WareHouseForm />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/proveedores"
           element={
             <ProtectedRoute>
               <Layout>
                 <Suppliers />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/descuentos"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <DiscountCodesPage />
               </Layout>
             </ProtectedRoute>
           }

@@ -29,8 +29,8 @@ export const Products = () => {
   useEffect(() => {
     fetchProducts();
   }, []);
-  
-  const filteredProducts = (products || []).filter((p) => 
+
+  const filteredProducts = (products || []).filter((p) =>
     `${p.vcname} ${p.decprice1} ${p.decprice2} ${p.decprice3}`
       .toLowerCase()
       .includes(searchTerm.toLowerCase())
@@ -110,7 +110,7 @@ export const Products = () => {
                   type="search"
                   id="search"
                   value={searchTerm}
-                  onChange={(e) => {setSearchTerm(e.target.value)}}
+                  onChange={(e) => { setSearchTerm(e.target.value) }}
                   className="block w-96 p-2 ps-10 text-sm text-[#1d1d1b] border border-gray-300 rounded-xl bg-gray-50 dark:placeholder-gray-400 dark:text-white"
                   placeholder="Search"
                   required
@@ -128,15 +128,15 @@ export const Products = () => {
                 Nuevo producto
               </button>
               {showModal && (
-                <ModalProduct
-                  mode={mode}
-                  data={selectedProduct || []}
-                  show={showModal}
-                  onClose={(
-                    message: string,
-                    type: "success" | "error" | null,
-                  ) => handleModalClose(message, type)}
-                />
+                  <ModalProduct
+                    mode={mode}
+                    data={selectedProduct || []}
+                    show={showModal}
+                    onClose={(
+                      message: string,
+                      type: "success" | "error" | null,
+                    ) => handleModalClose(message, type)}
+                  />
               )}
             </div>
           </div>

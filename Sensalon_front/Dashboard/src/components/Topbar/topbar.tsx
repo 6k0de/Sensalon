@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { FaBell } from "react-icons/fa6";
 export const Topbar = () => {
     const [user, setUser] = useState<any>(null);
@@ -24,6 +24,56 @@ export const Topbar = () => {
         localStorage.removeItem('user');
         window.location.href = '/login';
     };
+
+    const initials = useMemo(() => {
+        const candidate =
+            user?.admin?.[0] ||
+            user?.user ||
+            user ||
+            {};
+
+        const first =
+            candidate.vcfirstname ||
+            candidate.firstname ||
+            candidate.name ||
+            "";
+        const last =
+            candidate.vclastname ||
+            candidate.lastname ||
+            candidate.surname ||
+            "";
+        const email = candidate.vcemail || candidate.email || "";
+
+        const nameParts = `${first} ${last}`.trim().split(" ").filter(Boolean);
+        const letters = nameParts.slice(0, 2).map((p: string) => p[0]?.toUpperCase() || "");
+        if (letters.length > 0) return letters.join("");
+        if (email) return email.slice(0, 2).toUpperCase();
+        return "US";
+    }, [user]);
+
+    console.log(initials)
+
+    const fullName = useMemo(() => {
+        const candidate =
+            user?.admin?.[0] ||
+            user?.user ||
+            user ||
+            {};
+        const first =
+            candidate.vcfirstname ||
+            candidate.firstname ||
+            candidate.name ||
+            "";
+        const last =
+            candidate.vclastname ||
+            candidate.lastname ||
+            candidate.surname ||
+            "";
+        const email = candidate.vcemail || candidate.email || "";
+        const combined = `${first} ${last}`.trim();
+        return combined || email || "Usuario";
+    }, [user]);
+
     return (
         <nav className="fixed top-0 z-50 w-full bg-white  dark:bg-gray-800 dark:border-gray-700">
             <div className="px-3 py-1 lg:px-5 lg:pl-3">
@@ -40,29 +90,25 @@ export const Topbar = () => {
                         </a>
                     </div>
                     <div className="flex items-center">
-                        <div className=" py-2" role="none">
-                            <p className="text-sm text-[#1d1d1b] dark:text-white" role="none">
-                                {user?.admin[0]?.vcfirstname}
+                        <div className="py-2 text-right" role="none">
+                            <p className="text-sm font-semibold text-[#1d1d1b] dark:text-white" role="none">
+                                {fullName}
                             </p>
-                            <p className="text-sm font-medium text-[#1d1d1b] truncate dark:text-gray-300" role="none">
-                                {user?.admin[0]?.vcemail}
+                            <p className="text-xs font-medium text-gray-500 truncate dark:text-gray-300" role="none">
+                                {user?.admin?.[0]?.vcemail}
                             </p>
                         </div>
 
-                        <div className="flex items-center mt-2 ms-2">
+                        <div className="flex items-center mt-2 ms-3">
                             <div className="px-3 relative">
                                 <button
                                     type="button"
                                     onClick={toggleDropdown}
-                                    className="flex text-sm bg-gray-800 rounded-2xl focus:ring-4 focus:ring-gray-300 dark:focus:ring-gray-600"
+                                    className="flex text-sm shadow text-black rounded-2xl focus:ring-4 focus:ring-gray-300 dark:focus:ring-gray-600 w-12 h-12 items-center justify-center font-bold"
                                     aria-expanded={dropdownOpen}
                                 >
                                     <span className="sr-only">Open user menu</span>
-                                    <img
-                                        className="w-12 h-12 rounded-2xl"
-                                        src="https://flowbite.com/docs/images/people/profile-picture-5.jpg"
-                                        alt="user photo"
-                                    />
+                                    <span className="select-none">{initials}</span>
                                 </button>
 
                                 {/* Menu desplegable */}

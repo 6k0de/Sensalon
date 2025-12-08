@@ -18,5 +18,15 @@ export interface Product {
     vccategories?: string;
     company?: {
         vcname: string
-    }
+    };
+    producttype: any;
+    relatedproductId: string;
+    variantcolor: string;
+    variantlabel?: string;
+    childrenVariants?: Product[];
+    // Compatibilidad con otros componentes
+    type?: any;
+    variants?: any[];
+    bundleItems?: any[];
+    bundlePrice?: number;
 }

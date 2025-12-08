@@ -14,6 +14,7 @@ import { BankTransferButton } from '../components/Buttons/transferencia';
 import { TransferModal } from '../components/Modal/modal.banktransfer';
 import { createOrderTransfer } from '../services/Pay/Pay';
 import { isAdminUser, isDistributorUser, isGuestUser, isNormalUser, isSalonUser, readUser } from '../helpers/detectedUserRole';
+import { DiscountCode } from '../interfaces/discount';
 
 export const ShoppingCar = () => {
     const { cart, updateQuantity, removeFromCart } = useCartStore();
@@ -38,6 +39,9 @@ export const ShoppingCar = () => {
     const [creditState, setCreditState] = useState<boolean>(false)
     const [cashbackToUse, setCashbackToUse] = useState<number>(0);
     const [creditToUse, setCreditToUse] = useState<number>(0);
+    const [discountInput, setDiscountInput] = useState<string>("");
+    const [appliedDiscount, setAppliedDiscount] = useState<DiscountCode | null>(null);
+    const [discountAmount, setDiscountAmount] = useState<number>(0);
 
 
     const userData = readUser()
@@ -129,7 +133,7 @@ export const ShoppingCar = () => {
         fetchBrands();
     }, []);
 
-    const subtotal = cart.reduce((sum, item) => {
+    const getLinePrice = (item: any) => {
         const user = readUser();
         let userPrice = item.product.decprice3; // default
         if (isGuestUser(user)) {
@@ -142,14 +146,27 @@ export const ShoppingCar = () => {
             userPrice = item.product.decprice3;
         }
 
+        if (item.variantId && item.product.variants) {
+            const v = item.product.variants.find((va: any) => va.id === item.variantId);
+            if (v && typeof v.price === "number") {
+                userPrice = v.price;
+            }
+        }
 
-        return sum + (userPrice * item.quantity);
-    }, 0);
+        if (item.product.type === "bundle" && typeof item.product.bundlePrice === "number") {
+            userPrice = item.product.bundlePrice;
+        }
+
+        return userPrice * item.quantity;
+    };
+
+    const subtotal = cart.reduce((sum, item) => sum + getLinePrice(item), 0);
     console.log(deliveryCost.secobraenvio)
 
     const shipping = deliveryCost.secobraenvio === 1 ? 150 : 0;
 
-    const baseTotal = Math.max(0, subtotal + shipping)
+    const subtotalAfterDiscount = Math.max(0, subtotal - discountAmount);
+    const baseTotal = Math.max(0, subtotalAfterDiscount + shipping);
     const maxCashbackUsable = isNormal ? Math.min(cashback, baseTotal) : 0;
 
     const appliedCashback = isNormal && useCashback ? Math.min(Math.max(0, cashbackToUse), maxCashbackUsable) : 0;
@@ -179,6 +196,120 @@ export const ShoppingCar = () => {
         },
         {} as Record<string, { product: any; quantity: number }[]>
     );
+
+    const calculateDiscountAmount = (discount: DiscountCode) => {
+        const targetProducts = new Set((discount.productIds || []).map((p) => p.toString()));
+        let applicableBase = 0;
+
+        cart.forEach((item) => {
+            const lineTotal = getLinePrice(item);
+            if (discount.scope === "products") {
+                const pid = item.product.iIdProduct?.toString();
+                if (pid && targetProducts.has(pid)) {
+                    applicableBase += lineTotal;
+                }
+            } else {
+                applicableBase += lineTotal;
+            }
+        });
+
+        if (applicableBase <= 0) return 0;
+
+        if (discount.minSubtotal && applicableBase < discount.minSubtotal) {
+            return 0;
+        }
+
+        if (discount.discountType === "PERCENT") {
+            return (applicableBase * (discount.value || 0)) / 100;
+        }
+
+        return Math.min(discount.value || 0, applicableBase);
+    };
+
+    const handleApplyDiscount = async () => {
+        try {
+            if (!discountInput.trim()) {
+                setToastMessage("Ingresa un código de descuento.");
+                setToastType("error");
+                setShowToast(true);
+                return;
+            }
+
+            const codeText = discountInput.trim().toUpperCase();
+            const resp = await api.get("/discount-codes");
+            const list: DiscountCode[] = resp?.data?.data || resp?.data || [];
+            const match = list.find((d) => d.code?.toUpperCase() === codeText);
+
+            if (!match) {
+                setToastMessage("Código no encontrado.");
+                setToastType("error");
+                setShowToast(true);
+                return;
+            }
+
+            if (!match.isActive) {
+                setToastMessage("El código está inactivo.");
+                setToastType("error");
+                setShowToast(true);
+                return;
+            }
+
+            const now = new Date();
+            if (match.startDate) {
+                const start = new Date(match.startDate);
+                if (start > now) {
+                    setToastMessage("Aún no puedes usar este código.");
+                    setToastType("error");
+                    setShowToast(true);
+                    return;
+                }
+            }
+
+            if (match.endDate) {
+                const end = new Date(match.endDate);
+                if (end < now) {
+                    setToastMessage("El código ha expirado.");
+                    setToastType("error");
+                    setShowToast(true);
+                    return;
+                }
+            }
+
+            if (match.usageLimitType === "limited" && match.usageLimit !== null && match.usageCount !== null) {
+                if (match.usageCount >= match.usageLimit) {
+                    setToastMessage("Este código alcanzó su límite de usos.");
+                    setToastType("error");
+                    setShowToast(true);
+                    return;
+                }
+            }
+
+            const amount = calculateDiscountAmount(match);
+            if (amount <= 0) {
+                setToastMessage("El código no aplica a los productos del carrito o no alcanza el mínimo.");
+                setToastType("error");
+                setShowToast(true);
+                return;
+            }
+
+            setAppliedDiscount(match);
+            setDiscountAmount(amount);
+            setToastMessage("Código aplicado.");
+            setToastType("success");
+            setShowToast(true);
+        } catch (error) {
+            console.error("Error aplicando código:", error);
+            setToastMessage("No se pudo aplicar el código, intenta de nuevo.");
+            setToastType("error");
+            setShowToast(true);
+        }
+    };
+
+    const handleRemoveDiscount = () => {
+        setAppliedDiscount(null);
+        setDiscountAmount(0);
+        setDiscountInput("");
+    };
 
 
     const handleSaveAddress = async () => {
@@ -530,6 +661,45 @@ export const ShoppingCar = () => {
                             <h1 className="text-3xl font-bold text-center sm:text-left">Carrito de compras</h1>
                             <button onClick={() => navigate('/productos')} className='bg-slate-900 text-white py-2 px-4 rounded-lg hover:bg-gray-800 transition w-full sm:w-auto'>Seguir Comprando</button>
                         </div>
+                        <div className="bg-white rounded-lg shadow p-4 mb-4 flex flex-col sm:flex-row gap-3 items-start sm:items-end">
+                            <div className="flex-1 w-full">
+                                <label className="text-sm font-medium text-gray-700 block mb-1">
+                                    Código de descuento
+                                </label>
+                                <div className="flex flex-col sm:flex-row gap-2">
+                                    <input
+                                        type="text"
+                                        value={discountInput}
+                                        onChange={(e) => setDiscountInput(e.target.value)}
+                                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                                        placeholder="EJEMPLO10"
+                                    />
+                                    {appliedDiscount ? (
+                                        <button
+                                            onClick={handleRemoveDiscount}
+                                            className="px-4 py-2 rounded-lg text-sm font-semibold border border-red-200 text-red-600 hover:bg-red-50"
+                                        >
+                                            Quitar
+                                        </button>
+                                    ) : (
+                                        <button
+                                            onClick={handleApplyDiscount}
+                                            className="px-4 py-2 rounded-lg text-sm font-semibold bg-[#1d1d1b] text-white hover:bg-gray-900"
+                                        >
+                                            Aplicar
+                                        </button>
+                                    )}
+                                </div>
+                                {appliedDiscount && (
+                                    <p className="text-xs text-green-700 mt-2">
+                                        Aplicado: {appliedDiscount.code} — {appliedDiscount.discountType === "PERCENT"
+                                            ? `${appliedDiscount.value}%`
+                                            : `$${appliedDiscount.value.toFixed(2)}`}{" "}
+                                        {appliedDiscount.scope === "products" ? "(solo productos seleccionados)" : "(al total)"}
+                                    </p>
+                                )}
+                            </div>
+                        </div>
                         <div className="max-h-[400px] overflow-y-auto custom-scrollbar border rounded-lg p-4 bg-gray-50">
                             {cart.length > 0 ? (
                                 Object.entries(groupedCart).map(([companyName, items]: [string, any[]]) => (
@@ -540,23 +710,18 @@ export const ShoppingCar = () => {
                                         </h2>
 
                                         {/* Productos de esa compañía */}
-                                        {items.map(({ product, quantity }) => {
+                                        {items.map(({ product, quantity, variantLabel, bundleItemsSnapshot, comment, variantId }) => {
                                             const normalizedPath = product?.vcphoto
                                                 ?.replace(/\\/g, "/")
                                                 .split("/imagenes/")[1];
                                             const imageUrl = `https://api.sensalon.com.mx/imagenes/${normalizedPath}`;
                                             console.log(product)
                                             const user = readUser();
-                                            let userPrice = product.decprice3; // default
-                                            if (isGuestUser(user)) {
-                                                userPrice = product.decprice3; // invitado => 3
-                                            } else if (isDistributorUser(user) || isAdminUser(user)) {
-                                                userPrice = product.decprice1;
-                                            } else if (isSalonUser(user)) {
-                                                userPrice = product.decprice2;
-                                            } else if (isNormalUser(user)) {
-                                                userPrice = product.decprice3;
-                                            }
+                                            const lineTotal = getLinePrice({ product, quantity, variantId });
+                                            const stock =
+                                                product.type === "variant"
+                                                    ? product.variants?.find((v: any) => v.id === variantId)?.stock ?? product.istock
+                                                    : product.istock;
                                             return (
                                                 <div
                                                     key={product.iIdProduct}
@@ -571,14 +736,27 @@ export const ShoppingCar = () => {
                                                     />
                                                     <div className="flex-grow">
                                                         <h3 className="font-semibold">{product.vcname}</h3>
+                                                        {variantLabel && (
+                                                            <p className="text-xs text-gray-600">Variante: {variantLabel}</p>
+                                                        )}
+                                                        {product.type === "bundle" && bundleItemsSnapshot && (
+                                                            <ul className="text-xs text-gray-600 list-disc pl-4 mt-1">
+                                                                {bundleItemsSnapshot.map((bi, idx) => (
+                                                                    <li key={idx}>{bi.name} x{bi.quantity}</li>
+                                                                ))}
+                                                            </ul>
+                                                        )}
+                                                        {comment && (
+                                                            <p className="text-xs text-gray-500 mt-1">Nota: {comment}</p>
+                                                        )}
                                                     </div>
                                                     <p className="font-semibold">
-                                                        ${(userPrice * (Number(quantity) || 1)).toFixed(2)}
+                                                        ${lineTotal.toFixed(2)}
                                                     </p>
                                                     <div className="flex items-center">
                                                         <button
                                                             onClick={() =>
-                                                                updateQuantity(product.iIdProduct, quantity - 1)
+                                                                updateQuantity(product.iIdProduct, quantity - 1, variantId)
                                                             }
                                                             disabled={quantity <= 0}
                                                             className={`p-2 rounded-md ${quantity <= 0 ? 'bg-gray-50 text-gray-400 cursor-not-allowed' : 'bg-gray-200'}`}
@@ -588,16 +766,16 @@ export const ShoppingCar = () => {
                                                         <span className="mx-2">{quantity}</span>
                                                         <button
                                                             onClick={() =>
-                                                                updateQuantity(product.iIdProduct, quantity + 1)
+                                                                updateQuantity(product.iIdProduct, quantity + 1, variantId)
                                                             }
-                                                            disabled={quantity >= product.istock}
-                                                            className={`p-2 rounded-md ${quantity >= product.istock ? 'bg-gray-50 text-gray-400 cursor-not-allowed' : 'bg-gray-200'}`}
+                                                            disabled={quantity >= stock}
+                                                            className={`p-2 rounded-md ${quantity >= stock ? 'bg-gray-50 text-gray-400 cursor-not-allowed' : 'bg-gray-200'}`}
                                                         >
                                                             <Plus size={20} />
                                                         </button>
                                                     </div>
                                                     <button
-                                                        onClick={() => removeFromCart(product.iIdProduct)}
+                                                        onClick={() => removeFromCart(product.iIdProduct, variantId)}
                                                         className="p-1 text-red-500"
                                                     >
                                                         <Trash2 size={20} />
@@ -797,6 +975,12 @@ export const ShoppingCar = () => {
                                 <span>Subtotal</span>
                                 <span>${subtotal.toFixed(2)}</span>
                             </div>
+                            {discountAmount > 0 && (
+                                <div className="flex justify-between mb-2 text-green-700">
+                                    <span>Descuento</span>
+                                    <span>- ${discountAmount.toFixed(2)}</span>
+                                </div>
+                            )}
                             <div className="flex justify-between mb-2">
                                 <span>Envío</span>
                                 <span>${shipping.toFixed(2)}</span>

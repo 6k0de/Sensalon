@@ -17,3 +17,20 @@ export interface Product {
 }
 
 export type ProductType = 'SIMPLE' | 'VARIANT' | 'PACKAGE';
+
+export interface ProductModal {
+    iIdProduct: number;
+    vcname: string;
+    sku?: string;
+    defaultPrice?: number;
+    vcphoto?: string;
+}
+
+export interface LineItem {
+    productId: number;
+    name: string;
+    sku?: string;
+    quantity: number;
+    unitPrice: number;
+    vcphoto?: string;
+}

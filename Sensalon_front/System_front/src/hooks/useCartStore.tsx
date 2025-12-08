@@ -2,58 +2,99 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { CartState } from "../interfaces/cartState";
 import { getCartByUser, getCartItemsByUser, saveCartItems } from "../services/Cart/cart";
+import { Product } from "../interfaces/products";
 
 export const useCartStore = create<CartState>()(
   persist(
     (set, get) => ({
       cart: [],
 
-      addToCart: (product) =>
+      addToCart: (product: Product, opts) =>
         set((state) => {
-          const existingItem = state.cart.find(
-            (item) => item.product.iIdProduct === product.iIdProduct
-          );
-          const stock = Number(product.istock ?? 0);
+          const variantId = opts?.variantId;
+          const keyMatch = (item: any) =>
+            item.product.iIdProduct === product.iIdProduct &&
+            item.variantId === variantId;
 
-          // Si no hay stock, no agregamos nada
+          const existingItem = state.cart.find(keyMatch);
+
+          // stock dependiendo del tipo
+          const stock =
+            product.type === "variant"
+              ? Number(
+                  product.variants?.find((v) => v.id === variantId)?.stock ?? product.istock ?? 0
+                )
+              : Number(product.istock ?? 0);
+
+          const qtyToAdd = Math.max(1, opts?.quantity ?? 1);
+
           if (stock <= 0) {
-            return state; // opcional: podrías mostrar un toast de “sin stock”
+            return state;
           }
 
           if (existingItem) {
-            // Evitar pasar el stock máximo
-            const newQty = Math.min(existingItem.quantity + 1, stock);
+            const newQty = Math.min(existingItem.quantity + qtyToAdd, stock);
             return {
               cart: state.cart.map((item) =>
-                item.product.iIdProduct === product.iIdProduct
-                  ? { ...item, quantity: newQty }
+                keyMatch(item)
+                  ? { ...item, quantity: newQty, comment: opts?.comment ?? item.comment }
                   : item
               ),
             };
-          } else {
-            // Primera vez que se agrega
-            return {
-              cart: [...state.cart, { product, quantity: 1 }],
-            };
           }
+
+          // snapshot for bundles
+          let bundleItemsSnapshot;
+          if (product.type === "bundle" && product.bundleItems) {
+            bundleItemsSnapshot = product.bundleItems.map((bi) => ({
+              name: bi.name || bi.productId,
+              quantity: bi.quantity,
+              price: bi.price,
+            }));
+          }
+
+          return {
+            cart: [
+              ...state.cart,
+              {
+                product,
+                quantity: Math.min(qtyToAdd, stock),
+                variantId,
+                variantLabel: opts?.variantLabel,
+                bundleItemsSnapshot,
+                comment: opts?.comment,
+              },
+            ],
+          };
         }),
 
-      updateQuantity: (productId, quantity) =>
+      updateQuantity: (productId, quantity, variantId) =>
         set((state) => ({
           cart: state.cart.map((item) => {
-            if (item.product.iIdProduct === productId) {
-              const stock = Number(item.product.istock ?? 0);
-              const newQty = Math.max(0, Math.min(quantity, stock)); // entre 1 y stock
+            const matches =
+              item.product.iIdProduct === productId &&
+              (variantId ? item.variantId === variantId : true);
+            if (matches) {
+              const stock =
+                item.product.type === "variant"
+                  ? Number(
+                      item.product.variants?.find((v) => v.id === item.variantId)?.stock ??
+                        item.product.istock ??
+                        0
+                    )
+                  : Number(item.product.istock ?? 0);
+              const newQty = Math.max(0, Math.min(quantity, stock));
               return { ...item, quantity: newQty };
             }
             return item;
           }),
         })),
 
-      removeFromCart: (productId) =>
+      removeFromCart: (productId, variantId) =>
         set((state) => ({
           cart: state.cart.filter(
-            (item) => item.product.iIdProduct !== productId
+            (item) =>
+              !(item.product.iIdProduct === productId && (variantId ? item.variantId === variantId : true))
           ),
         })),
 

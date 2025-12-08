@@ -48,6 +48,8 @@ export const ModalProduct = ({ show, onClose, data, mode }: { show: boolean, onC
     const [packageQty, setPackageQty] = useState<number>(1);
 
     const dropdownRef = useRef<HTMLDivElement>(null);
+    const categoriasRef = useRef<HTMLDivElement>(null);
+
 
     useEffect(() => {
         axios.all([
@@ -76,6 +78,25 @@ export const ModalProduct = ({ show, onClose, data, mode }: { show: boolean, onC
             setShowDropdown(false);
         }
     };
+
+    useEffect(() => {
+        const handleClickOutside = (e: MouseEvent) => {
+            if (categoriasRef.current && !categoriasRef.current.contains(e.target as Node)) {
+                setShowDropdown(false);
+            }
+        };
+
+        const handleEsc = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') setShowDropdown(false);
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        document.addEventListener('keydown', handleEsc);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+            document.removeEventListener('keydown', handleEsc);
+        };
+    }, []);
 
     useEffect(() => {
         // Si estamos editando, cargamos los datos del producto
@@ -134,6 +155,16 @@ export const ModalProduct = ({ show, onClose, data, mode }: { show: boolean, onC
             document.removeEventListener("mousedown", handleClickOutside);
         };
     }, []);
+    const toNullish = (v: any) => {
+        if (v === undefined || v === null) return null;
+        if (typeof v === "string") {
+            const t = v.trim();
+            if (t === "" || t === "undefined" || t === "null") return null;
+        }
+        return v;
+    };
+
+    //const isNonEmptyArray = (arr: any) => Array.isArray(arr) && arr.length > 0;
 
     const handelsubmit = (e: any) => {
         e.preventDefault()
@@ -152,6 +183,7 @@ export const ModalProduct = ({ show, onClose, data, mode }: { show: boolean, onC
         if (!existencia) { setToastMessage("Ingrese la existencia"); setToastType("error"); setShowToast(true); setTimeout(() => { setShowToast(false); setToastType(null); setToastMessage(null) }, 3000); return };
         if (!existenciaMinima) { setToastMessage("Ingrese la existencia mínima"); setToastType("error"); setShowToast(true); setTimeout(() => { setShowToast(false); setToastType(null); setToastMessage(null) }, 3000); return };
         if (mode === 0 && !selectedFile) { setToastMessage("Debe seleccionar una imagen del producto"); setToastType("error"); setShowToast(true); setTimeout(() => { setShowToast(false); setToastType(null); setToastMessage(null) }, 3000); return };
+
         const formData = new FormData()
         //console.log(empresa.value, nombre.value, peso.value + unidades.value, precio1.value, precio2.value, precio3.value, JSON.stringify(selectedCategories), existencia.value, existenciaminima.value)
         if (tipoProducto === "PACKAGE" && !empresa) {
@@ -163,8 +195,31 @@ export const ModalProduct = ({ show, onClose, data, mode }: { show: boolean, onC
         formData.append('vcname', nombre);
         formData.append('vcdescription', descripcion);
         formData.append('producttype', tipoProducto)
-        formData.append('relatedproductId', idProductRelacionado)
-        formData.append('variantcolor', JSON.stringify(colorVariant))
+        if (tipoProducto !== 'VARIANT') {
+            formData.append('relatedproductId', '');
+            formData.append('variantcolor', '');
+        }
+
+        if (tipoProducto === "VARIANT") {
+            const cleanRelated = toNullish(idProductRelacionado);
+            if (!cleanRelated) {
+                setToastMessage("Seleccione el producto relacionado (VARIANT).");
+                setToastType("error");
+                setShowToast(true);
+                setTimeout(() => { setShowToast(false); setToastType(null); setToastMessage(null); }, 3000);
+                return;
+            }
+            formData.append("relatedproductId", cleanRelated);
+        }
+        if (tipoProducto === "VARIANT") {
+            const vc =
+                colorVariant && typeof colorVariant === "object" &&
+                    typeof colorVariant.hex === "string" && colorVariant.hex
+                    ? JSON.stringify({ name: colorVariant.name ?? "", hex: colorVariant.hex })
+                    : null;
+            if (vc) formData.append("variantcolor", vc);
+        }
+
         if (tipoProducto === 'PACKAGE') {
             formData.append('productsPackage', JSON.stringify(packageItems))
         }
@@ -226,13 +281,13 @@ export const ModalProduct = ({ show, onClose, data, mode }: { show: boolean, onC
             }
 
             // Precargar productos del paquete
-            if (data?.producttype === 'PACKAGE' && data?.packageItems) {
-                try {
-                    const parsedItems = JSON.parse(data.packageItems);
-                    setPackageItems(parsedItems);
-                } catch {
-                    setPackageItems([]);
-                }
+            if (data?.producttype === 'PACKAGE' && Array.isArray(data.packageItems)) {
+                const items = data.packageItems.map((i: any) => ({
+                    product_id: i.productId,
+                    product_name: i.product_name || '(sin nombre)',
+                    quantity: i.quantity || 1,
+                }));
+                setPackageItems(items);
             }
         }
     }, [data, mode]);
@@ -265,8 +320,13 @@ export const ModalProduct = ({ show, onClose, data, mode }: { show: boolean, onC
             </div>
             <div id="crud-modal" aria-hidden="true" className={`fixed inset-0 z-50 flex items-center justify-center transition-opacity ${show ? "opacity-100" : "opacity-0 pointer-events-none"} duration-300 ease-in-out`}>
                 <div className="fixed inset-0 bg-[#1d1d1b] bg-opacity-50 transition-opacity duration-300 ease-in-out"></div>
-                <div className={`sm:m-12 mt-12 md:relative w-full max-w-5xl max-h-full bg-white rounded-xl shadow dark:bg-gray-700 transform transition-transform ${show ? "scale-100" : "scale-95"} duration-300 ease-in-out `}>
-                    <div className="flex items-center justify-between p-4 md:p-5 border-b rounded-t dark:border-gray-600">
+                <div
+                    className={`sm:m-12 mt-12 md:relative w-full max-w-6xl max-h-[90vh]
+                            bg-white rounded-xl shadow dark:bg-gray-700 transform transition-transform
+                            ${show ? "scale-100" : "scale-95"} duration-300 ease-in-out
+                            flex flex-col overflow-hidden`}
+                >
+                    <div className="flex items-center justify-between p-4 md:p-5 border-b rounded-t dark:border-gray-600 shrink-0">
                         <h3 className="text-2xl font-bold text-[#1d1d1b] dark:text-white">{mode == 0 ? 'Creando nuevo producto' : 'Actualizando producto'}</h3>
                         <button type="button" onClick={() => onClose('', null)} className="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-xl text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white">
                             <svg className="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
@@ -275,9 +335,9 @@ export const ModalProduct = ({ show, onClose, data, mode }: { show: boolean, onC
                             <span className="sr-only">Cerrar modal</span>
                         </button>
                     </div>
-                    <form onSubmit={handelsubmit} className="p-4 md:p-5" encType="multipart/form-data">
+                    <form onSubmit={handelsubmit} className="flex flex-col flex-1 min-h-0 p-4 md:p-5" encType="multipart/form-data">
                         {/* Grid estable adaptable */}
-                        <div className="grid gap-4 mb-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-12">
+                        <div className="grid gap-4 mb-4 flex-1 min-h-0 overflow-y-auto grid-cols-1 sm:grid-cols-2 lg:grid-cols-12">
 
                             {/* Tipo de producto */}
                             <div className="col-span-2 lg:col-span-4">
@@ -460,7 +520,7 @@ export const ModalProduct = ({ show, onClose, data, mode }: { show: boolean, onC
                                     {/* Tabla de productos agregados con scroll */}
                                     <div className="relative border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden max-h-36 overflow-y-auto shadow-sm">
                                         <table className="w-full text-sm">
-                                            <thead className="sticky top-0 bg-gray-100 dark:bg-gray-700 z-10">
+                                            <thead className="sticky top-0 bg-gray-100 dark:bg-gray-700">
                                                 <tr>
                                                     <th className="p-2 text-left">Producto</th>
                                                     <th className="p-2 text-center">Cantidad</th>
@@ -513,7 +573,7 @@ export const ModalProduct = ({ show, onClose, data, mode }: { show: boolean, onC
                                 <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
                                     Categorías:
                                 </label>
-                                <div className="relative">
+                                <div className="relative" ref={categoriasRef}>
                                     <button
                                         type="button"
                                         onClick={() => setShowDropdown(!showDropdown)}
@@ -615,21 +675,23 @@ export const ModalProduct = ({ show, onClose, data, mode }: { show: boolean, onC
                         </div>
 
                         {/* Botón */}
-                        <div className="flex justify-end mt-4">
-                            <button
-                                type="submit"
-                                className="flex items-center text-white bg-[#32322f] hover:bg-[#1d1d1b] font-medium rounded-xl text-sm px-5 py-2.5 focus:ring-4 focus:ring-blue-300"
-                            >
-                                <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                                    <path
-                                        fillRule="evenodd"
-                                        d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z"
-                                        clipRule="evenodd"
-                                    />
-                                </svg>
-                                {mode === 1 ? "Editar producto" : "Crear producto"}
-                            </button>
+                        {/* Footer (no scrollea) */}
+                        <div className="shrink-0">
+                            <div className="backdrop-blur bg-white/85 dark:bg-gray-700/85 rounded-b-xl">
+                                <div className="flex items-center justify-end gap-2 p-3">
+                                    <button
+                                        type="submit"
+                                        className="flex items-center text-white bg-[#32322f] hover:bg-[#1d1d1b] font-medium rounded-xl text-sm px-5 py-2.5 focus:ring-4 focus:ring-blue-300"
+                                    >
+                                        <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
+                                        </svg>
+                                        {mode === 1 ? "Editar producto" : "Crear producto"}
+                                    </button>
+                                </div>
+                            </div>
                         </div>
+
                     </form>
 
 

@@ -10,6 +10,9 @@ import { AssociationsProductsCategories } from "./AssociationsProductsCategories
 import { AssociationsProductsCompanies } from "./AssociationsProductsCompanies";
 import { AssociationsRolesUsers } from "./AssociationsRolesUsers";
 import { AssociationsDistributorsUsers } from "./AssociationsDistributorsUsers";
+import { AssociationsProductsWithProductsPackage } from "./AssociationsProductsWithProductsPackage";
+import { AssociationsWarehouseCompanySupplier } from "./AssociationsWarehouseCompanySupplier";
+import { AssociationsDiscountCodeProductsUsage } from "./AssociationsDiscountCodeProductsUsage";
 
 export const setupAssociations = () => {
     AssociationsUserTransactions();
@@ -24,4 +27,7 @@ export const setupAssociations = () => {
     AssociationsProductsCompanies();
     AssociationsRolesUsers();
     AssociationsDistributorsUsers();
+    AssociationsProductsWithProductsPackage()
+    AssociationsWarehouseCompanySupplier()
+    AssociationsDiscountCodeProductsUsage()
 };

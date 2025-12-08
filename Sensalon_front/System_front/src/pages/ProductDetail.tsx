@@ -1,5 +1,5 @@
 import { Minus, Plus, ShoppingBag } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useProductDetail } from '../hooks/useProductDetail'
 import { useCartStore } from '../hooks/useCartStore'
@@ -15,6 +15,8 @@ export const ProductDetail = () => {
     const navigate = useNavigate()
     const [productosSimilares, setProductosSimilares] = useState<Product[]>([])
     const [quantity, setQuantity] = useState(1)
+    const [comment, setComment] = useState<string>("")
+    const [selectedVariantId, setSelectedVariantId] = useState<string>("")
     console.log(user)
     useEffect(() => {
         api.get(`/productosSimilares?idProduct=${id}?idUser=${user?.iIdUser}`).then((res) => {
@@ -22,7 +24,33 @@ export const ProductDetail = () => {
         })
     }, [])
 
+    // Construir opciones de variante: padre + hijos
+    const variantOptions = useMemo(() => {
+        if (!product) return [];
+
+        // Si ya tiene childrenVariants (los que construimos en el hook)
+        if (product.childrenVariants && product.childrenVariants.length > 0) {
+            return [product, ...product.childrenVariants];
+        }
+
+        // Fallback: solo el producto actual
+        return [product];
+    }, [product]);
+
+    useEffect(() => {
+        if (variantOptions.length > 0) {
+            setSelectedVariantId((prev) => prev || variantOptions[0].iIdProduct);
+        }
+    }, [variantOptions]);
+
+    const selectedVariant =
+        variantOptions.find((v) => v.iIdProduct === selectedVariantId) ||
+        product;
+
     console.log(productosSimilares)
+
+    const availableStock = selectedVariant?.istock;
+
     if (loading) return <p>Cargando...</p>;
     if (error) return <p>Error: {error}</p>;
     if (!product) return <p>Producto no encontrado.</p>;
@@ -32,28 +60,48 @@ export const ProductDetail = () => {
     };
 
     const increaseQuantity = () => {
-        if (quantity < product.istock) setQuantity(quantity + 1);
+        if (quantity < availableStock!) setQuantity(quantity + 1);
     };
 
-    let userPrice = product.decprice3; // default
-    if (isGuestUser(user)) {
-        userPrice = product.decprice3; // invitado => 3
-    } else if (isDistributorUser(user) || isAdminUser(user)) {
-        userPrice = product.decprice1;
-    } else if (isSalonUser(user)) {
-        userPrice = product.decprice2;
-    } else if (isNormalUser(user)) {
-        userPrice = product.decprice3;
-    }
+    const basePrice = () => {
+        let p = selectedVariant?.decprice3; // default
+        if (isGuestUser(user)) {
+            p = selectedVariant?.decprice3; // invitado => 3
+        } else if (isDistributorUser(user) || isAdminUser(user)) {
+            p = selectedVariant?.decprice1;
+        } else if (isSalonUser(user)) {
+            p = selectedVariant?.decprice2;
+        } else if (isNormalUser(user)) {
+            p = selectedVariant?.decprice3;
+        }
+        return p;
+    };
+
+    const getVariantLabel = (p: Product) => {
+        if (p.variantlabel) return p.variantlabel;
+        if (p.variantcolor && p.vcname) return `${p.vcname} · ${p.variantcolor}`;
+        return p.vcname || "Variante";
+    };
+
+    const sortedVariants = [...variantOptions].sort((a, b) =>
+        getVariantLabel(a).localeCompare(getVariantLabel(b))
+    );
+
+
+    // Construye opciones de atributos a partir de las variantes
+    // No hay variantes en la interfaz actual; producttype/relatedproductId llegan planos.
+
+    const displayProduct = selectedVariant;
+    const userPrice = basePrice();
     console.log(productosSimilares)
 
     return (
         <main className="container mx-auto px-4 py-16">
             <div className="flex flex-col md:flex-row gap-8">
                 <div className="md:w-1/2">
-                    {product?.vcphoto && (
+                    {displayProduct?.vcphoto && (
                         <>
-                            {product.vcphoto.split(',').map((path: string, index: number) => {
+                            {displayProduct.vcphoto.split(',').map((path: string, index: number) => {
                                 const normalizedPath = path.replace(/\\/g, '/').split('/imagenes/')[1];
                                 const imageUrl = `https://api.sensalon.com.mx/imagenes/${normalizedPath}`;
 
@@ -73,15 +121,58 @@ export const ProductDetail = () => {
                     )}
                 </div>
                 <div className="md:w-1/2">
-                    <h1 className="text-3xl font-bold mb-4">{product?.vcname}</h1>
+                    <h1 className="text-3xl font-bold mb-4">
+                        {getVariantLabel(selectedVariant!)}
+                    </h1>
                     <p className='text-sm'></p>
 
                     <p className="text-2xl font-bold mb-6">${userPrice}</p>
-                    <p className="text-gray-700 mb-8">{product?.vcdescription}</p>
+                    <p className="text-gray-700 mb-8">{displayProduct?.vcdescription}</p>
+                    {variantOptions.length > 1 && (
+                        <div className="mb-6 space-y-2">
+                            <h3 className="font-semibold">Seleccione variante</h3>
+
+                            <div className="flex flex-wrap gap-2">
+                                {sortedVariants.map((v) => (
+                                    <button
+                                        key={v.iIdProduct}
+                                        onClick={() => setSelectedVariantId(v.iIdProduct)}
+                                        className={`px-3 py-1 rounded-full border text-sm 
+                    ${selectedVariantId === v.iIdProduct
+                                                ? "bg-black text-white border-black"
+                                                : "bg-white text-gray-700 border-gray-300"}
+                `}
+                                    >
+                                        {getVariantLabel(v)}
+                                    </button>
+                                ))}
+                            </div>
+
+                            {/* Si muestra color */}
+                            {selectedVariant?.variantcolor && (
+                                <p className="text-gray-500 text-sm mt-2">
+                                    Color seleccionado: <strong>{selectedVariant?.variantcolor}</strong>
+                                </p>
+                            )}
+                        </div>
+
+                    )}
+                    <div className="mb-6">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Comentarios (opcional)
+                        </label>
+                        <textarea
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                            rows={2}
+                            value={comment}
+                            onChange={(e) => setComment(e.target.value)}
+                            placeholder="Escribe un comentario o instrucción"
+                        />
+                    </div>
                     <div className="mb-10">
                         <h3 className="font-semibold mb-4">Tamaño el producto</h3>
                         <div className="flex space-x-4">
-                            <button className="border cursor-none rounded-full px-4 py-2">{product.vcweight}</button>
+                            <button className="border cursor-none rounded-full px-4 py-2">{displayProduct?.vcweight}</button>
 
                         </div>
                     </div>
@@ -92,16 +183,25 @@ export const ProductDetail = () => {
                         <input
                             type="number"
                             value={quantity}
-                            onChange={(e) => setQuantity(Math.max(1, Math.min(product?.istock, parseInt(e.target.value))))}
+                            onChange={(e) => setQuantity(Math.max(1, Math.min(availableStock!, parseInt(e.target.value))))}
                             className="w-16 text-center border-t border-b py-1.5"
                         />
                         <button onClick={increaseQuantity} className="border rounded-r-full px-4 py-2">
                             <Plus size={20} />
                         </button>
-                        <p className='px-5 text-base'>En existencia: <strong>{product.istock}</strong></p>
+                        <p className='px-5 text-base'>En existencia: <strong>{availableStock}</strong></p>
                     </div>
                     <div className="flex items-center  gap-10 mb-8">
-                        <button onClick={() => { addToCart(product) }} className="w-72 bg-black text-white py-3 px-6 rounded-full hover:bg-opacity-90 transition-colors flex items-center justify-center">
+                        <button
+                            onClick={() => {
+                                addToCart(displayProduct!, {
+                                    quantity,
+                                    comment: comment.trim() || undefined,
+                                })
+                            }}
+                            disabled={false}
+                            className="w-72 bg-black text-white py-3 px-6 rounded-full hover:bg-opacity-90 transition-colors flex items-center justify-center disabled:bg-gray-400"
+                        >
                             <ShoppingBag size={20} className="mr-2" />
                             Agregar al carrito
                         </button>

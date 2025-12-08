@@ -16,3 +16,16 @@ export const formatStatus = (status: string | null, method?: string) => {
     if (status === "pending") return { text: "Pendiente", color: "bg-yellow-100 text-yellow-800" };
     return { text: "Error", color: "bg-red-100 text-red-800" };
 };
+
+export const formatDate = (date: string | Date) => {
+    // Normalizamos a string tipo "YYYY-MM-DD"
+    const iso =
+        date instanceof Date
+            ? date.toISOString().split("T")[0]
+            : (date || "").split("T")[0];
+
+    const [year, month, day] = iso.split("-");
+    if (!year || !month || !day) return "";
+
+    return `${day}/${month}/${year}`; // dd/mm/yyyy
+};

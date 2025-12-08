@@ -16,6 +16,8 @@ import { sliderRouter } from "./slider";
 import { suppliersRouter } from "./suppliers";
 import { transactionsRouter } from "./transactions";
 import { usersRouter } from "./users";
+import { warehouseRouter } from "./warehouse";
+import { discountCodeRouter } from "./discountcode";
 
 export const mainRouter = Router();
 
@@ -44,3 +46,5 @@ mainRouter.use(sliderRouter);
 mainRouter.use(suppliersRouter);
 mainRouter.use(transactionsRouter);
 mainRouter.use(usersRouter);
+mainRouter.use(warehouseRouter)
+mainRouter.use(discountCodeRouter)

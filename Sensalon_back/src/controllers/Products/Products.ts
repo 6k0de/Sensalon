@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import conn from "../../bd/config/config";
 import { Products } from "../../bd/models/Products.model";
+import { ProductPakcageItemsModel } from "../../bd/models/ProductsPackageitemst.model";
 
 export const insertProduct = (req: Request, res: Response) => {
     const {
@@ -110,9 +111,88 @@ export const insertProduct = (req: Request, res: Response) => {
 };
 
 export const getAllProducts = async (_: Request, res: Response) => {
-    const productos = await Products.findAll()
-    res.json(productos)
-}
+    try {
+        // Trae todos los productos con los items si existen
+        const productos = await Products.findAll({
+            include: [
+                {
+                    model: ProductPakcageItemsModel,
+                    as: 'packageItems',
+                    required: false, // LEFT JOIN
+                },
+            ],
+            order: [['dtcreation', 'DESC']],
+        });
+
+        // Para cada paquete, busca los nombres de los productos hijos
+        const productosConNombres = await Promise.all(
+            productos.map(async (p: any) => {
+                const plain = p.toJSON();
+
+                // Solo si es PACKAGE
+                if (plain.producttype === 'PACKAGE' && plain.packageItems?.length > 0) {
+                    const idsHijos = plain.packageItems.map((i: any) => i.productId);
+
+                    // Busca los nombres de esos productos hijos
+                    const hijos = await Products.findAll({
+                        where: { iIdProduct: idsHijos },
+                        attributes: ['iIdProduct', 'vcname'],
+                    });
+
+                    const mapHijos = Object.fromEntries(
+                        hijos.map((h: any) => [h.iIdProduct, h.vcname])
+                    );
+
+                    // Agrega los nombres
+                    plain.packageItems = plain.packageItems.map((i: any) => ({
+                        ...i,
+                        product_name: mapHijos[i.productId] || '(desconocido)',
+                    }));
+                }
+
+                return plain;
+            })
+        );
+
+        res.json(productosConNombres);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Error al obtener productos' });
+    }
+};
+
+
+export const getProductsByCompany = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        console.log(id)
+        if (!id) {
+            return res.status(400).json({
+                ok: false,
+                message: "Debe enviar el parámetro companyId",
+            });
+        }
+
+        const products = await Products.findAll({
+            where: {
+                iFIdCompany: id
+            },
+            order: [["vcname", "ASC"]],
+        });
+
+        return res.json({
+            ok: true,
+            products,
+        });
+    } catch (error) {
+        console.error("Error en getProductsByCompany:", error);
+        return res.status(500).json({
+            ok: false,
+            message: "Error al obtener los productos por empresa",
+        });
+    }
+};
+
 
 export const getProductById = async (req: Request, res: Response) => {
     const id = req.params.id
@@ -143,13 +223,35 @@ export const getProductSimilar = async (req: Request, res: Response) => {
 }
 
 export const updateProduct = async (req: Request, res: Response) => {
-    const { piIdProduct, iFIdCompany, vccategories, vcname, vcdescription, vcweight, vcquantity, decprice1, decprice2, decprice3, istock, istocklimit, vcphoto } = req.body
+    const {
+        piIdProduct,
+        iFIdCompany,
+        vccategories,
+        vcname,
+        vcdescription,
+        producttype,
+        relatedproductId,
+        variantcolor,
+        productsPackage,
+        vcweight,
+        vcquantity,
+        decprice1,
+        decprice2,
+        decprice3,
+        istock,
+        istocklimit,
+        vcphoto
+    } = req.body
     console.log({
         piIdProduct
         , iFIdCompany
         , vccategories
         , vcname
         , vcdescription
+        , producttype
+        , relatedproductId
+        , variantcolor
+        , productsPackage
         , vcweight
         , vcquantity
         , decprice1
@@ -162,26 +264,37 @@ export const updateProduct = async (req: Request, res: Response) => {
 
     console.log(req.file || vcphoto)
     if (req.file || vcphoto) {
-        const urlPhoto = req?.file?.path
+        const urlPhoto = req?.file?.path ?? null
         console.log(urlPhoto)
-        conn.query(
-            'CALL ProductCategoriesUpdate(:piIdProduct, :piFIdCompany, :pvccategories, :pvcname,:pvcdescription, :pvcweight, :pvcquantity, :pvcphoto, :pdecprice1, :pdecprice2, :pdecprice3, :pistock, :pistocklimit)',
+        const parsedVariantColor = typeof variantcolor === 'string' ? variantcolor : JSON.stringify(variantcolor);
+        const parsedProductsPackage = typeof productsPackage === 'string' ? productsPackage : JSON.stringify(productsPackage);
+        await conn.query(
+            `CALL ProductCategoriesUpdate(
+                    :piIdProduct, :piFIdCompany, :pvccategories, :pvcname, :pvcdescription,
+                    :pproducttype, :prelatedProductId, :pvariantColor, :pproductsPackage,
+                    :pvcweight, :pvcquantity, :pvcphoto,
+                    :pdecprice1, :pdecprice2, :pdecprice3, :pistock, :pistocklimit
+                )`,
             {
                 replacements: {
-                    piIdProduct: piIdProduct,
+                    piIdProduct,
                     piFIdCompany: iFIdCompany,
                     pvccategories: vccategories,
                     pvcname: vcname,
                     pvcdescription: vcdescription,
+                    pproducttype: producttype,                         // 'SIMPLE' | 'VARIANT' | 'PACKAGE'
+                    prelatedProductId: relatedproductId || null,       // solo VARIANT
+                    pvariantColor: parsedVariantColor || null,               // solo VARIANT (JSON string o null)
+                    pproductsPackage: parsedProductsPackage || null,         // solo PACKAGE (JSON array string o null)
                     pvcweight: vcweight,
                     pvcquantity: vcquantity,
-                    pvcphoto: urlPhoto || vcphoto,
+                    pvcphoto: urlPhoto,                                 // req.file?.path || vcphoto || null
                     pdecprice1: decprice1,
                     pdecprice2: decprice2,
                     pdecprice3: decprice3,
                     pistock: istock,
                     pistocklimit: istocklimit,
-                }
+                },
             }
         ).then((result: any) => {
             console.log(result)

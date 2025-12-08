@@ -74,9 +74,16 @@ export const Navbar = () => {
       setFilteredProducts([]);
       setShowResults(false);
     } else {
-      const results: any = products.filter((product) =>
-        product.vcname.toLowerCase().includes(value.toLowerCase())
-      );
+      const results: any = products.filter((product) => {
+        const matchName = product.vcname.toLowerCase().includes(value.toLowerCase());
+        const matchVariant = (product.variants ?? []).some((v: any) =>
+          (v.name || "").toLowerCase().includes(value.toLowerCase()) ||
+          Object.values(v.attributes ?? {}).some((val) =>
+            (val || "").toLowerCase().includes(value.toLowerCase())
+          )
+        );
+        return matchName || matchVariant;
+      });
       setFilteredProducts(results);
       setShowResults(true);
     }
@@ -103,8 +110,7 @@ export const Navbar = () => {
 
   const toggleCart = () => setShowCart(!showCart);
 
-  const totalPrice = cart.reduce((total, item) => {
-
+  const linePrice = (item: any) => {
     let userPrice = item.product.decprice3; // default
     if (isGuestUser(user)) {
       userPrice = item.product.decprice3; // invitado => 3
@@ -115,9 +121,17 @@ export const Navbar = () => {
     } else if (isNormalUser(user)) {
       userPrice = item.product.decprice3;
     }
+    if (item.variantId && item.product.variants) {
+      const v = item.product.variants.find((va: any) => va.id === item.variantId);
+      if (v && typeof v.price === "number") userPrice = v.price;
+    }
+    if (item.product.type === "bundle" && typeof item.product.bundlePrice === "number") {
+      userPrice = item.product.bundlePrice;
+    }
+    return userPrice * item.quantity;
+  };
 
-    return total + (userPrice * item.quantity);
-  }, 0);
+  const totalPrice = cart.reduce((total, item) => total + linePrice(item), 0);
 
 
   const toggleAvatarMenu = () => {
@@ -246,7 +260,7 @@ export const Navbar = () => {
                   <div className="flex flex-col">
                     {/* Sección con scroll, máximo 4 productos visibles */}
                     <div className="overflow-y-auto max-h-64 custom-scrollbar">
-                      {cart.map(({ product, quantity }) => {
+                      {cart.map(({ product, quantity, variantId, variantLabel, bundleItemsSnapshot, comment }) => {
                         const normalizedPath = product?.vcphoto?.replace(/\\/g, '/').split('/imagenes/')[1];
                         const imageUrl = `https://api.sensalon.com.mx/imagenes/${normalizedPath}`;
                         const user = readUser();
@@ -261,8 +275,14 @@ export const Navbar = () => {
                           userPrice = product.decprice3;
                         }
                         
+                        const lineTotal = linePrice({ product, quantity, variantId });
+                        const stock =
+                          product.type === "variant"
+                            ? product.variants?.find((v: any) => v.id === variantId)?.stock ?? product.istock
+                            : product.istock;
+
                         return (
-                          <div key={product.iIdProduct} className="flex items-center mb-4">
+                          <div key={product.iIdProduct + (variantId || "")} className="flex items-center mb-4">
                             <img
                               src={imageUrl}
                               alt={product.vcname}
@@ -270,10 +290,13 @@ export const Navbar = () => {
                             />
                             <div className="flex-1">
                               <h3 className="font-semibold">{product.vcname}</h3>
-                              <p className="text-sm text-gray-500">${userPrice}</p>
+                              {variantLabel && (
+                                <p className="text-xs text-gray-600">Variante: {variantLabel}</p>
+                              )}
+                              <p className="text-sm text-gray-500">${lineTotal.toFixed(2)}</p>
                               <div className="flex items-center  space-x-4 mt-1">
                                 <button
-                                  onClick={() => updateQuantity(product.iIdProduct, quantity - 1)}
+                                  onClick={() => updateQuantity(product.iIdProduct, quantity - 1, variantId)}
                                   disabled={quantity <= 0}
                                   className={`px-4 rounded ${quantity <= 0 ? 'bg-gray-50 text-gray-400 cursor-not-allowed' : 'bg-gray-200'}`}
                                 >
@@ -281,14 +304,14 @@ export const Navbar = () => {
                                 </button>
                                 <span>{quantity}</span>
                                 <button
-                                  onClick={() => updateQuantity(product.iIdProduct, quantity + 1)}
-                                  disabled={quantity >= product.istock}
-                                  className={`px-4 rounded ${quantity >= product.istock ? 'bg-gray-50 text-gray-400 cursor-not-allowed' : 'bg-gray-200'}`}
+                                  onClick={() => updateQuantity(product.iIdProduct, quantity + 1, variantId)}
+                                  disabled={quantity >= stock}
+                                  className={`px-4 rounded ${quantity >= stock ? 'bg-gray-50 text-gray-400 cursor-not-allowed' : 'bg-gray-200'}`}
                                 >
                                   +
                                 </button>
                                 <button
-                                  onClick={() => removeFromCart(product.iIdProduct)}
+                                  onClick={() => removeFromCart(product.iIdProduct, variantId)}
                                   className="text-red-600 text-base ml-2"
                                 >
                                   Eliminar

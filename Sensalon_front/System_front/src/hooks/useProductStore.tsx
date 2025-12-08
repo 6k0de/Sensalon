@@ -53,9 +53,27 @@ export const useProductStore = create<Store>((set, get) => ({
       const resp = await api.get(url);
 
       // Normaliza: /products/:id -> { products: [...] }, /productos -> [...]
-      const fresh: Product[] = Array.isArray(resp.data)
+      const freshRaw: Product[] = Array.isArray(resp.data)
         ? resp.data
         : (resp.data?.products ?? []);
+
+      // Agrupa variantes bajo su padre: el padre es quien NO tiene relatedproductId,
+      // los hijos son producttype === 'VARIANT' con relatedproductId.
+      const map: Record<string, any> = {};
+      freshRaw.forEach((p) => {
+        map[p.iIdProduct] = { ...p, childrenVariants: [] };
+      });
+
+      freshRaw.forEach((p) => {
+        if (p.producttype === "VARIANT" && p.relatedproductId) {
+          const parent = map[p.relatedproductId];
+          if (parent) {
+            parent.childrenVariants.push(p);
+          }
+        }
+      });
+
+      const fresh = Object.values(map);
       const PUBLIC_CATEGORY_ID = "e5625114-dcc1-11ef-9113-0050563b5fff";
       const isGuest = isGuestUser(u)
       const isNormal = isNormalUser(u)

@@ -7,6 +7,7 @@ import { api } from "../../utils/axiosClients";
 import { Categorie } from "../../interfaces/categorias";
 import { isAdminUser, isDistributorUser, isGuestUser, isNormalUser, isSalonUser, readUser } from "../../helpers/detectedUserRole";
 import { isNewProduct } from "../../helpers/isNewProduct";
+import { groupVariantProducts } from "../../utils/groupedVariants";
 
 export const ProductosView = () => {
     const {
@@ -147,6 +148,9 @@ export const ProductosView = () => {
         }
 
         // ordenar
+        filtered = groupVariantProducts(filtered);
+
+        // 🔹 Ordenar
         filtered = sortProducts(filtered, sortOption);
 
         setSortedProducts(filtered);
@@ -363,6 +367,23 @@ export const ProductosView = () => {
                                                     </div>
 
                                                 </a>
+                                                {product.childrenVariants && product.childrenVariants.length > 0 && (
+                                                    <div className="px-4 pb-2">
+                                                        <p className="text-xs text-gray-500 mb-1">
+                                                            Variantes disponibles:
+                                                        </p>
+                                                        <div className="flex flex-wrap gap-2">
+                                                            {product.childrenVariants.map((v: any) => (
+                                                                <span
+                                                                    key={v.iIdProduct}
+                                                                    className="px-2 py-1 rounded-full bg-gray-100 text-xs text-gray-700"
+                                                                >
+                                                                    {v.variantcolor || v.vcname}
+                                                                </span>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
                                                 {/* Botones de acción */}
                                                 <div className="p-4">
                                                     <button
