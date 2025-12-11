@@ -8,6 +8,7 @@ import { Categorie } from "../../interfaces/categorias";
 import { isAdminUser, isDistributorUser, isGuestUser, isNormalUser, isSalonUser, readUser } from "../../helpers/detectedUserRole";
 import { isNewProduct } from "../../helpers/isNewProduct";
 import { groupVariantProducts } from "../../utils/groupedVariants";
+import { formatColorName, parseVariantColor } from "../../utils/variantColors";
 
 export const ProductosView = () => {
     const {
@@ -372,18 +373,45 @@ export const ProductosView = () => {
                                                         <p className="text-xs text-gray-500 mb-1">
                                                             Variantes disponibles:
                                                         </p>
+
                                                         <div className="flex flex-wrap gap-2">
-                                                            {product.childrenVariants.map((v: any) => (
-                                                                <span
-                                                                    key={v.iIdProduct}
-                                                                    className="px-2 py-1 rounded-full bg-gray-100 text-xs text-gray-700"
-                                                                >
-                                                                    {v.variantcolor || v.vcname}
-                                                                </span>
-                                                            ))}
+                                                            {product.childrenVariants.map((v: any) => {
+                                                                const color = parseVariantColor(v.variantcolor);
+
+                                                                return (
+                                                                    <span
+                                                                        className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-gray-100 text-xs text-gray-700 max-w-full"
+                                                                    >
+                                                                        <span className="font-medium truncate max-w-[140px]">
+                                                                            {v.vcname}
+                                                                        </span>
+
+                                                                        {color?.name && (
+                                                                            <>
+                                                                                <span className="text-gray-400 flex-shrink-0">·</span>
+
+                                                                                <span
+                                                                                    className="w-3 h-3 rounded-full border flex-shrink-0"
+                                                                                    style={{ backgroundColor: color.hex }}
+                                                                                    title={formatColorName(color.name)}
+                                                                                />
+
+                                                                                <span
+                                                                                    className="truncate max-w-[120px]"
+                                                                                    title={formatColorName(color.name)}
+                                                                                >
+                                                                                    {formatColorName(color.name)}
+                                                                                </span>
+                                                                            </>
+                                                                        )}
+                                                                    </span>
+
+                                                                );
+                                                            })}
                                                         </div>
                                                     </div>
                                                 )}
+
                                                 {/* Botones de acción */}
                                                 <div className="p-4">
                                                     <button

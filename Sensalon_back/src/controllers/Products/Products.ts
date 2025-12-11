@@ -112,54 +112,89 @@ export const insertProduct = (req: Request, res: Response) => {
 
 export const getAllProducts = async (_: Request, res: Response) => {
     try {
-        // Trae todos los productos con los items si existen
+        // 1) Traer todos los productos con items de paquete
         const productos = await Products.findAll({
             include: [
                 {
                     model: ProductPakcageItemsModel,
-                    as: 'packageItems',
-                    required: false, // LEFT JOIN
+                    as: "packageItems",
+                    required: false,
                 },
             ],
-            order: [['dtcreation', 'DESC']],
+            order: [["dtcreation", "DESC"]],
         });
 
-        // Para cada paquete, busca los nombres de los productos hijos
-        const productosConNombres = await Promise.all(
-            productos.map(async (p: any) => {
-                const plain = p.toJSON();
+        const plainProducts = productos.map((p: any) => p.toJSON());
 
-                // Solo si es PACKAGE
-                if (plain.producttype === 'PACKAGE' && plain.packageItems?.length > 0) {
-                    const idsHijos = plain.packageItems.map((i: any) => i.productId);
+        // 2) Juntar TODOS los productId hijos de todos los paquetes
+        const allPackageItemIds = new Set<string>();
 
-                    // Busca los nombres de esos productos hijos
-                    const hijos = await Products.findAll({
-                        where: { iIdProduct: idsHijos },
-                        attributes: ['iIdProduct', 'vcname'],
-                    });
+        plainProducts.forEach((p: any) => {
+            if (p.producttype === "PACKAGE" && Array.isArray(p.packageItems)) {
+                p.packageItems.forEach((i: any) => {
+                    if (i.productId) allPackageItemIds.add(i.productId);
+                });
+            }
+        });
 
-                    const mapHijos = Object.fromEntries(
-                        hijos.map((h: any) => [h.iIdProduct, h.vcname])
-                    );
+        let mapHijos: Record<string, any> = {};
 
-                    // Agrega los nombres
-                    plain.packageItems = plain.packageItems.map((i: any) => ({
+        if (allPackageItemIds.size > 0) {
+            const hijos = await Products.findAll({
+                where: { iIdProduct: Array.from(allPackageItemIds) },
+                // ⬅ aquí mandas todos los campos que necesitas para calcular precio
+                attributes: [
+                    "iIdProduct",
+                    "vcname",
+                    "decprice1", // ej: público
+                    "decprice2", // ej: salón
+                    "decprice3", // ej: distribuidor
+                ],
+            });
+
+            mapHijos = Object.fromEntries(
+                hijos.map((h: any) => [
+                    h.iIdProduct,
+                    {
+                        iIdProduct: h.iIdProduct,
+                        vcname: h.vcname,
+                        decprice1: h.decprice1,
+                        decprice2: h.decprice2,
+                        decprice3: h.decprice3,
+                    },
+                ])
+            );
+        }
+
+        // 3) Enriquecer cada packageItem con el producto hijo (SIN decidir precio)
+        const productosConHijos = plainProducts.map((p: any) => {
+            if (
+                p.producttype === "PACKAGE" &&
+                Array.isArray(p.packageItems) &&
+                p.packageItems.length > 0
+            ) {
+                p.packageItems = p.packageItems.map((i: any) => {
+                    const hijo = mapHijos[i.productId];
+
+                    return {
                         ...i,
-                        product_name: mapHijos[i.productId] || '(desconocido)',
-                    }));
-                }
+                        product: hijo || null,
+                        product_name: hijo?.vcname || "(desconocido)",
+                        // ❌ NO calculamos product_price aquí
+                    };
+                });
+            }
 
-                return plain;
-            })
-        );
+            return p;
+        });
 
-        res.json(productosConNombres);
+        res.json(productosConHijos);
     } catch (err) {
         console.error(err);
-        res.status(500).json({ error: 'Error al obtener productos' });
+        res.status(500).json({ error: "Error al obtener productos" });
     }
 };
+
 
 
 export const getProductsByCompany = async (req: Request, res: Response) => {

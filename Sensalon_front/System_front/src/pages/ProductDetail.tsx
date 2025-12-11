@@ -6,6 +6,7 @@ import { useCartStore } from '../hooks/useCartStore'
 import { Product } from '../interfaces/products'
 import { isAdminUser, isDistributorUser, isGuestUser, isNormalUser, isSalonUser, readUser } from '../helpers/detectedUserRole'
 import { api } from '../utils/axiosClients'
+import { formatColorName, parseVariantColor } from '../utils/variantColors'
 
 export const ProductDetail = () => {
     const user = readUser();
@@ -78,10 +79,37 @@ export const ProductDetail = () => {
     };
 
     const getVariantLabel = (p: Product) => {
+        // 1) Si ya trae label explícito
         if (p.variantlabel) return p.variantlabel;
-        if (p.variantcolor && p.vcname) return `${p.vcname} · ${p.variantcolor}`;
-        return p.vcname || "Variante";
+
+        // 2) Intentar obtener el color bonito
+        let colorName = "";
+
+        if (p.variantcolor) {
+            try {
+                const parsed = JSON.parse(p.variantcolor);
+                if (parsed?.name) {
+                    colorName =
+                        parsed.name.charAt(0).toUpperCase() +
+                        parsed.name.slice(1).toLowerCase();
+                }
+            } catch {
+                /* ignore */
+            }
+        }
+
+        // 3) Producto + color
+        if (p.vcname && colorName) {
+            return `${p.vcname} · ${colorName}`;
+        }
+
+        // 4) Solo nombre del producto
+        if (p.vcname) return p.vcname;
+
+        // 5) Fallback
+        return "Variante";
     };
+
 
     const sortedVariants = [...variantOptions].sort((a, b) =>
         getVariantLabel(a).localeCompare(getVariantLabel(b))
@@ -93,7 +121,7 @@ export const ProductDetail = () => {
 
     const displayProduct = selectedVariant;
     const userPrice = basePrice();
-    console.log(productosSimilares)
+    console.log(product)
 
     return (
         <main className="container mx-auto px-4 py-16">
@@ -128,36 +156,52 @@ export const ProductDetail = () => {
 
                     <p className="text-2xl font-bold mb-6">${userPrice}</p>
                     <p className="text-gray-700 mb-8">{displayProduct?.vcdescription}</p>
-                    {variantOptions.length > 1 && (
-                        <div className="mb-6 space-y-2">
-                            <h3 className="font-semibold">Seleccione variante</h3>
+                    <div className="flex flex-wrap gap-2">
+                        {sortedVariants.map((v) => {
+                            const color = parseVariantColor(v.variantcolor);
 
-                            <div className="flex flex-wrap gap-2">
-                                {sortedVariants.map((v) => (
-                                    <button
-                                        key={v.iIdProduct}
-                                        onClick={() => setSelectedVariantId(v.iIdProduct)}
-                                        className={`px-3 py-1 rounded-full border text-sm 
+                            return (
+                                <button
+                                    key={v.iIdProduct}
+                                    onClick={() => setSelectedVariantId(v.iIdProduct)}
+                                    className={`flex items-center gap-2 px-3 py-1.5 rounded-full border text-sm
                     ${selectedVariantId === v.iIdProduct
-                                                ? "bg-black text-white border-black"
-                                                : "bg-white text-gray-700 border-gray-300"}
+                                            ? "bg-black text-white border-black"
+                                            : "bg-white text-gray-700 border-gray-300"
+                                        }
                 `}
-                                    >
-                                        {getVariantLabel(v)}
-                                    </button>
-                                ))}
-                            </div>
+                                >
+                                    {/* Nombre del producto */}
+                                    <span className="font-medium">
+                                        {v.vcname}
+                                    </span>
 
-                            {/* Si muestra color */}
-                            {selectedVariant?.variantcolor && (
-                                <p className="text-gray-500 text-sm mt-2">
-                                    Color seleccionado: <strong>{selectedVariant?.variantcolor}</strong>
-                                </p>
-                            )}
-                        </div>
+                                    {/* separador */}
+                                    {color?.name && (
+                                        <span className="text-gray-400">·</span>
+                                    )}
 
-                    )}
-                    <div className="mb-6">
+                                    {/* color */}
+                                    {color?.hex && (
+                                        <span
+                                            className="w-3 h-3 rounded-full border"
+                                            style={{ backgroundColor: color.hex }}
+                                            title={formatColorName(color.name)}
+                                        />
+                                    )}
+
+                                    {color?.name && (
+                                        <span className="text-xs">
+                                            {formatColorName(color.name)}
+                                        </span>
+                                    )}
+                                </button>
+                            );
+                        })}
+                    </div>
+
+
+                    <div className="mb-6 mt-4">
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                             Comentarios (opcional)
                         </label>

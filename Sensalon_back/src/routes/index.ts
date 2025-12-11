@@ -18,6 +18,7 @@ import { transactionsRouter } from "./transactions";
 import { usersRouter } from "./users";
 import { warehouseRouter } from "./warehouse";
 import { discountCodeRouter } from "./discountcode";
+import { statsRouter } from "./stats";
 
 export const mainRouter = Router();
 
@@ -48,3 +49,4 @@ mainRouter.use(transactionsRouter);
 mainRouter.use(usersRouter);
 mainRouter.use(warehouseRouter)
 mainRouter.use(discountCodeRouter)
+mainRouter.use(statsRouter)
