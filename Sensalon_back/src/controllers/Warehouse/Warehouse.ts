@@ -18,6 +18,7 @@ export const createWarehouseEntrance = async (req: Request, res: Response) => {
             productlist,
         } = req.body
 
+        console.log(datebuy, entryreason, supplierId, companyId, productlist)
         if (!datebuy || !entryreason || !supplierId || !companyId || !productlist) {
             return res.status(400).json({
                 ok: false,
@@ -65,7 +66,7 @@ export const createWarehouseEntrance = async (req: Request, res: Response) => {
             totalcost: totalamount
         });
 
-        if (entryreason === "compra" || entryreason === "devolucion cliente") {
+        if (entryreason === "compra" || entryreason === "devolucionCliente") {
             for (const item of items) {
                 const qty = Number(item.quantity) || 0;
                 if (qty <= 0) continue;
@@ -109,6 +110,7 @@ export const createWarehouseEntrance = async (req: Request, res: Response) => {
             message: "Error al crear la entrada de almacén.",
         });
     }
+        
 }
 
 export const getAllWarehouseEntrance = async (req: Request, res: Response) => {
@@ -155,7 +157,7 @@ export const getAllWarehouseEntrance = async (req: Request, res: Response) => {
         return res.status(200).json({ ok: true, data })
     } catch (error) {
         return res.status(500).json({ message: 'error en el servidor' })
-    }
+    } 
 }
 
 export const updateWarehouseEntrance = async (req: Request, res: Response) => {
@@ -237,12 +239,12 @@ export const updateWarehouseEntrance = async (req: Request, res: Response) => {
             }
         }
 
-        if ((oldEntryReason === "compra" || oldEntryReason === "devolucion cliente") && oldItems.length > 0) {
+        if ((oldEntryReason === "compra" || oldEntryReason === "devolucionCliente") && oldItems.length > 0) {
             await adjustStock(oldItems, -1);
         }
 
         // aplicar nuevo stock si ahora es compra o devolución de cliente
-        if (entryreason === "compra" || entryreason === "devolucion cliente") {
+        if (entryreason === "compra" || entryreason === "devolucionCliente") {
             await adjustStock(newItems, 1);
         }
 

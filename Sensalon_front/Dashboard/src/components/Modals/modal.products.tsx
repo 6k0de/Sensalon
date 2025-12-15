@@ -6,7 +6,7 @@ import { Categorie } from "../../interfaces/categories";
 import { InsertProducts } from "../../services/products/InsertProducts";
 import { Product, ProductType } from "../../interfaces/products";
 import { UpdateProduct } from "../../services/products/updateProduct";
-import { api, BASE_URL_IMAGE_DEV, } from "../../utils/axiosClients";
+import { api, BASE_URL_IMAGE_DEV,  } from "../../utils/axiosClients";
 import { ErrorToast } from "../Toast/errorToast";
 import { ProductAutocomplete } from "../Autocomplete";
 import { ColorPickerField } from "../ColorPicker";
@@ -15,7 +15,7 @@ export const ModalProduct = ({ show, onClose, data, mode }: { show: boolean, onC
     // en la variable mode, 0 = creando y 1 = editando
     const [empresasError, setEmpresasError] = useState<string | null>(null);
     const [categoriasError, setCategoriasError] = useState<string | null>(null);
-    const [productsError, setProductsError] = useState<string | null>(null);
+    const [_, setProductsError] = useState<string | null>(null);
 
     const [empresas, SetEmpresas] = useState<Companie[]>([]);
     const [categorias, SetCategorias] = useState<Categorie[]>([]);

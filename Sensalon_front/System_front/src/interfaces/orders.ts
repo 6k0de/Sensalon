@@ -12,6 +12,7 @@ export interface Order {
     country: string
   }
   paymentMethod: string
+  meta?: any
 }
 
 export type OrderStatus = 'processing' | 'approved' | 'error'

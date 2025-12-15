@@ -15,7 +15,7 @@ export interface Transaction {
   merchantOrderId?: string | null;
   paymentMethod?: string | null;
   products?: any;
-  urltransferrecipt?: string | null;
+  urltransferrecipt?: string | string[] | null;
   cashbackapplied?: number | null;
   user?: { vcfirstname: string, vclastname: string }
   createdAt: Date;

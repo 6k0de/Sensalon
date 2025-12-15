@@ -27,6 +27,7 @@ export const MyOrders = () => {
 
         api.get(`/orders/${idUser}`)
             .then((res) => {
+                console.log(res)
                 const apiList: ApiOrder[] = res.data?.data ?? [];
                 const mapped = apiList.map(mapApiOrderToOrder);
                 if (mounted) setOrders(mapped);
@@ -116,7 +117,7 @@ export const MyOrders = () => {
         Math.ceil(filteredOrders.length / ITEMS_PER_PAGE),
     )
 
-
+    console.log(filteredOrders)
     return (
         <div className=" mt-2">
             <div className="mx-auto max-w-6xl px-4 sm:px-6 py-2">

@@ -458,8 +458,8 @@ export const DiscountCodeModal: React.FC<DiscountCodeModalProps> = ({
                                                             type="button"
                                                             onClick={() => toggleProduct(String(p.iIdProduct))}
                                                             className={`w-full flex items-center justify-between px-3 py-3 text-left transition ${isSelected
-                                                                    ? "bg-blue-50/70 ring-1 ring-blue-400"
-                                                                    : "hover:bg-gray-50"
+                                                                ? "bg-blue-50/70 ring-1 ring-blue-400"
+                                                                : "hover:bg-gray-50"
                                                                 }`}
                                                         >
                                                             <div className="flex items-center gap-3">
@@ -503,8 +503,8 @@ export const DiscountCodeModal: React.FC<DiscountCodeModalProps> = ({
                                                             <div className="ml-3 flex items-center">
                                                                 <span
                                                                     className={`inline-flex h-5 w-5 items-center justify-center rounded-full border text-xs font-bold transition ${isSelected
-                                                                            ? "bg-blue-600 border-blue-600 text-white"
-                                                                            : "bg-white border-gray-300 text-transparent"
+                                                                        ? "bg-blue-600 border-blue-600 text-white"
+                                                                        : "bg-white border-gray-300 text-transparent"
                                                                         }`}
                                                                 >
                                                                     ✓
@@ -561,17 +561,29 @@ export const DiscountCodeModal: React.FC<DiscountCodeModalProps> = ({
                                     </label>
 
                                     {usageLimitType === "limited" && (
-                                        <select
-                                            className="border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                                            value={usageLimit}
-                                            onChange={(e) => setUsageLimit(Number(e.target.value))}
-                                        >
-                                            <option value={1}>1 uso</option>
-                                            <option value={2}>2 usos</option>
-                                            <option value={3}>3 usos</option>
-                                            <option value={5}>5 usos</option>
-                                            <option value={10}>10 usos</option>
-                                        </select>
+                                        <>
+                                            <input
+                                                type="text"
+                                                name="usageLimit"
+                                                className="w-full md:w-40 border border-gray-300 rounded-lg  py-2 text-sm bg-white focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                                                value={usageLimit === null ? "" : String(usageLimit)}
+                                                onChange={(e) => {
+                                                    const raw = e.target.value;
+
+                                                    // si lo borra, no marcamos error inmediato
+                                                    if (raw === "") {
+                                                        setUsageLimit(0);
+                                                        return;
+                                                    }
+
+                                                    const num = Number(raw);
+                                                    if (!Number.isNaN(num)) {
+                                                        setUsageLimit(num);
+                                                    }
+                                                }}
+                                            />
+                                            <span>Usos</span>
+                                        </>
                                     )}
                                 </div>
                             </div>

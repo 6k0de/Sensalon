@@ -1,5 +1,5 @@
 import { Minus, Plus, Trash2 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { JSXElementConstructor, Key, ReactElement, ReactNode, ReactPortal, useEffect, useState } from 'react';
 import { useCartStore } from '../hooks/useCartStore';
 import { useNavigate } from 'react-router-dom';
 import { SuccessToast } from '../components/Toast/successToast';
@@ -179,6 +179,49 @@ export const ShoppingCar = () => {
 
     const total = Math.max(0, baseTotal - appliedCashback - appliedCredit);
 
+    // Helpers para prorratear el descuento en los productos (usado en MP/Transfer)
+    const discountTargets = new Set(
+        (appliedDiscount?.productIds || []).map((id) => id.toString())
+    );
+
+    const discountProductsBase =
+        appliedDiscount?.scope === "products"
+            ? cart.reduce((sum, item) => {
+                const pid = item.product.iIdProduct?.toString();
+                if (pid && discountTargets.has(pid)) {
+                    return sum + getLinePrice(item);
+                }
+                return sum;
+            }, 0)
+            : 0;
+
+    const discountAllFactor =
+        appliedDiscount && appliedDiscount.scope === "all" && subtotal > 0
+            ? subtotalAfterDiscount / subtotal
+            : 1;
+
+    const getDiscountedLineTotal = (item: any) => {
+        const lineTotal = getLinePrice(item);
+        if (!appliedDiscount || discountAmount <= 0) return lineTotal;
+
+        if (appliedDiscount.scope === "all") {
+            return Number((lineTotal * discountAllFactor).toFixed(2));
+        }
+
+        const pid = item.product.iIdProduct?.toString();
+        if (!pid || !discountTargets.has(pid) || discountProductsBase <= 0) {
+            return lineTotal;
+        }
+
+        if (appliedDiscount.discountType === "PERCENT") {
+            const factor = 1 - (appliedDiscount.value || 0) / 100;
+            return Number((lineTotal * factor).toFixed(2));
+        }
+
+        const proportionalDiscount = (lineTotal / discountProductsBase) * discountAmount;
+        return Number(Math.max(0, lineTotal - proportionalDiscount).toFixed(2));
+    };
+
     const handleInputChange = (e: any) => {
         const { name, value } = e.target;
         setAddress({ ...address, [name]: value });
@@ -226,7 +269,10 @@ export const ShoppingCar = () => {
         return Math.min(discount.value || 0, applicableBase);
     };
 
+    const discountLocked = useCashback || useCredit;
+
     const handleApplyDiscount = async () => {
+        if (discountLocked) return;
         try {
             if (!discountInput.trim()) {
                 setToastMessage("Ingresa un código de descuento.");
@@ -297,6 +343,12 @@ export const ShoppingCar = () => {
             setToastMessage("Código aplicado.");
             setToastType("success");
             setShowToast(true);
+
+            setTimeout(() => {
+                setToastType(null)
+                setToastMessage('')
+                setShowToast(false)
+            }, 2500);
         } catch (error) {
             console.error("Error aplicando código:", error);
             setToastMessage("No se pudo aplicar el código, intenta de nuevo.");
@@ -310,6 +362,24 @@ export const ShoppingCar = () => {
         setDiscountAmount(0);
         setDiscountInput("");
     };
+
+    // Si se activa cashback o crédito, quitar cualquier descuento aplicado y bloquear el campo
+    useEffect(() => {
+        if (discountLocked && appliedDiscount) {
+            handleRemoveDiscount();
+        }
+    }, [discountLocked, appliedDiscount]);
+
+    // Recalcular descuento cuando cambia el carrito o las cantidades
+    useEffect(() => {
+        if (!appliedDiscount) return;
+        const amount = calculateDiscountAmount(appliedDiscount);
+        setDiscountAmount(amount);
+        if (amount <= 0) {
+            setAppliedDiscount(null);
+            setDiscountInput("");
+        }
+    }, [cart, appliedDiscount]);
 
 
     const handleSaveAddress = async () => {
@@ -481,21 +551,12 @@ export const ShoppingCar = () => {
         setMpLoading(true)
         try {
 
-            const user = readUser();
-            const getUserPrice = (p: any) => {
-                const p1 = Number(p?.decprice1 ?? 0);
-                const p2 = Number(p?.decprice2 ?? 0);
-                const p3 = Number(p?.decprice3 ?? 0);
-
-                if (isDistributorUser(user) || isAdminUser(user)) return p1 || p2 || p3;
-                if (isSalonUser(user)) return p2 || p1 || p3;
-                return p3 || p2 || p1; // público
-            };
+            //const user = readUser();
 
             const productsPayload = cart.map((item) => {
-                const unitPrice = getUserPrice(item.product);
                 const quantity = Number(item.quantity) || 0;
-                const total = Number((unitPrice * quantity).toFixed(2));
+                const discountedLine = getDiscountedLineTotal(item);
+                const unitPrice = quantity > 0 ? Number((discountedLine / quantity).toFixed(2)) : 0;
 
                 return {
                     product: {
@@ -507,8 +568,9 @@ export const ShoppingCar = () => {
                         vcphoto: item.product.vcphoto,
                     },
                     quantity,
-                    unitPrice, // <- útil en backend
-                    total,     // <- precio * cantidad según rol
+                    unitPrice, // <- ya con descuento aplicado (si hay)
+                    total: discountedLine,
+                    variantId: item.variantId,
                 };
             });
 
@@ -522,6 +584,11 @@ export const ShoppingCar = () => {
                 credit: isDistributor && useCredit ? appliedCredit : 0,
                 useCashback: !isDistributor && useCashback,
                 cashback: !isDistributor && useCashback ? appliedCashback : 0,
+                discount: discountAmount,
+                discountCode: appliedDiscount?.code || null,
+                subtotal: Number(subtotal.toFixed(2)),
+                subtotalAfterDiscount: Number(subtotalAfterDiscount.toFixed(2)),
+                total: Number(total.toFixed(2)),
             };
 
             const res = await payment.post("/createOrder", payload);
@@ -560,7 +627,7 @@ export const ShoppingCar = () => {
         );
     }
 
-    const handleConfirm = async ({ file }: { file: File }) => {
+    const handleConfirm = async ({ files }: { files: File[] }) => {
         setBankLoading(true);
         try {
             const formData = new FormData();
@@ -572,21 +639,11 @@ export const ShoppingCar = () => {
             formData.append("credit", String(isDistributor && useCredit ? appliedCredit : 0));
             formData.append("useCashback", String(!isDistributor && useCashback));
             formData.append("cashback", String(!isDistributor && useCashback ? appliedCashback : 0));
-            const user = readUser();
-            const getUserPrice = (p: any) => {
-                const p1 = Number(p?.decprice1 ?? 0);
-                const p2 = Number(p?.decprice2 ?? 0);
-                const p3 = Number(p?.decprice3 ?? 0);
-
-                if (isDistributorUser(user) || isAdminUser(user)) return p1 || p2 || p3;
-                if (isSalonUser(user)) return p2 || p1 || p3;
-                return p3 || p2 || p1; // público
-            };
 
             const productsPayload = cart.map((item) => {
-                const unitPrice = getUserPrice(item.product);
                 const quantity = Number(item.quantity) || 0;
-                const total = Number((unitPrice * quantity).toFixed(2));
+                const discountedLine = getDiscountedLineTotal(item);
+                const unitPrice = quantity > 0 ? Number((discountedLine / quantity).toFixed(2)) : 0;
 
                 return {
                     product: {
@@ -598,14 +655,20 @@ export const ShoppingCar = () => {
                         vcphoto: item.product.vcphoto,
                     },
                     quantity,
-                    unitPrice, // <- útil en backend
-                    total,     // <- precio * cantidad según rol
+                    unitPrice,
+                    total: discountedLine,
+                    variantId: item.variantId,
                 };
             });
 
             formData.append("products", JSON.stringify(productsPayload));
-            // ✅ Archivo recibido del modal
-            formData.append("file", file);
+            formData.append("discount", String(discountAmount));
+            formData.append("discountCode", appliedDiscount?.code || "");
+            formData.append("subtotal", subtotal.toFixed(2));
+            formData.append("subtotalAfterDiscount", subtotalAfterDiscount.toFixed(2));
+            formData.append("total", total.toFixed(2));
+            // ✅ Archivos recibidos del modal
+            files.forEach((f) => formData.append("files", f));
 
             const res = await createOrderTransfer(formData);
             console.log(res)
@@ -671,6 +734,7 @@ export const ShoppingCar = () => {
                                         type="text"
                                         value={discountInput}
                                         onChange={(e) => setDiscountInput(e.target.value)}
+                                        disabled={discountLocked}
                                         className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                                         placeholder="EJEMPLO10"
                                     />
@@ -678,6 +742,7 @@ export const ShoppingCar = () => {
                                         <button
                                             onClick={handleRemoveDiscount}
                                             className="px-4 py-2 rounded-lg text-sm font-semibold border border-red-200 text-red-600 hover:bg-red-50"
+                                            disabled={discountLocked}
                                         >
                                             Quitar
                                         </button>
@@ -685,6 +750,7 @@ export const ShoppingCar = () => {
                                         <button
                                             onClick={handleApplyDiscount}
                                             className="px-4 py-2 rounded-lg text-sm font-semibold bg-[#1d1d1b] text-white hover:bg-gray-900"
+                                            disabled={discountLocked}
                                         >
                                             Aplicar
                                         </button>
@@ -716,7 +782,7 @@ export const ShoppingCar = () => {
                                                 .split("/imagenes/")[1];
                                             const imageUrl = `https://api.sensalon.com.mx/imagenes/${normalizedPath}`;
                                             console.log(product)
-                                            const user = readUser();
+                                            //const user = readUser();
                                             const lineTotal = getLinePrice({ product, quantity, variantId });
                                             const stock =
                                                 product.type === "variant"
@@ -741,7 +807,7 @@ export const ShoppingCar = () => {
                                                         )}
                                                         {product.type === "bundle" && bundleItemsSnapshot && (
                                                             <ul className="text-xs text-gray-600 list-disc pl-4 mt-1">
-                                                                {bundleItemsSnapshot.map((bi, idx) => (
+                                                                {bundleItemsSnapshot.map((bi: { name: string | number | boolean | ReactElement<any, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | null | undefined; quantity: string | number | boolean | ReactElement<any, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | null | undefined; }, idx: Key | null | undefined) => (
                                                                     <li key={idx}>{bi.name} x{bi.quantity}</li>
                                                                 ))}
                                                             </ul>

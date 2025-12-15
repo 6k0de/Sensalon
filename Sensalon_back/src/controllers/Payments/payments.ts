@@ -18,6 +18,7 @@ import { Products } from "../../bd/models/Products.model"
 import { Op } from "sequelize"
 import conn from "../../bd/config/config"
 import { InventoryReservationModel } from "../../bd/models/InventoryReservation.model"
+import { DiscountCodeModel } from "../../bd/models/DiscountCode.model"
 
 dotenv.config()
 
@@ -32,7 +33,22 @@ export const createOrderMercadoPago = async (req: Request, res: Response) => {
     //const BASE_URL_BACK_PREPROD = 'test-api.sensalon.com.mx/payments'
     /* const BASE_URL_BACK_DEV = '' */
     try {
-        const { products, email, idUser, shipping, addCredit, credit, useCashback, cashback, envio } = req.body
+        const {
+            products,
+            email,
+            idUser,
+            shipping,
+            addCredit,
+            credit,
+            useCashback,
+            cashback,
+            envio,
+            discount,
+            discountCode,
+            subtotal: rawSubtotal,
+            subtotalAfterDiscount,
+            total: rawTotal,
+        } = req.body
         let finalShippingaddresId = await validateOrCreateShipping(shipping, idUser)
 
         const items = products.map(({ product, quantity, total }: CartItem) => {
@@ -72,12 +88,22 @@ export const createOrderMercadoPago = async (req: Request, res: Response) => {
         const user = await Users.findOne({ where: { iIdUser: idUser } });
         if (!user) return res.status(404).json({ error: "Usuario no encontrado" });
 
-        const subtotal = products.reduce((acc: number, p: any) => acc + p.total, 0);
-        const shippingValue = envio || 0;
-        const cashbackValue = useCashback ? cashback : 0;
-        const creditValue = addCredit ? credit : 0;
-        const total = subtotal + shippingValue - cashbackValue - creditValue;
-        console.log(products)
+        const subtotalFromItems = products.reduce((acc: number, p: any) => acc + Number(p.total || 0), 0);
+        const subtotalParsed =
+            subtotalAfterDiscount !== undefined && subtotalAfterDiscount !== null
+                ? Number(subtotalAfterDiscount)
+                : rawSubtotal !== undefined
+                    ? Number(rawSubtotal)
+                    : subtotalFromItems;
+
+        const shippingValue = Number(envio || 0);
+        const cashbackValue = useCashback ? Number(cashback || 0) : 0;
+        const creditValue = addCredit ? Number(credit || 0) : 0;
+        const totalParsed =
+            rawTotal !== undefined && rawTotal !== null
+                ? Number(rawTotal)
+                : subtotalParsed + shippingValue - cashbackValue - creditValue;
+
         const preOrder = await CreateOrderPending.create({
             iIdUser: idUser,
             iIdShippingAddress: finalShippingaddresId,
@@ -90,13 +116,15 @@ export const createOrderMercadoPago = async (req: Request, res: Response) => {
                 total: p.total,
                 companyId: p.product.iFIdCompany,
                 categoryIds: p.product.vccategories,
-                image: p.product.vcphoto
+                image: p.product.vcphoto,
+                discountApplied: Number(discount || 0) > 0 ? Number(discount || 0) : undefined,
+                discountCode: discountCode || undefined,
             })),
-            subtotal,
+            subtotal: subtotalParsed,
             shipping: shippingValue,
             cashback: cashbackValue,
             credit: creditValue,
-            total,
+            total: totalParsed,
             status: "pending"
         })
 
@@ -115,7 +143,12 @@ export const createOrderMercadoPago = async (req: Request, res: Response) => {
                 },
                 auto_return: "approved",
                 external_reference: String(preOrderGenerateId),
-                metadata: { idUser, shippingAddressId: finalShippingaddresId }
+                metadata: {
+                    idUser,
+                    shippingAddressId: finalShippingaddresId,
+                    discount: Number(discount || 0) || 0,
+                    discountCode: discountCode || null,
+                }
             },
         });
 
@@ -132,13 +165,27 @@ export const createOrderMercadoPago = async (req: Request, res: Response) => {
 }
 
 export const createOrderTransfer = async (req: Request, res: Response) => {
-    const { products, idUser, shipping, addCredit, credit, useCashback, cashback, envio } = req.body;
-    const file = req.file;
+    const {
+        products,
+        idUser,
+        shipping,
+        addCredit,
+        credit,
+        useCashback,
+        cashback,
+        envio,
+        discount,
+        discountCode,
+        subtotal: rawSubtotal,
+        subtotalAfterDiscount,
+        total: rawTotal,
+    } = req.body;
+    const files = (req.files as Express.Multer.File[] | undefined) || [];
 
     if (!idUser || !products || products.length === 0) {
         return res.status(400).json({ error: "Usuario y productos son obligatorios." });
     }
-    if (!file) {
+    if (!files.length) {
         return res.status(400).json({ error: "El comprobante de transferencia es obligatorio." });
     }
 
@@ -158,7 +205,7 @@ export const createOrderTransfer = async (req: Request, res: Response) => {
 
         const priceKey = rolePriceMap[user?.dataValues.iFIdRole || ''] || 'decprice3'
 
-        const { subtotal, total } = calculateTotals({
+        const calculated = calculateTotals({
             products: productsArr,
             priceKey,
             addCredit,
@@ -167,28 +214,86 @@ export const createOrderTransfer = async (req: Request, res: Response) => {
             cashback,
             envio,
         });
-        console.log(subtotal, total)
-        console.log({
-            iIdUser: idUser,
-            iIdShippingAddress: finalShippingaddresId,
-            products: formattedProducts,
-            subtotal,
-            shipping: envio,
-            cashback: cashback,
-            credit: credit,
-            total,
-            status: "pending"
-        })
+
+        const subtotalParsed =
+            subtotalAfterDiscount !== undefined && subtotalAfterDiscount !== null
+                ? Number(subtotalAfterDiscount)
+                : rawSubtotal !== undefined
+                    ? Number(rawSubtotal)
+                    : calculated.subtotal;
+
+        const totalParsed =
+            rawTotal !== undefined && rawTotal !== null
+                ? Number(rawTotal)
+                : calculated.total;
+        const shippingValue = Number(envio || 0);
+        const cashbackValue = useCashback ? Number(cashback || 0) : 0;
+        const creditValue = addCredit ? Number(credit || 0) : 0;
+        const discountValue = Number(discount || 0)
+
+        let discountRow: any | null = null;
+
+        if (discountCode) {
+            discountRow = await DiscountCodeModel.findOne({
+                where: { code: discountCode, isActive: true },
+                transaction: t,
+                lock: t.LOCK.UPDATE,
+            });
+
+            if (!discountRow) {
+                await t.rollback();
+                return res.status(400).json({ error: "El código de descuento no es válido o está inactivo." });
+            }
+
+            // Si es limitado, verificar usos restantes
+            if (discountRow.usageLimitType === "limited") {
+                const currentCount = discountRow.usageCount || 0;
+                const maxUses = discountRow.usageLimit ?? null;
+
+                if (maxUses !== null && currentCount >= maxUses) {
+                    await t.rollback();
+                    return res.status(400).json({ error: "El código de descuento ya alcanzó el número máximo de usos." });
+                }
+
+                // Sumar 1 uso
+                await discountRow.update(
+                    { usageCount: currentCount + 1 },
+                    { transaction: t }
+                );
+            }
+            // Si es "unlimited", no tocamos usageLimit / usageCount (o podrías guardar solo para métricas)
+        }
+
+        const orderMeta = {
+            rawSubtotal,
+            subtotalAfterDiscount: subtotalParsed,
+            discount: discountValue,
+            discountCode: discountCode || null,
+            shipping: shippingValue,
+            cashback: cashbackValue,
+            credit: creditValue,
+            total: totalParsed,
+            flags: {
+                addCredit: Boolean(addCredit),
+                useCashback: Boolean(useCashback),
+            },
+        };
+
+        const productsPayload = {
+            items: formattedProducts,
+            meta: orderMeta,
+        };
+
 
         const preOrder = await CreateOrderPending.create({
             iIdUser: idUser,
             iIdShippingAddress: finalShippingaddresId,
-            products: formattedProducts,
-            subtotal,
-            shipping: envio,
-            cashback: cashback,
-            credit: credit,
-            total,
+            products: productsPayload,
+            subtotal: subtotalParsed,
+            shipping: shippingValue,
+            cashback: cashbackValue,
+            credit: creditValue,
+            total: totalParsed,
             status: "pending"
         })
 
@@ -203,8 +308,6 @@ export const createOrderTransfer = async (req: Request, res: Response) => {
             transaction: t
         })
         console.log(productsBD)
-
-
 
         const reservations = await InventoryReservationModel.findAll({
             attributes: ['productId', [conn.fn('SUM', conn.col('qty')), 'qty']],
@@ -257,27 +360,29 @@ export const createOrderTransfer = async (req: Request, res: Response) => {
             }, { transaction: t });
         }
 
+        const receiptPaths = files.map((f) => `/assets/comprobantetransf/${f.filename}`);
+
         const transaction = await TransactionModel.create({
             status: "pending",
             mercadoPagoPaymentId: "",
-            amount: total,
+            amount: totalParsed,
             iuserId: idUser,
             iOrderPendingId: preOrderGenerateId,
             ishippingAddressId: finalShippingaddresId,
             paymentMethod: "Transferencia Bancaria",
-            products: formattedProducts,
-            urltransferrecipt: `/assets/comprobantetransf/${file.filename}`,
+            products: productsPayload,
+            urltransferrecipt: receiptPaths,
         });
 
         // 6️⃣ Actualizar crédito y cashback
-        if (addCredit && Number(credit) > 0) await Credit.update({ state: 1, totalpayamount: credit }, { where: { iFIdUser: idUser } });
-        if (useCashback && Number(cashback) > 0) {
+        if (addCredit && creditValue > 0) await Credit.update({ state: 1, totalpayamount: creditValue }, { where: { iFIdUser: idUser } });
+        if (useCashback && cashbackValue > 0) {
             await CashBack.destroy({ where: { FiIdUser: user?.getDataValue('iIdUser') } });
-            user?.setDataValue('cashbackbalance', Math.max(0, user.getDataValue('cashbackbalance') - cashback));
+            user?.setDataValue('cashbackbalance', Math.max(0, user.getDataValue('cashbackbalance') - cashbackValue));
             await user?.save();
         }
 
-        const htmlContent = await buildTransactionHtml(transaction, preOrder, shipping);
+        const htmlContent = await buildTransactionHtml(transaction, preOrder, shippingValue);
         console.log(htmlContent)
         await transporter.sendMail({
             from: "pedidos@sensalon.com.mx",
@@ -308,7 +413,7 @@ export const createOrderTransfer = async (req: Request, res: Response) => {
 
 export const createOrderTransferPayCredit = async (req: Request, res: Response) => {
     const { idUser, amount } = req.body;
-    const file = req.file;
+    const files = (req.files as Express.Multer.File[] | undefined) || [];
 
     if (!idUser) return res.status(400).json({ error: "El usuario es obligatorio." });
 
@@ -317,7 +422,7 @@ export const createOrderTransferPayCredit = async (req: Request, res: Response) 
         return res.status(400).json({ error: "El monto debe ser válido y mayor a 0." });
     }
 
-    if (!file) return res.status(400).json({ error: "El comprobante es obligatorio." });
+    if (!files.length) return res.status(400).json({ error: "El comprobante es obligatorio." });
 
     let idTransaction = "";
     try {
@@ -346,7 +451,7 @@ export const createOrderTransferPayCredit = async (req: Request, res: Response) 
             merchantOrderId: "",
             paymentMethod: "TBC",
             products: { Producto: "Pago de crédito mediante transferencia bancaria" },
-            urltransferrecipt: `/assets/comprobantetransf/${file.filename}`,
+            urltransferrecipt: files.map((f) => `/assets/comprobantetransf/${f.filename}`),
             cashbackapplied: 0,
             iOrderPendingId: preOrderGenerateId,
         });

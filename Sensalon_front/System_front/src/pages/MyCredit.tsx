@@ -61,12 +61,12 @@ export const MyCredit = () => {
     }
   }, [setCredit, credit])
 
-  const handleConfirm = async (data: { amount: string; file: File }) => {
+  const handleConfirm = async (data: { amount: string; files: File[] }) => {
     try {
       const formData = new FormData();
       formData.append("idUser", userId);
       formData.append("amount", data.amount); // ya es string
-      formData.append("file", data.file);
+      data.files.forEach((f) => formData.append("files", f));
 
       const res = await createOrderTransferPayCredit(formData);
 

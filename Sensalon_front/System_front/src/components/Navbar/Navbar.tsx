@@ -74,11 +74,11 @@ export const Navbar = () => {
       setFilteredProducts([]);
       setShowResults(false);
     } else {
-      const results: any = products.filter((product) => {
+      const results: any = products.filter((product: any) => {
         const matchName = product.vcname.toLowerCase().includes(value.toLowerCase());
         const matchVariant = (product.variants ?? []).some((v: any) =>
           (v.name || "").toLowerCase().includes(value.toLowerCase()) ||
-          Object.values(v.attributes ?? {}).some((val) =>
+          Object.values(v.attributes ?? {}).some((val: any) =>
             (val || "").toLowerCase().includes(value.toLowerCase())
           )
         );
@@ -99,13 +99,11 @@ export const Navbar = () => {
   const handleLogout = async () => {
     const idCart = localStorage?.getItem('cartId')
     console.log(idCart)
-    localStorage.removeItem('user');
-    localStorage.removeItem('auth');
-    await useCartStore.getState().syncCartToBackend(idCart as string);
-
+    useCartStore.getState().syncCartToBackend(idCart as string);
     setIsLoggedIn(false)
     useCartStore.getState().clearCart()
-    //window.location.href = '/';
+    localStorage.clear();
+    window.location.href = '/';
   };
 
   const toggleCart = () => setShowCart(!showCart);
@@ -260,11 +258,12 @@ export const Navbar = () => {
                   <div className="flex flex-col">
                     {/* Sección con scroll, máximo 4 productos visibles */}
                     <div className="overflow-y-auto max-h-64 custom-scrollbar">
-                      {cart.map(({ product, quantity, variantId, variantLabel, bundleItemsSnapshot, comment }) => {
+                      {cart.map(({ product, quantity, variantId, variantLabel }) => {
                         const normalizedPath = product?.vcphoto?.replace(/\\/g, '/').split('/imagenes/')[1];
                         const imageUrl = `https://api.sensalon.com.mx/imagenes/${normalizedPath}`;
-                        const user = readUser();
-                        let userPrice = product.decprice3; // default
+                        //const user = readUser();
+                       /*  let userPrice = product?.decprice3; // default
+
                         if (isGuestUser(user)) {
                           userPrice = product.decprice3; // invitado => 3
                         } else if (isDistributorUser(user) || isAdminUser(user)) {
@@ -274,7 +273,7 @@ export const Navbar = () => {
                         } else if (isNormalUser(user)) {
                           userPrice = product.decprice3;
                         }
-                        
+                         */
                         const lineTotal = linePrice({ product, quantity, variantId });
                         const stock =
                           product.type === "variant"

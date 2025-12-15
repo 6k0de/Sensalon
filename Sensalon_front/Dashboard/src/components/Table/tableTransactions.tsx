@@ -12,15 +12,18 @@ import { guessTypeFromName, normalizeReceiptUrl } from "../../helpers/reciptHelp
 
 export const TableTransactions = ({ encabezados, data, outofstock, fetch }: TableTransactionsProps) => {
     const [selectedProducts, setSelectedProducts] = useState<any[]>([])
+    const [selectedMeta, setSelectedMeta] = useState<any | null>(null);
     const [showPreview, setShowPreview] = useState(false);
     const [previewUrl, setPreviewUrl] = useState("");
-    const [previewType, setPreviewType] = useState<"image" | "pdf" | "unknown">("unknown");
     const [toastMessage, setToastMessage] = useState<string | null>(null);
     const [toastType, setToastType] = useState<"success" | "error" | null>(null);
     const [showToast, setShowToast] = useState(true);
     const [showModal, setShowModal] = useState<boolean>(false)
     const [companies, setCompanies] = useState<Companie[]>([])
     const [isLoading, setIsLoading] = useState<boolean>(false)
+    const [proofList, setProofList] = useState<string[]>([]);
+    const [pdfList, setPdfList] = useState<string[]>([]);
+    const [proofIndex, setProofIndex] = useState(0);
 
     useEffect(() => {
         const fetchCompanies = async () => {
@@ -58,51 +61,81 @@ export const TableTransactions = ({ encabezados, data, outofstock, fetch }: Tabl
 
     const handleViewProducts = (products: any) => {
         if (!products || products === "null") {
-            setSelectedProducts([])
-            setShowModal(true)
-            return
+            setSelectedProducts([]);
+            setSelectedMeta(null);
+            setShowModal(true);
+            return;
         }
-        console.log(products)
-        let parsed
+
+        console.log("raw products:", products);
+        let parsed: any = products;
+
         try {
-            // 1️⃣ Si viene como texto plano tipo "[{\"...\"}]" -> lo parseamos doble
+            // 1️⃣ Si viene como string -> parsear (soporta doble JSON.stringify)
             if (typeof products === "string") {
                 parsed = JSON.parse(products);
                 if (typeof parsed === "string") {
                     parsed = JSON.parse(parsed);
                 }
-            } else {
-                parsed = products;
             }
         } catch (error) {
             console.error("❌ Error al parsear productos:", error);
-            parsed = [];
+            parsed = null;
         }
 
-        // Soporte para estructuras antiguas
-        if (!Array.isArray(parsed)) {
-            parsed = parsed?.Producto
-                ? [{ name: parsed.Producto, companyId: "N/A", quantity: 1, total: 0 }]
-                : []
+        let meta: any = null;
+        let rawItems: any[] = [];
+
+        // 2️⃣ Caso NUEVO: { items: [...], meta: {...} }
+        if (parsed && !Array.isArray(parsed) && Array.isArray(parsed.items)) {
+            rawItems = parsed.items;
+            meta = parsed.meta || null;
         }
-        console.log(parsed)
-        // Estandarizar campos clave
-        parsed = parsed.map((p: any) => ({
+        // 3️⃣ Caso anterior: ya es un array de productos
+        else if (Array.isArray(parsed)) {
+            rawItems = parsed;
+        }
+        // 4️⃣ Caso MUY viejo: { Producto: "..." }
+        else if (parsed?.Producto) {
+            rawItems = [
+                {
+                    name: parsed.Producto,
+                    quantity: 1,
+                    total: 0,
+                    companyId: "N/A",
+                    priceUnit: 0,
+                },
+            ];
+        } else {
+            rawItems = [];
+        }
+
+        console.log("rawItems:", rawItems);
+        console.log("meta:", meta);
+
+        // 5️⃣ Estandarizar los campos clave para el modal
+        const normalized = rawItems.map((p: any) => ({
             name: p.name || p.productName || "Producto desconocido",
             quantity: p.quantity || 1,
             priceUnit: p.priceUnit || p.price || 0,
             total: p.total || (p.priceUnit || p.price || 0) * (p.quantity || 1),
             companyId: p.companyId || p.companie || "N/A",
             image: p.image || null,
-        }))
+            // por si luego quieres usarlo
+            iIdProduct: p.iIdProduct || p.productId || null,
+            categoryIds: p.categoryIds || [],
+        }));
 
-        setSelectedProducts(parsed)
-        setShowModal(true)
-    }
+        setSelectedProducts(normalized);
+        setSelectedMeta(meta);
+        setShowModal(true);
+    };
+
 
 
     const handleViewComprobante = async (transaction: Transaction) => {
         const raw = transaction?.urltransferrecipt;
+        console.log(raw)
         if (transaction?.paymentMethod === "MercadoPago") {
             alert("Esta transacción es de MercadoPago, no requiere comprobante.");
             return;
@@ -113,34 +146,47 @@ export const TableTransactions = ({ encabezados, data, outofstock, fetch }: Tabl
         }
 
         try {
-            // Normalizar ruta
-            console.log(transaction)
-            const fileName = raw.split("/").pop();
-            if (!fileName) return;
+            const normalizeList = (input: any): string[] => {
+                if (!input) return [];
+                if (Array.isArray(input)) return input.filter(Boolean);
+                if (typeof input === "string") {
+                    try {
+                        const parsed = JSON.parse(input);
+                        if (Array.isArray(parsed)) return parsed.filter(Boolean);
+                        if (typeof parsed === "string") return parsed.split(",").map(s => s.trim()).filter(Boolean);
+                    } catch {
+                        return input.split(",").map(s => s.trim()).filter(Boolean);
+                    }
+                }
+                return [];
+            };
 
-            const url = normalizeReceiptUrl(recipt.defaults.baseURL!, raw);
-            const kind = guessTypeFromName(url);
-            // Hacemos HEAD request para obtener el tipo MIME
-
-            if (kind === "pdf") {
-                window.open(url, "_blank"); // navega ⇒ no requiere CORS
+            const rawList = normalizeList(raw);
+            if (rawList.length === 0) {
+                alert("No hay comprobante disponible para esta transacción.");
                 return;
             }
-            if (kind === "image") {
-                // Mostrar en tu modal <img src={previewUrl} /> ⇒ no requiere CORS
-                setPreviewUrl(url);
-                setPreviewType("image");
-                setShowPreview(true);
+            const urls = rawList.map((r) => normalizeReceiptUrl(recipt.defaults.baseURL!, r));
+            const images = urls.filter((u) => guessTypeFromName(u) === "image");
+            const pdfs = urls.filter((u) => guessTypeFromName(u) === "pdf");
+
+            console.log({urls, images, pdfs})
+            if (images.length === 0 && pdfs.length === 1) {
+                window.open(pdfs[0], "_blank");
                 return;
             }
-            // Desconocido: abrir en pestaña nueva
-            window.open(url, "_blank");
+
+            setProofList(images);
+            setPdfList(pdfs);
+            setProofIndex(0);
+            setPreviewUrl(images.length > 0 ? images[0] : "");
+            setShowPreview(true);
         } catch (err) {
             console.error("Error al cargar comprobante:", err);
             alert("No se pudo cargar el comprobante.");
         }
     };
-    console.log(data)
+
     return (
         <>
             {isLoading && (
@@ -222,7 +268,7 @@ export const TableTransactions = ({ encabezados, data, outofstock, fetch }: Tabl
                                         {transaction.amount || "N/A"}
                                     </td>
                                     <td className="px-5 py-2 font-medium text-gray-900 whitespace-nowrap dark:text-white">
-                                        {transaction?.user?.vcfirstname +' '+ transaction?.user?.vclastname || "N/A"}
+                                        {transaction?.user?.vcfirstname + ' ' + transaction?.user?.vclastname || "N/A"}
                                     </td>
                                     <td className="px-5 py-2 font-medium text-gray-900 whitespace-nowrap dark:text-white">
                                         {transaction.merchantOrderId || "N/A"}
@@ -284,26 +330,81 @@ export const TableTransactions = ({ encabezados, data, outofstock, fetch }: Tabl
                     setShowModal={setShowModal}
                     selectedProducts={selectedProducts}
                     companies={companies}
+                    meta={selectedMeta}
                 />
             )}
 
-            {showPreview && previewType === "image" && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-                    <div className="relative bg-white rounded-lg shadow-lg max-w-2xl w-full p-4">
+            {showPreview && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-3">
+                    <div className="relative bg-white rounded-lg shadow-lg max-w-3xl w-full p-4">
                         <div className="flex justify-between items-center mb-4">
-                            <h3 className="text-lg font-semibold">Vista previa del comprobante</h3>
+                            <h3 className="text-lg font-semibold">Comprobantes</h3>
                             <button
-                                onClick={() => setShowPreview(false)}
+                                onClick={() => {
+                                    setShowPreview(false);
+                                    setProofList([]);
+                                    setPdfList([]);
+                                    setProofIndex(0);
+                                }}
                                 className="text-gray-500 hover:text-gray-800"
                             >
                                 ✖
                             </button>
                         </div>
-                        <img
-                            src={previewUrl}
-                            alt="Comprobante de transferencia"
-                            className="max-h-[70vh] mx-auto rounded-lg shadow"
-                        />
+
+                        {proofList.length > 0 && (
+                            <div className="relative flex flex-col items-center gap-3">
+                                <img
+                                    src={proofList[proofIndex]}
+                                    alt={`Comprobante ${proofIndex + 1}`}
+                                    className="max-h-[60vh] mx-auto rounded-lg shadow object-contain"
+                                />
+                                <div className="flex items-center justify-between w-full">
+                                    <button
+                                        className="px-3 py-1 rounded border text-sm"
+                                        onClick={() =>
+                                            setProofIndex((prev) =>
+                                                prev === 0 ? proofList.length - 1 : prev - 1
+                                            )
+                                        }
+                                        disabled={proofList.length <= 1}
+                                    >
+                                        ◀ Anterior
+                                    </button>
+                                    <span className="text-xs text-gray-500">
+                                        {proofIndex + 1} / {proofList.length}
+                                    </span>
+                                    <button
+                                        className="px-3 py-1 rounded border text-sm"
+                                        onClick={() =>
+                                            setProofIndex((prev) =>
+                                                prev === proofList.length - 1 ? 0 : prev + 1
+                                            )
+                                        }
+                                        disabled={proofList.length <= 1}
+                                    >
+                                        Siguiente ▶
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        {pdfList.length > 0 && (
+                            <div className="mt-4 space-y-2">
+                                <h4 className="text-sm font-semibold">Comprobantes PDF</h4>
+                                {pdfList.map((url, idx) => (
+                                    <a
+                                        key={url + idx}
+                                        href={url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="block text-blue-600 hover:underline text-sm"
+                                    >
+                                        Ver PDF {idx + 1}
+                                    </a>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 </div>
             )}

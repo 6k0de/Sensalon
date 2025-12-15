@@ -47,7 +47,7 @@ export const TransactionModel = conn.define<Model<Transaction, TransactionCreati
         allowNull: true,
     },
     urltransferrecipt: {
-        type: DataTypes.STRING(255),
+        type: DataTypes.JSON,
         allowNull: true,
     },
     cashbackapplied: {

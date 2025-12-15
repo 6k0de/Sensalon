@@ -1,7 +1,30 @@
 import { normalizeImageUrl } from "../../helpers/normalizeUrl";
 import { Companie } from "../../interfaces/companies";
 
-export const ModalProductsInTransactions = ({ setShowModal, selectedProducts, companies } : { setShowModal: (show: boolean) => void, selectedProducts: any[], companies: Companie[] }) => {
+export const ModalProductsInTransactions = ({ setShowModal, selectedProducts, companies, meta }: { setShowModal: (show: boolean) => void, selectedProducts: any[], companies: Companie[], meta?: any | null; }) => {
+    // 🔹 Subtotales basados en productos, como respaldo
+    const itemsSubtotal = Number(meta?.rawSubtotal)
+
+    // 🔹 Tomar valores desde meta si existen, si no usar fallback
+    const subtotalAfterDiscount =
+        meta?.subtotalAfterDiscount ??
+        meta?.subtotalParsed ??
+        itemsSubtotal;
+
+    const discount = meta?.discount ?? 0;
+    const discountCode = meta?.discountCode || null;
+    const shipping = meta?.shipping ?? 0;
+    const cashback = meta?.cashback ?? 0;
+    const credit = meta?.credit ?? 0;
+
+    const flags = meta?.flags || {};
+    const usedCredit = Boolean(flags.addCredit);
+    const usedCashback = Boolean(flags.useCashback);
+
+    const total =
+        meta?.total ??
+        (subtotalAfterDiscount + shipping - cashback + credit);
+
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
             <div className="relative w-full max-w-4xl p-4">
@@ -42,7 +65,10 @@ export const ModalProductsInTransactions = ({ setShowModal, selectedProducts, co
                                 // Detectar si es transacción de crédito u otro tipo sin productos válidos
                                 const isCreditPayment =
                                     selectedProducts.length === 1 &&
-                                    selectedProducts[0]?.iFIdCompany || selectedProducts[0]?.companyId === "N/A" &&
+                                    (
+                                        selectedProducts[0]?.iFIdCompany ||
+                                        selectedProducts[0]?.companyId === "N/A"
+                                    ) &&
                                     selectedProducts[0]?.total === 0;
 
                                 if (isCreditPayment) {
@@ -126,7 +152,7 @@ export const ModalProductsInTransactions = ({ setShowModal, selectedProducts, co
                                                                             IMG
                                                                         </div>
                                                                     )}
-                                                                    
+
                                                                     <div>
                                                                         <p className="text-sm font-semibold text-gray-900">
                                                                             {p.name}
@@ -159,10 +185,76 @@ export const ModalProductsInTransactions = ({ setShowModal, selectedProducts, co
                                         })}
 
                                         {/* Total general */}
-                                        <div className="text-right border-t pt-3">
+                                        {/* Total general */}
+                                        <div className="text-right border-t pt-3 space-y-1">
                                             <p className="text-gray-800 font-semibold">
-                                                Total general: ${totalGeneral.toFixed(2)}
+                                                Total general (solo suma de productos): ${totalGeneral.toFixed(2)}
                                             </p>
+
+                                            {/* 🧾 Resumen detallado si hay meta */}
+                                            {meta && (
+                                                <div className="mt-3 inline-block text-left bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 text-sm text-gray-700">
+                                                    <p>
+                                                        <span className="font-medium">Subtotal (items): </span>
+                                                        ${Number(itemsSubtotal).toFixed(2)}
+                                                    </p>
+
+                                                    {discount > 0 && (
+                                                        <p>
+                                                            <span className="font-medium">Descuento:</span>{" "}
+                                                            -${discount.toFixed(2)}{" "}
+                                                            {discountCode && (
+                                                                <span className="text-xs text-gray-500">
+                                                                    (código: {discountCode})
+                                                                </span>
+                                                            )}
+                                                        </p>
+                                                    )}
+
+                                                    <p>
+                                                        <span className="font-medium">Subtotal después de descuento:</span>{" "}
+                                                        ${subtotalAfterDiscount.toFixed(2)}
+                                                    </p>
+
+                                                    {shipping > 0 && (
+                                                        <p>
+                                                            <span className="font-medium">Envío:</span>{" "}
+                                                            ${shipping.toFixed(2)}
+                                                        </p>
+                                                    )}
+
+                                                    {cashback > 0 && (
+                                                        <p>
+                                                            <span className="font-medium">Cashback aplicado:</span>{" "}
+                                                            -${cashback.toFixed(2)}{" "}
+                                                            {usedCashback && (
+                                                                <span className="text-xs text-green-600">
+                                                                    (se descontó del saldo del cliente)
+                                                                </span>
+                                                            )}
+                                                        </p>
+                                                    )}
+
+                                                    {credit > 0 && (
+                                                        <p>
+                                                            <span className="font-medium">Crédito aplicado:</span>{" "}
+                                                            +${credit.toFixed(2)}{" "}
+                                                            {usedCredit && (
+                                                                <span className="text-xs text-blue-600">
+                                                                    (se registró crédito en la cuenta)
+                                                                </span>
+                                                            )}
+                                                        </p>
+                                                    )}
+
+                                                    <p className="mt-2 text-base">
+                                                        <span className="font-semibold">Total final:</span>{" "}
+                                                        <span className="font-bold text-blue-700">
+                                                            ${total.toFixed(2)}
+                                                        </span>
+                                                    </p>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 );

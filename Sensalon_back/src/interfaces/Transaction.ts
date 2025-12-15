@@ -9,7 +9,7 @@ export interface Transaction {
   merchantOrderId?: string | null;
   paymentMethod?: string | null;
   products?: any; // puedes tipar mejor si conoces la estructura del JSON
-  urltransferrecipt?: string | null;
+  urltransferrecipt?: string[] | null;
   cashbackapplied?: number | null; // TINYINT → number en TS
   createdAt?: Date;
   updatedAt?: Date;

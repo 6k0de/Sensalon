@@ -1,16 +1,16 @@
 import axios from "axios";
-
-/* export const BASE_URL_PROD = 'https://api.sensalon.com.mx'; 
+/* 
+ export const BASE_URL_PROD = 'https://api.sensalon.com.mx'; 
 export const BASE_URL_IMAGE_PROD = 'https://api.sensalon.com.mx/imagenes'; 
 export const BASE_URL_FILES_PROD = 'https://api.sensalon.com.mx/api';   */
-
+ 
 /* export const BASE_URL_PREPROD = 'https://test-api.sensalon.com.mx'
 export const BASE_URL_IMAGE_PREPROD = 'https://test-api.sensalon.com.mx/imagenes'
 export const BASE_URL_FILES_PREPROD = 'https://test-api.sensalon.com.mx/api' */
 
-export const BASE_URL_DEV = 'http://localhost:3000'
+ export const BASE_URL_DEV = 'http://localhost:3000'
 export const BASE_URL_IMAGE_DEV = 'http://localhost:3000/imagenes'
-export const BASE_URL_FILES_DEV = 'http://localhost:3000/api'
+export const BASE_URL_FILES_DEV = 'http://localhost:3000/api' 
 
 export const api = axios.create({
     baseURL: `${BASE_URL_DEV}/api`,

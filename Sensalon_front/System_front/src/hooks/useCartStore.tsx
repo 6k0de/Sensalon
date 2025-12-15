@@ -69,26 +69,30 @@ export const useCartStore = create<CartState>()(
         }),
 
       updateQuantity: (productId, quantity, variantId) =>
-        set((state) => ({
-          cart: state.cart.map((item) => {
-            const matches =
-              item.product.iIdProduct === productId &&
-              (variantId ? item.variantId === variantId : true);
-            if (matches) {
-              const stock =
-                item.product.type === "variant"
-                  ? Number(
-                      item.product.variants?.find((v) => v.id === item.variantId)?.stock ??
-                        item.product.istock ??
-                        0
-                    )
-                  : Number(item.product.istock ?? 0);
-              const newQty = Math.max(0, Math.min(quantity, stock));
-              return { ...item, quantity: newQty };
-            }
-            return item;
-          }),
-        })),
+        set((state) => {
+          const updated = state.cart
+            .map((item) => {
+              const matches =
+                item.product.iIdProduct === productId &&
+                (variantId ? item.variantId === variantId : true);
+              if (matches) {
+                const stock =
+                  item.product.type === "variant"
+                    ? Number(
+                        item.product.variants?.find((v) => v.id === item.variantId)?.stock ??
+                          item.product.istock ??
+                          0
+                      )
+                    : Number(item.product.istock ?? 0);
+                const newQty = Math.max(0, Math.min(quantity, stock));
+                return { ...item, quantity: newQty };
+              }
+              return item;
+            })
+            .filter((item) => item.quantity > 0); // si queda en 0, se elimina del carrito
+
+          return { cart: updated };
+        }),
 
       removeFromCart: (productId, variantId) =>
         set((state) => ({

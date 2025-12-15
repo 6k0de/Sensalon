@@ -1,0 +1,5 @@
+{
+  "idTransaction": "0c7942a5-5895-4e81-a3ca-38dad570c162",
+  "errorMessage": "products is not iterable",
+  "errorStack": "TypeError: products is not iterable\n    at buildTransactionHtml (/Users/w1zardsq/Documents/Proyectos/Sensalon/Sensalon_back/src/helpers/buildTransactionHtml.ts:46:19)\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async handleEmails (/Users/w1zardsq/Documents/Proyectos/Sensalon/Sensalon_back/src/helpers/handleEmails.ts:16:23)\n    at async updateStatusTransaction (/Users/w1zardsq/Documents/Proyectos/Sensalon/Sensalon_back/src/controllers/Transactions/transactions.ts:58:13)"
+}

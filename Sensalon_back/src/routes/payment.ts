@@ -20,6 +20,7 @@ import { updateStatusTransaction } from "../controllers/Transactions/transaction
 import { Credit } from "../bd/models/Credits.model";
 import { CashBack } from "../bd/models/Cashback.model";
 import { Users } from "../bd/models/Users.model";
+import { registerDiscountCodeUsageFromPreOrder } from "../helpers/discountCodeAplication";
 
 dotenv.config();
 export const payment = Router();
@@ -62,10 +63,10 @@ payment.put("/deliveryUpdate", updateDelivery);
 payment.post('/createOrder', createOrderMercadoPago)
 
 //POST CreateOrderPayCredit
-payment.post('/createOrderTransferPayCredit', upload.single("file"), createOrderTransferPayCredit);
+payment.post('/createOrderTransferPayCredit', upload.array("files", 5), createOrderTransferPayCredit);
 
 //POST CreateOrderTransfer
-payment.post('/createOrderTransfer', upload.single("file"), createOrderTransfer)
+payment.post('/createOrderTransfer', upload.array("files", 5), createOrderTransfer)
 
 //POST UpdateStatusTransaction
 payment.post('/updateStatusTransaction/:id', updateStatusTransaction)
@@ -131,6 +132,9 @@ payment.get('/success', async (req: Request, res: Response) => {
         )
       }
     }
+
+    await registerDiscountCodeUsageFromPreOrder(preOrder, String(status || ""));
+
 
     const idTransaction = transaction.dataValues.iIdTransaction;
     const direccion = await ShippingAddresModel.findOne({ where: { iIdAddressId: preOrder.dataValues.iIdShippingAddress } });
@@ -236,6 +240,8 @@ payment.get('/pending', async (req: Request, res: Response) => {
     })
 
     const idTransaction = transaction.dataValues.iIdTransaction;
+    await registerDiscountCodeUsageFromPreOrder(preOrder, String(status || ""));
+
 
     await preOrder.update({ status: "pending" });
 
@@ -260,4 +266,3 @@ payment.get('/pending', async (req: Request, res: Response) => {
     res.redirect(302, redirectUrl);
   }
 })
-

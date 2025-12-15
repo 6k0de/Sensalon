@@ -5,9 +5,9 @@ import { Spinner } from "../Spinner/spinner";
 import { WarehouseEntrance } from "../../interfaces/warehouse";
 import { formatDate } from "../../utils/formatters";
 
-export const TableWarehouse = ({ encabezados, data, fetch, outofstock, handleEdit }: { encabezados: string[], data: WarehouseEntrance[] | any, fetch: { (): void } | null, outofstock: string | '', handleEdit: (warehouse: WarehouseEntrance) => void }) => {
+export const TableWarehouse = ({ encabezados, data, outofstock, handleEdit }: { encabezados: string[], data: WarehouseEntrance[] | any, fetch: { (): void } | null, outofstock: string | '', handleEdit: (warehouse: WarehouseEntrance) => void }) => {
 
-    const [isProcessing, setIsProcessing] = useState(false); // Estado para el spinner
+    const [isProcessing, _] = useState(false); // Estado para el spinner
 
     return (
         <>

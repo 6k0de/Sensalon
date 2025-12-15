@@ -17,7 +17,7 @@ import { Paperclip, X } from "lucide-react";
 interface TransferModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onConfirm: (data: { amount: string; file: File }) => void;
+    onConfirm: (data: { amount: string; files: File[] }) => void;
     creditTotal?: number | string;
     amountTotal?: number | string;
 }
@@ -31,7 +31,7 @@ export const TransferModal = ({
 }: TransferModalProps) => {
     const [accountInfo, setAccountInfo] = useState<InfoTransfer>()
     const [amount, setAmount] = useState("");
-    const [file, setFile] = useState<File | null>(null);
+    const [files, setFiles] = useState<File[]>([]);
     const [fileError, setFileError] = useState<string | null>(null);
     const fileRef = useRef<HTMLInputElement>(null);
 
@@ -54,34 +54,36 @@ export const TransferModal = ({
         })
     }, [])
 
-    const handleFileChange = (f?: File) => {
-        if (!f) {
-            setFile(null);
+    const handleFileChange = (newFiles?: FileList | File[]) => {
+        const list = newFiles ? Array.from(newFiles) : [];
+        if (!list.length) {
+            setFiles([]);
             setFileError(null);
             return;
         }
-        // Validaciones de archivo (opcional)
         const allowed = ["image/png", "image/jpeg", "image/jpg", "application/pdf"];
         const maxSizeMB = 10;
 
-        if (!allowed.includes(f.type)) {
-            setFile(null);
-            setFileError("Formato no permitido. Sube imagen (PNG/JPG) o PDF.");
-            return;
-        }
-        if (f.size > maxSizeMB * 1024 * 1024) {
-            setFile(null);
-            setFileError(`El archivo supera ${maxSizeMB} MB.`);
-            return;
+        const filtered: File[] = [];
+        for (const f of list) {
+            if (!allowed.includes(f.type)) {
+                setFileError("Formato no permitido. Sube imagen (PNG/JPG) o PDF.");
+                return;
+            }
+            if (f.size > maxSizeMB * 1024 * 1024) {
+                setFileError(`El archivo ${f.name} supera ${maxSizeMB} MB.`);
+                return;
+            }
+            filtered.push(f);
         }
 
-        setFile(f);
+        setFiles((prev) => [...prev, ...filtered]);
         setFileError(null);
     };
 
     const handleConfirm = () => {
-        if (amountError || !file) return;
-        onConfirm({ amount, file });
+        if (amountError || files.length === 0) return;
+        onConfirm({ amount, files });
         // limpia después de confirmar
         resetForm();
         onClose();
@@ -89,7 +91,7 @@ export const TransferModal = ({
 
     const resetForm = () => {
         setAmount("");
-        setFile(null);
+        setFiles([]);
         setFileError(null);
     };
 
@@ -100,7 +102,7 @@ export const TransferModal = ({
         }
     }, [isOpen]);
 
-    const isConfirmDisabled = !!amountError || !amount || !file;
+    const isConfirmDisabled = !!amountError || !amount || files.length === 0;
     return (
         <Modal isOpen={isOpen} onClose={onClose} size="lg" placement="center">
             <ModalContent>
@@ -162,32 +164,40 @@ export const TransferModal = ({
                             startContent={<Paperclip size={16} />}
                             className="w-full h-12 justify-center"
                         >
-                            {file ? "Cambiar archivo" : "Adjuntar archivo"}
+                            {files.length > 0 ? "Agregar otro archivo" : "Adjuntar archivos"}
                         </Button>
                         <input
                             ref={fileRef}
                             type="file"
                             accept="image/*,.pdf"
+                            multiple
                             className="hidden"
-                            onChange={(e) => handleFileChange(e.target.files?.[0] || undefined)}
+                            onChange={(e) => handleFileChange(e.target.files || undefined)}
                         />
 
-                        {file && (
-                            <Chip
-                                variant="flat"
-                                color="secondary"
-                                endContent={
-                                    <button
-                                        className="ml-1"
-                                        onClick={() => handleFileChange(undefined)}
-                                        aria-label="Quitar archivo"
+                        {files.length > 0 && (
+                            <div className="flex flex-wrap gap-2">
+                                {files.map((f, idx) => (
+                                    <Chip
+                                        key={`${f.name}-${idx}`}
+                                        variant="flat"
+                                        color="secondary"
+                                        endContent={
+                                            <button
+                                                className="ml-1"
+                                                onClick={() =>
+                                                    setFiles((prev) => prev.filter((_, i) => i !== idx))
+                                                }
+                                                aria-label="Quitar archivo"
+                                            >
+                                                <X size={14} />
+                                            </button>
+                                        }
                                     >
-                                        <X size={14} />
-                                    </button>
-                                }
-                            >
-                                {file.name}
-                            </Chip>
+                                        {f.name}
+                                    </Chip>
+                                ))}
+                            </div>
                         )}
 
                         <p className="text-xs text-gray-500">

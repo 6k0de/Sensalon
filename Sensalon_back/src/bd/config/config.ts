@@ -13,7 +13,7 @@ try {
   console.error('error al contectar con la bd', error)
 }
 
-export default conn
+export default conn 
  */
 
 
@@ -31,4 +31,5 @@ try {
   console.error("error al contectar con la bd", error);
 }
 
-export default conn;
+export default conn; 
+ 

@@ -7,6 +7,7 @@ import { Spinner } from "../Spinner/spinner";
 import { Distributor } from "../../interfaces/distributors";
 import { api } from "../../utils/axiosClients";
 import { ModalSuccesCancel } from "../Modals/modal.acceptcancel";
+import { usePagination } from "../../hooks/usePaginations";
 
 export const TableUserN = ({
   encabezados,
@@ -29,6 +30,14 @@ export const TableUserN = ({
   const [isProcessing, setIsProcessing] = useState(false); // Estado para el spinner
   const [showModal, setShowModal] = useState<boolean>(false)
   const [userToDelete, setUserToDelete] = useState<any>(null)
+  const {
+    page,
+    totalPages,
+    totalItems,
+    pageItems,
+    next,
+    prev,
+  } = usePagination<any>(data || [], 10); // 10 registros por página
 
   const handleDelete = async (id: string) => {
     setIsProcessing(true);
@@ -70,7 +79,7 @@ export const TableUserN = ({
         </div>
       )}
 
-      <div className="relative overflow-x-auto w-full">
+      <div className="relative table-wrapper">
         <table className="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
           <thead className="text-sm text-[#393936] bg-[#f7f7f6] sticky top-0 z-10">
             <tr>
@@ -92,8 +101,8 @@ export const TableUserN = ({
             </tr>
           </thead>
           <tbody>
-            {data && data.length > 0 ? (
-              data?.map((userN: any, index: number) => (
+            {pageItems && pageItems.length > 0 ? (
+              pageItems?.map((userN: any, index: number) => (
                 <tr
                   key={index}
                   className="bg-white border-b dark:bg-gray-800 dark:border-gray-700"
@@ -150,9 +159,38 @@ export const TableUserN = ({
           </tbody>
         </table>
       </div>
+
+      {totalItems > 0 && (
+        <div className="flex items-center justify-between mt-6 text-sm text-gray-600">
+          <span>
+            Mostrando <strong>{pageItems.length}</strong> de{" "}
+            <strong>{totalItems}</strong> registros
+          </span>
+          <div className="flex items-center gap-2 shadow bg-gray-200 rounded-lg p-2">
+            <button
+              onClick={prev}
+              disabled={page === 1}
+              className="px-3 py-1 rounded border border-gray-500 text-xs disabled:opacity-50"
+            >
+              Anterior
+            </button>
+            <span>
+              Página <strong>{page}</strong> de <strong>{totalPages}</strong>
+            </span>
+            <button
+              onClick={next}
+              disabled={page === totalPages}
+              className="px-3 py-1 rounded border border-gray-500 text-xs disabled:opacity-50"
+            >
+              Siguiente
+            </button>
+          </div>
+        </div>
+      )}
+
       <ModalSuccesCancel
         show={showModal}
-         message={
+        message={
           <>
             ¿Seguro que deseas eliminar al Usuario{" "}
             <strong>{userToDelete?.nombres}</strong>?
