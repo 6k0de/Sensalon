@@ -70,13 +70,17 @@ type CategoryOption = {
 
 export const Home = () => {
     const [salesMonth, setSalesMonth] = useState<SalesMonth[]>([]);
-    const [topCustomer, setTopCustomer] = useState<TopCustomer[]>([]);
+    const [topCustomerAll, setTopCustomerAll] = useState<TopCustomer[]>([]);
+    const [topPage, setTopPage] = useState<number>(1);
     const [inventory, setInventory] = useState<InventoryBrand[]>([]);
     const [companies, setCompanies] = useState<CompanyOption[]>([]);
     const [categories, setCategories] = useState<CategoryOption[]>([]);
 
     const currentYear = new Date().getFullYear();
     const [selectedYear, setSelectedYear] = useState<number>(currentYear);
+    const [topYear, setTopYear] = useState<number>(currentYear);
+    const [topMonth, setTopMonth] = useState<string>(""); // "" = todos
+    const [topUserType, setTopUserType] = useState<string>("all"); // all | distributor | salon | normal
     const [filterBrand, setFilterBrand] = useState<string>("");
     const [filterCategory, setFilterCategory] = useState<string>("");
     const [filterDistributor, setFilterDistributor] = useState<boolean>(false);
@@ -91,21 +95,11 @@ export const Home = () => {
     useEffect(() => {
         const loadStaticData = async () => {
             try {
-                const [topRes, invRes, compsRes, catsRes] = await Promise.all([
-                    api.get("/stats/top-customer"),          // ← aquí llega tu array de 10 clientes
+                const [invRes, compsRes, catsRes] = await Promise.all([
                     api.get("/stats/inventory-by-brand"),
                     api.get("/empresas"),
                     api.get("/categorias"),
                 ]);
-
-                const topData = (topRes.data.data || []) as any[];
-
-                setTopCustomer(
-                    topData.map((t) => ({
-                        ...t,
-                        totalSpent: Number(t.totalSpent ?? 0), // normalizamos a número
-                    }))
-                );
 
                 setInventory(
                     (invRes.data.data || []).map((b: any) => ({
@@ -133,10 +127,43 @@ export const Home = () => {
 
     const selectedBrand =
         inventory.find((b) => b.companyId === selectedBrandId) || inventory[0];
+    const pageSize = 10;
+    const paginatedTop = useMemo(() => {
+        const start = (topPage - 1) * pageSize;
+        return topCustomerAll.slice(start, start + pageSize);
+    }, [topCustomerAll, topPage]);
+    const totalTopPages = Math.max(1, Math.ceil(topCustomerAll.length / pageSize));
 
     const handleBrandChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         setSelectedBrandId(e.target.value);
     };
+
+    const fetchTopCustomers = async () => {
+        try {
+            const params: any = { year: topYear, userType: topUserType };
+            if (topMonth) params.month = topMonth;
+
+            const topRes = await api.get("/stats/top-customer", { params });
+            const topData = (topRes.data.data || []) as any[];
+
+            setTopCustomerAll(
+                topData.map((t) => ({
+                    ...t,
+                    totalSpent: Number(t.totalSpent ?? 0),
+                }))
+            );
+            setTopPage(1);
+        } catch (e) {
+            console.error("Error cargando top clientes:", e);
+            setTopCustomerAll([]);
+        }
+    };
+
+    // Recargar top clientes cuando cambian filtros
+    useEffect(() => {
+        fetchTopCustomers();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [topYear, topMonth, topUserType]);
     // 2) Cargar SOLO ventas por mes cuando cambia el año
     useEffect(() => {
         const loadSalesByMonth = async () => {
@@ -232,6 +259,16 @@ export const Home = () => {
             ],
         };
     }, [inventory]);
+
+    const brandsWithoutAll = useMemo(
+        () => inventory.filter((b) => b.companyId !== "all"),
+        [inventory]
+    );
+
+    const totalEntry = useMemo(
+        () => inventory.find((b) => b.companyId === "all"),
+        [inventory]
+    );
 
 
     const exportVentasMesExcel = () => {
@@ -431,13 +468,86 @@ export const Home = () => {
                         <h3 className="text-lg font-semibold text-gray-800">
                             Clientes con mas compras
                         </h3>
+                        <div className="flex items-center gap-2 text-xs">
+                            <select
+                                value={topYear}
+                                onChange={(e) => setTopYear(Number(e.target.value))}
+                                className="border border-gray-300 rounded-lg px-2 py-1"
+                            >
+                                {[currentYear, currentYear - 1, currentYear - 2, currentYear - 3, currentYear - 4].map(
+                                    (y) => (
+                                        <option key={y} value={y}>
+                                            {y}
+                                        </option>
+                                    )
+                                )}
+                            </select>
+                            <select
+                                value={topUserType}
+                                onChange={(e) => setTopUserType(e.target.value)}
+                                className="border border-gray-300 rounded-lg px-2 py-1"
+                            >
+                                <option value="all">Todos</option>
+                                <option value="distributor">Distribuidor</option>
+                                <option value="salon">Salón</option>
+                                <option value="normal">Usuario normal</option>
+                            </select>
+                            <select
+                                value={topMonth}
+                                onChange={(e) => setTopMonth(e.target.value)}
+                                className="border border-gray-300 rounded-lg px-2 py-1"
+                            >
+                                <option value="">Todo el año</option>
+                                {[
+                                    "Enero",
+                                    "Febrero",
+                                    "Marzo",
+                                    "Abril",
+                                    "Mayo",
+                                    "Junio",
+                                    "Julio",
+                                    "Agosto",
+                                    "Septiembre",
+                                    "Octubre",
+                                    "Noviembre",
+                                    "Diciembre",
+                                ].map((m, idx) => (
+                                    <option key={m} value={idx + 1}>
+                                        {m}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
                     </div>
 
-                    {topCustomer.length === 0 ? (
+                    {topCustomerAll.length === 0 ? (
                         <p className="text-gray-500 text-sm">Sin datos</p>
                     ) : (
-                        <div className="space-y-2 shadow-sm max-h-[370px] overflow-y-auto">
-                            {topCustomer.map((c, index) => (
+                        <div className="space-y-3">
+                            <div className="flex justify-between items-center text-xs text-gray-600">
+                                <span>Total: {topCustomerAll.length} clientes</span>
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={() => setTopPage((p) => Math.max(1, p - 1))}
+                                        disabled={topPage === 1}
+                                        className="px-3 py-1 rounded-lg border border-gray-200 disabled:opacity-50"
+                                    >
+                                        Anterior
+                                    </button>
+                                    <span className="text-[11px]">
+                                        Página {topPage} / {totalTopPages}
+                                    </span>
+                                    <button
+                                        onClick={() => setTopPage((p) => Math.min(totalTopPages, p + 1))}
+                                        disabled={topPage === totalTopPages}
+                                        className="px-3 py-1 rounded-lg border border-gray-200 disabled:opacity-50"
+                                    >
+                                        Siguiente
+                                    </button>
+                                </div>
+                            </div>
+                            <div className="space-y-2 shadow-sm max-h-[370px] overflow-y-auto">
+                            {paginatedTop.map((c, index) => (
                                 <div
                                     key={c.userId}
                                     className="flex items-center justify-between gap-3 px-3 py-2 rounded-lg hover:bg-gray-50 border border-gray-100"
@@ -445,7 +555,7 @@ export const Home = () => {
                                     <div className="flex items-center gap-3">
                                         {/* medalla / número de ranking */}
                                         <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-[11px] font-semibold text-indigo-700">
-                                            {index + 1}
+                                            {(topPage - 1) * 10 + index + 1}
                                         </div>
                                         <div>
                                             <p className="text-sm font-semibold text-gray-800 leading-tight">
@@ -471,6 +581,7 @@ export const Home = () => {
                                     </div>
                                 </div>
                             ))}
+                        </div>
                         </div>
                     )}
                 </div>
@@ -568,8 +679,59 @@ export const Home = () => {
                                 )}
                             </div>
 
-                            {/* Tabla de productos de la marca seleccionada */}
-                            {selectedBrand && (
+                            {/* Tabla según selección */}
+                            {selectedBrand && selectedBrand.companyId === "all" && (
+                                <div className="overflow-x-auto max-h-72">
+                                    <table className="min-w-full text-xs border border-gray-200 rounded-lg overflow-hidden">
+                                        <thead className="bg-gray-50 text-gray-600">
+                                            <tr>
+                                                <th className="px-3 py-2 text-left">Marca</th>
+                                                <th className="px-3 py-2 text-right">Productos</th>
+                                                <th className="px-3 py-2 text-right">Stock total</th>
+                                                <th className="px-3 py-2 text-right">Valor total</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {brandsWithoutAll.map((b) => (
+                                                <tr key={b.companyId} className="border-t hover:bg-gray-50">
+                                                    <td className="px-3 py-2 font-medium text-gray-800">
+                                                        {b.companyName}
+                                                    </td>
+                                                    <td className="px-3 py-2 text-right">
+                                                        {b.productsCount}
+                                                    </td>
+                                                    <td className="px-3 py-2 text-right">
+                                                        {b.stockTotal}
+                                                    </td>
+                                                    <td className="px-3 py-2 text-right font-semibold">
+                                                        $
+                                                        {b.inventoryValue.toLocaleString("es-MX", {
+                                                            minimumFractionDigits: 2,
+                                                            maximumFractionDigits: 2,
+                                                        })}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                            {totalEntry && (
+                                                <tr className="border-t bg-gray-50 font-semibold text-gray-800">
+                                                    <td className="px-3 py-2">Total</td>
+                                                    <td className="px-3 py-2 text-right">{totalEntry.productsCount}</td>
+                                                    <td className="px-3 py-2 text-right">{totalEntry.stockTotal}</td>
+                                                    <td className="px-3 py-2 text-right">
+                                                        $
+                                                        {totalEntry.inventoryValue.toLocaleString("es-MX", {
+                                                            minimumFractionDigits: 2,
+                                                            maximumFractionDigits: 2,
+                                                        })}
+                                                    </td>
+                                                </tr>
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+
+                            {selectedBrand && selectedBrand.companyId !== "all" && (
                                 <div className="overflow-x-auto max-h-72">
                                     <table className="min-w-full text-xs border border-gray-200 rounded-lg overflow-hidden">
                                         <thead className="bg-gray-50 text-gray-600">

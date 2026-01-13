@@ -1,5 +1,6 @@
 // helpers/buildTransactionHtml.ts
 import { Companies } from "../bd/models/Companies.model";
+import { ShippingAddresModel } from "../bd/models/ShippingAdd.model";
 import { Users } from "../bd/models/Users.model";
 import { getFullAddress } from "./getFullAddres";
 
@@ -22,7 +23,26 @@ export const buildTransactionHtml = async (
   direccion?: any,
   isApproved?: boolean
 ) => {
-  const direccionCompleta = await getFullAddress(direccion);
+  const hasDireccionValue =
+    typeof direccion === "string" || (typeof direccion === "object" && direccion !== null);
+  const direccionCompleta = await getFullAddress(
+    hasDireccionValue ? direccion : transaction?.ishippingAddressId
+  );
+  let telefono = "";
+
+  if (direccion && typeof direccion === "object") {
+    telefono = direccion.vcphone || direccion.phone || direccion.vccellphone || "";
+  }
+
+  if (!telefono) {
+    const candidateId =
+      typeof direccion === "string" ? direccion : transaction?.ishippingAddressId;
+
+    if (candidateId && /^[0-9a-fA-F-]{36}$/.test(String(candidateId))) {
+      const dir = await ShippingAddresModel.findOne({ where: { iIdAddressId: candidateId } });
+      telefono = dir?.dataValues?.vcphone || "";
+    }
+  }
 
   // 1) Normalizar productos + meta
   let products: any[] = [];
@@ -208,6 +228,8 @@ export const buildTransactionHtml = async (
               <td style="border:1px solid #eee;padding:8px;">${mxn(Number(transaction.amount || 0))}</td></tr>
           <tr><th style="border:1px solid #eee;padding:8px;text-align:left;">Dirección</th>
               <td style="border:1px solid #eee;padding:8px;">${direccionCompleta}</td></tr>
+          <tr><th style="border:1px solid #eee;padding:8px;text-align:left;">Teléfono</th>
+              <td style="border:1px solid #eee;padding:8px;">${telefono || "Sin teléfono registrado"}</td></tr>
         </table>
 
         <h3 style="margin:20px 0 10px 0;">Productos</h3>
@@ -250,4 +272,3 @@ export const buildTransactionHtml = async (
     </div>
   </div>`;
 };
-

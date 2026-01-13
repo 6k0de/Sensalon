@@ -7,6 +7,7 @@ export interface Product {
     producttype: any,
     relatedproductId: string,
     variantcolor: string,
+    isactive: number,
     vcweight: string;
     vcquantity: string;
     vcphoto: string;

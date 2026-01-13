@@ -4,6 +4,7 @@ import { Products } from "../../bd/models/Products.model";
 import { CartItemAttributes } from "../../interfaces/CartItems";
 import { CartItemsModel } from "../../bd/models/CartItems.model";
 import { CartModel } from "../../bd/models/Cart.model";
+import { Op } from "sequelize";
 
 // Guardar items en carrito (crear/actualizar)
 export const insertCartItems = async (req: Request, res: Response) => {
@@ -27,7 +28,7 @@ export const insertCartItems = async (req: Request, res: Response) => {
         }
 
         const validProducts = await Products.findAll({
-            where: { iIdProduct: items.map(i => i.iFIdProduct) }
+            where: { iIdProduct: items.map(i => i.iFIdProduct), isactive: 1 }
         });
         const validProductIds = validProducts.map(p => p.dataValues.iIdProduct);
 
@@ -63,9 +64,32 @@ export const getCartItemsByUser = async (req: Request, res: Response) => {
             return res.status(404).json({ error: "El carrito no existe" });
         }
 
+        const cartItemsRaw = await CartItemsModel.findAll({
+            where: { iFIdCart: cart.getDataValue("iIdCart") },
+        });
+
+        const productIds = cartItemsRaw.map((ci) => ci.getDataValue("iFIdProduct"));
+
+        if (productIds.length > 0) {
+            const inactiveProducts = await Products.findAll({
+                attributes: ["iIdProduct"],
+                where: {
+                    iIdProduct: { [Op.in]: productIds },
+                    isactive: 0,
+                },
+            });
+
+            const inactiveIds = inactiveProducts.map((p) => p.getDataValue("iIdProduct"));
+            if (inactiveIds.length > 0) {
+                await CartItemsModel.destroy({
+                    where: { iFIdCart: cart.getDataValue("iIdCart"), iFIdProduct: { [Op.in]: inactiveIds } },
+                });
+            }
+        }
+
         const cartItems = await CartItemsModel.findAll({
             where: { iFIdCart: cart.getDataValue("iIdCart") },
-            include: [{ model: Products, as: "product", required: true }],
+            include: [{ model: Products, as: "product", required: true, where: { isactive: 1 } }],
         });
 
         return res.status(200).json({ cartItems });

@@ -42,6 +42,7 @@ export const ShoppingCar = () => {
     const [discountInput, setDiscountInput] = useState<string>("");
     const [appliedDiscount, setAppliedDiscount] = useState<DiscountCode | null>(null);
     const [discountAmount, setDiscountAmount] = useState<number>(0);
+    const [shippingMethod, setShippingMethod] = useState<"home" | "pickup">("home");
 
 
     const userData = readUser()
@@ -163,7 +164,9 @@ export const ShoppingCar = () => {
     const subtotal = cart.reduce((sum, item) => sum + getLinePrice(item), 0);
     console.log(deliveryCost.secobraenvio)
 
-    const shipping = deliveryCost.secobraenvio === 1 ? 150 : 0;
+    const shippingBase = deliveryCost.secobraenvio === 1 ? 150 : 0;
+    const shipping = shippingMethod === "home" ? shippingBase : 0;
+    const requiresAddress = true; // address needed for both modes to satisfy backend validations
 
     const subtotalAfterDiscount = Math.max(0, subtotal - discountAmount);
     const baseTotal = Math.max(0, subtotalAfterDiscount + shipping);
@@ -213,8 +216,10 @@ export const ShoppingCar = () => {
             return lineTotal;
         }
 
+        const discountValue = normalizeDiscountValue(appliedDiscount);
+
         if (appliedDiscount.discountType === "PERCENT") {
-            const factor = 1 - (appliedDiscount.value || 0) / 100;
+            const factor = 1 - discountValue / 100;
             return Number((lineTotal * factor).toFixed(2));
         }
 
@@ -240,6 +245,11 @@ export const ShoppingCar = () => {
         {} as Record<string, { product: any; quantity: number }[]>
     );
 
+    const normalizeDiscountValue = (discount: DiscountCode | null) => {
+        const value = Number(discount?.value ?? 0);
+        return Number.isFinite(value) ? value : 0;
+    };
+
     const calculateDiscountAmount = (discount: DiscountCode) => {
         const targetProducts = new Set((discount.productIds || []).map((p) => p.toString()));
         let applicableBase = 0;
@@ -262,11 +272,13 @@ export const ShoppingCar = () => {
             return 0;
         }
 
+        const discountValue = normalizeDiscountValue(discount);
+
         if (discount.discountType === "PERCENT") {
-            return (applicableBase * (discount.value || 0)) / 100;
+            return (applicableBase * discountValue) / 100;
         }
 
-        return Math.min(discount.value || 0, applicableBase);
+        return Math.min(discountValue, applicableBase);
     };
 
     const discountLocked = useCashback || useCredit;
@@ -548,6 +560,12 @@ export const ShoppingCar = () => {
 
 
     const handleMercadoPago = async () => {
+        if (requiresAddress && !selectedAddressId) {
+            setToastMessage("Selecciona una dirección para el envío.");
+            setToastType("error");
+            setShowToast(true);
+            return;
+        }
         setMpLoading(true)
         try {
 
@@ -577,8 +595,9 @@ export const ShoppingCar = () => {
             const payload = {
                 idUser,
                 email: parsed.user.vcemail || parsed.vcemail,
-                shipping: selectedAddressId, // o el objeto completo si es nueva
-                envio: shipping, // tu costo de envío calculado
+                shipping: selectedAddressId, // siempre enviamos la dirección para evitar errores en backend
+                envio: shipping, // tu costo de envío calculado (0 si recoge en bodega)
+                shippingMethod,
                 products: productsPayload,
                 addCredit: isDistributor && useCredit,
                 credit: isDistributor && useCredit ? appliedCredit : 0,
@@ -628,13 +647,20 @@ export const ShoppingCar = () => {
     }
 
     const handleConfirm = async ({ files }: { files: File[] }) => {
+        if (requiresAddress && !selectedAddressId) {
+            setToastMessage("Selecciona una dirección para el envío.");
+            setToastType("error");
+            setShowToast(true);
+            return;
+        }
         setBankLoading(true);
         try {
             const formData = new FormData();
             formData.append("idUser", idUser);
             formData.append("email", parsed.user.vcemail || parsed.vcemail);
-            formData.append("shipping", selectedAddressId!);
+            formData.append("shipping", selectedAddressId || "");
             formData.append("envio", shipping.toString());
+            formData.append("shippingMethod", shippingMethod);
             formData.append("addCredit", String(isDistributor && useCredit));
             formData.append("credit", String(isDistributor && useCredit ? appliedCredit : 0));
             formData.append("useCashback", String(!isDistributor && useCashback));
@@ -759,8 +785,8 @@ export const ShoppingCar = () => {
                                 {appliedDiscount && (
                                     <p className="text-xs text-green-700 mt-2">
                                         Aplicado: {appliedDiscount.code} — {appliedDiscount.discountType === "PERCENT"
-                                            ? `${appliedDiscount.value}%`
-                                            : `$${appliedDiscount.value.toFixed(2)}`}{" "}
+                                            ? `${normalizeDiscountValue(appliedDiscount)}%`
+                                            : `$${normalizeDiscountValue(appliedDiscount).toFixed(2)}`}{" "}
                                         {appliedDiscount.scope === "products" ? "(solo productos seleccionados)" : "(al total)"}
                                     </p>
                                 )}
@@ -1037,6 +1063,34 @@ export const ShoppingCar = () => {
                     <div className="lg:w-1/3">
                         <div className="bg-gray-100 p-6 rounded-lg">
                             <h2 className="text-xl font-semibold mb-4">Resumen de orden</h2>
+                            <div className="mb-4">
+                                <p className="text-sm font-semibold mb-2">Tipo de envío</p>
+                                <div className="space-y-2">
+                                    <label className="flex items-center gap-2 text-sm">
+                                        <input
+                                            type="radio"
+                                            name="shippingMethod"
+                                            value="home"
+                                            checked={shippingMethod === "home"}
+                                            onChange={() => setShippingMethod("home")}
+                                        />
+                                        Envío a domicilio (+${shippingBase})
+                                    </label>
+                                    <label className="flex items-center gap-2 text-sm">
+                                        <input
+                                            type="radio"
+                                            name="shippingMethod"
+                                            value="pickup"
+                                            checked={shippingMethod === "pickup"}
+                                            onChange={() => setShippingMethod("pickup")}
+                                        />
+                                        Recoger en bodega (sin costo)
+                                    </label>
+                                </div>
+                                {requiresAddress && !selectedAddressId && (
+                                    <p className="text-xs text-red-600 mt-2">Selecciona una dirección para continuar.</p>
+                                )}
+                            </div>
                             <div className="flex justify-between mb-2">
                                 <span>Subtotal</span>
                                 <span>${subtotal.toFixed(2)}</span>
@@ -1048,7 +1102,7 @@ export const ShoppingCar = () => {
                                 </div>
                             )}
                             <div className="flex justify-between mb-2">
-                                <span>Envío</span>
+                                <span>Envío ({shippingMethod === "home" ? "domicilio" : "bodega"})</span>
                                 <span>${shipping.toFixed(2)}</span>
                             </div>
 

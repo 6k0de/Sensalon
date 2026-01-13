@@ -16,7 +16,7 @@ export const ProductDetail = () => {
     const navigate = useNavigate()
     const [productosSimilares, setProductosSimilares] = useState<Product[]>([])
     const [quantity, setQuantity] = useState(1)
-    const [comment, setComment] = useState<string>("")
+    const [comment, _] = useState<string>("")
     const [selectedVariantId, setSelectedVariantId] = useState<string>("")
     console.log(user)
     useEffect(() => {
@@ -201,7 +201,7 @@ export const ProductDetail = () => {
                     </div>
 
 
-                    <div className="mb-6 mt-4">
+                 {/*    <div className="mb-6 mt-4">
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                             Comentarios (opcional)
                         </label>
@@ -212,7 +212,7 @@ export const ProductDetail = () => {
                             onChange={(e) => setComment(e.target.value)}
                             placeholder="Escribe un comentario o instrucción"
                         />
-                    </div>
+                    </div> */}
                     <div className="mb-10">
                         <h3 className="font-semibold mb-4">Tamaño el producto</h3>
                         <div className="flex space-x-4">

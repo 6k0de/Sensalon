@@ -6,10 +6,12 @@ import {
     Phone,
     AlertTriangle,
 } from 'lucide-react'
+import { useCartStore } from '../hooks/useCartStore'
 
 export const PaymentErrorPage: React.FC = () => {
     const [searchParams] = useSearchParams()
-
+    const clearCart = useCartStore((s: any) => s.clearCart);
+    const syncCartToBackend = useCartStore((s: any) => s.syncCartToBackend);
     // Valores que vienen del backend
     const transactionId = searchParams.get('transactionId') || searchParams.get('idTransaction') || 'N/A'
     const status = searchParams.get('status') || 'rejected'
@@ -26,8 +28,13 @@ export const PaymentErrorPage: React.FC = () => {
     const supportPhone = '+52 33 2597 0877'
 
     useEffect(() => {
-        localStorage.removeItem("cart-storage");
-    }, []);
+        clearCart()
+        const cartId = localStorage.getItem("cartId")
+        if (cartId) {
+            syncCartToBackend(cartId)
+        }
+        localStorage.removeItem("cart-storage")
+    }, [clearCart, syncCartToBackend])
     /*  const handleContactSupport = () => {
          window.open(
              `mailto:${supportEmail}?subject=Error en pago - ${transactionId}&body=Hola, tengo un problema con mi pago. ID de referencia: ${transactionId}`,

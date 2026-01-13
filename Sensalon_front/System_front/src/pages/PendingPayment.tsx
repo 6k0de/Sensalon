@@ -1,16 +1,24 @@
 import React, { useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Clock, AlertCircle } from 'lucide-react'
+import { useCartStore } from '../hooks/useCartStore'
 export const PaymentPendingPage: React.FC = () => {
     const [searchParams] = useSearchParams()
+    const clearCart = useCartStore((s: any) => s.clearCart);
+    const syncCartToBackend = useCartStore((s: any) => s.syncCartToBackend);
     const transactionId =
         searchParams.get('transactionId') || searchParams.get('idTransaction') || 'N/A'
     const paymentMethod = searchParams.get('method') || 'Transferencia Bancaria'
     const estimatedTime = searchParams.get('estimatedTime') || '24 horas'
 
     useEffect(() => {
-        localStorage.removeItem("cart-storage");
-    }, []);
+        clearCart()
+        const cartId = localStorage.getItem("cartId")
+        if (cartId) {
+            syncCartToBackend(cartId)
+        }
+        localStorage.removeItem("cart-storage")
+    }, [clearCart, syncCartToBackend])
 
     return (
         <div className="">

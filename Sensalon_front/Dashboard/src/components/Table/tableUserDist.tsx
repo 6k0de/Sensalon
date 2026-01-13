@@ -5,7 +5,7 @@ import { SuccessToast } from "../Toast/successToast";
 import { ErrorToast } from "../Toast/errorToast";
 import { Spinner } from "../Spinner/spinner";
 import { Distributor } from "../../interfaces/distributors";
-import { api, BASE_URL_FILES_DEV,   } from "../../utils/axiosClients";
+import { api, BASE_URL_FILES_PROD, } from "../../utils/axiosClients";
 import { ModalSuccesCancel } from "../Modals/modal.acceptcancel";
 import { usePagination } from "../../hooks/usePaginations";
 
@@ -182,7 +182,7 @@ export const TableUserDist = ({
                               userDistribiutor.vcconstfisc.split(
                                 "/assets/archivos/",
                               )[1];
-                            const url = `${BASE_URL_FILES_DEV}/archivos/${normalizedPath}`;
+                            const url = `${BASE_URL_FILES_PROD}/archivos/${normalizedPath}`;
 
                             // Descargar el archivo
                             window.open(url, "_blank"); // Abre la descarga en una nueva pestaña

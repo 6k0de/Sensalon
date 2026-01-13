@@ -1,16 +1,24 @@
 import React, { useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { CheckCircle2, Clock } from "lucide-react";
+import { useCartStore } from "../hooks/useCartStore";
 
 export const PaymentReviewInfo: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const clearCart = useCartStore((s: any) => s.clearCart);
+  const syncCartToBackend = useCartStore((s: any) => s.syncCartToBackend);
 
   const orderNumber = searchParams.get("orderNumber") || "ORD-000000";
 
   useEffect(() => {
+    clearCart();
+    const cartId = localStorage.getItem("cartId");
+    if (cartId) {
+      syncCartToBackend(cartId);
+    }
     localStorage.removeItem("cart-storage");
-  }, []);
+  }, [clearCart, syncCartToBackend]);
 
   return (
     <div className="flex flex-col pt-8">

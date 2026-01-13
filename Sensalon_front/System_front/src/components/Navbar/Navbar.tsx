@@ -54,7 +54,8 @@ export const Navbar = () => {
 
   useEffect(() => {
     if (isNormal && !isGuest) {
-      api.get(`/chasback/${user?.user?.iIdUser}`).then((res) => {
+      console.log(user)
+      api.get(`/chasback/${user?.idUser ?? user?.user?.iIdUser}`).then((res) => {
         setCashbackBalance(res.data.data.cashbackbalance || 0)
       }).catch((err) => {
         console.log(err)
@@ -102,6 +103,8 @@ export const Navbar = () => {
     useCartStore.getState().syncCartToBackend(idCart as string);
     setIsLoggedIn(false)
     useCartStore.getState().clearCart()
+    localStorage.removeItem("products:byUser");
+    localStorage.removeItem('cart-storage')
     localStorage.clear();
     window.location.href = '/';
   };

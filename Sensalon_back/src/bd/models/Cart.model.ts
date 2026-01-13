@@ -6,12 +6,12 @@ interface CartCreationAttributes extends Optional<CartAttributes, 'iIdCart'> { }
 
 export const CartModel = conn.define<Model<CartAttributes, CartCreationAttributes>>('cart', {
     iIdCart: {
-        type: DataTypes.INTEGER.UNSIGNED,
-        autoIncrement: true,
+        type: DataTypes.CHAR(36),
+        defaultValue: DataTypes.UUIDV4,
         primaryKey: true,
     },
     iFIdUser: {
-        type: DataTypes.INTEGER.UNSIGNED,
+        type: DataTypes.CHAR(36),
         allowNull: false,
     },
     dtCreated: {

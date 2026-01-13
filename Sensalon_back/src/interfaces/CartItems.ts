@@ -1,5 +1,5 @@
 export interface CartItemAttributes {
-    iIdCartItem: string;
+    idCartItem?: string;
     iFIdCart: string;
     iFIdProduct: string;
     iquantity: number;

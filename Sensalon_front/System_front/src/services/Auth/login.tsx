@@ -1,4 +1,5 @@
 import { useCartStore } from "../../hooks/useCartStore";
+import { useProductStore } from "../../hooks/useProductStore";
 import { getUserTypeFromRoleId } from "../../interfaces/role";
 import { api } from "../../utils/axiosClients";
 
@@ -20,7 +21,9 @@ export const LoginServices = async ({ username, password }: { username: string, 
 
         // Guardamos en localStorage y store Zustand
         localStorage.setItem("cartId", idCart);
-        useCartStore.getState().setCartFromBackend(user.iIdUser) 
+        useCartStore.getState().setCartFromBackend(user.iIdUser)
+        useProductStore.getState().fetchFromCache();
+        useProductStore.getState().refreshFromServer().catch(() => { });
 
         return { value: 0, message: 'Inicio de sesión exitoso', data: response.data }; // Retornamos los datos
 

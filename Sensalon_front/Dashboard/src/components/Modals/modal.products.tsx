@@ -6,7 +6,7 @@ import { Categorie } from "../../interfaces/categories";
 import { InsertProducts } from "../../services/products/InsertProducts";
 import { Product, ProductType } from "../../interfaces/products";
 import { UpdateProduct } from "../../services/products/updateProduct";
-import { api, BASE_URL_IMAGE_DEV,  } from "../../utils/axiosClients";
+import { api, BASE_URL_IMAGE_PROD,   } from "../../utils/axiosClients";
 import { ErrorToast } from "../Toast/errorToast";
 import { ProductAutocomplete } from "../Autocomplete";
 import { ColorPickerField } from "../ColorPicker";
@@ -34,7 +34,7 @@ export const ModalProduct = ({ show, onClose, data, mode }: { show: boolean, onC
     const [precio1, setPrecio1] = useState<string>(data?.decprice1 || '');
     const [precio2, setPrecio2] = useState<string>(data?.decprice2 || '');
     const [precio3, setPrecio3] = useState<string>(data?.decprice3 || '');
-    const [existencia, setExistencia] = useState<string>(data?.istock || '');
+    const [existencia, setExistencia] = useState<string>((data?.istock || ''));
     const [existenciaMinima, setExistenciaMinima] = useState<string>(data?.istocklimit || '');
     const [selectedCategories, setSelectedCategories] = useState<{ Categorias: { idCategoria: string }[] }>({ Categorias: [] });
     const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -109,7 +109,7 @@ export const ModalProduct = ({ show, onClose, data, mode }: { show: boolean, onC
             }
             if (data?.vcphoto) {
                 const normalizedPath = data?.vcphoto.replace(/\\/g, '/').split('/imagenes/')[1];
-                const imageurl = `${BASE_URL_IMAGE_DEV}/${normalizedPath}`;
+                const imageurl = `${BASE_URL_IMAGE_PROD}/${normalizedPath}`;
                 setImagePreview(imageurl);
             } else {
                 setImagePreview(null);
@@ -180,7 +180,7 @@ export const ModalProduct = ({ show, onClose, data, mode }: { show: boolean, onC
             return;
         } if (!nombre.trim()) { setToastMessage("Ingrese el nombre del producto"); setToastType("error"); setShowToast(true); setTimeout(() => { setShowToast(false); setToastType(null); setToastMessage(null) }, 3000); return };
         if (!precio1 || !precio2 || !precio3) { setToastMessage("Ingrese los tres precios"); setToastType("error"); setShowToast(true); setTimeout(() => { setShowToast(false); setToastType(null); setToastMessage(null) }, 3000); return };
-        if (!existencia) { setToastMessage("Ingrese la existencia"); setToastType("error"); setShowToast(true); setTimeout(() => { setShowToast(false); setToastType(null); setToastMessage(null) }, 3000); return };
+        if (!existencia && mode === 1) { setToastMessage("Ingrese la existencia"); setToastType("error"); setShowToast(true); setTimeout(() => { setShowToast(false); setToastType(null); setToastMessage(null) }, 3000); return };
         if (!existenciaMinima) { setToastMessage("Ingrese la existencia mínima"); setToastType("error"); setShowToast(true); setTimeout(() => { setShowToast(false); setToastType(null); setToastMessage(null) }, 3000); return };
         if (mode === 0 && !selectedFile) { setToastMessage("Debe seleccionar una imagen del producto"); setToastType("error"); setShowToast(true); setTimeout(() => { setShowToast(false); setToastType(null); setToastMessage(null) }, 3000); return };
 
@@ -231,7 +231,12 @@ export const ModalProduct = ({ show, onClose, data, mode }: { show: boolean, onC
         formData.append('decprice1', precio1);
         formData.append('decprice2', precio2);
         formData.append('decprice3', precio3);
-        formData.append('istock', existencia);
+        // siempre enviar 0 al crear; en edición mantener el valor existente
+        if (mode === 0) {
+            formData.append('istock', '0');
+        } else {
+            formData.append('istock', existencia);
+        }
         formData.append('istocklimit', existenciaMinima);
 
         for (const [key, value] of formData.entries()) {
@@ -624,7 +629,7 @@ export const ModalProduct = ({ show, onClose, data, mode }: { show: boolean, onC
                                     value={existencia}
                                     onChange={(e) => setExistencia(e.target.value)}
                                     type="number"
-                                    className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-xl w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:text-white"
+                                    className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-xl w-full p-2.5 "  
                                 />
                             </div>
 

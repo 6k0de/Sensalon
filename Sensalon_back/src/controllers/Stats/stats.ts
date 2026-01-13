@@ -235,20 +235,61 @@ export const salesByMonth = async (req: Request, res: Response) => {
     }
 };
 
-export const topCustomer = async (_: Request, res: Response) => {
+export const topCustomer = async (req: Request, res: Response) => {
     try {
+        const year = req.query.year ? Number(req.query.year) : null;
+        const month = req.query.month ? Number(req.query.month) : null;
+        const limit = req.query.limit ? Number(req.query.limit) : null;
+        const offset = req.query.offset ? Number(req.query.offset) : 0;
+        const userType = (req.query.userType as string) || "all"; // all | distributor | salon | normal
+
+        const ROLE_IDS: Record<string, string> = {
+            distributor: "542c2e4e-7177-11ef-a9b1-0050563b",
+            salon: "542c325b-7177-11ef-a9b1-0050563b",
+            normal: "8337416f-7177-11ef-a9b1-0050563b",
+        };
+
+        const conditions: string[] = [`t.status = 'approved'`];
+        const replacements: Record<string, any> = {};
+
+        if (year && Number.isFinite(year)) {
+            conditions.push(`YEAR(t.createdAt) = :year`);
+            replacements.year = year;
+        }
+
+        if (month && Number.isFinite(month)) {
+            conditions.push(`MONTH(t.createdAt) = :month`);
+            replacements.month = month;
+        }
+
+        if (userType && userType !== "all") {
+            const roleId = ROLE_IDS[userType];
+            if (roleId) {
+                conditions.push(`u.iFIdRole = :roleId`);
+                replacements.roleId = roleId;
+            }
+        }
+
+        const whereClause = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
+        const useLimit = Number.isFinite(limit as number) && (limit as number) > 0;
+        const limitClause = useLimit ? "LIMIT :limit OFFSET :offset" : "";
+        if (useLimit) {
+            replacements.limit = limit;
+            replacements.offset = Number.isFinite(offset) && offset! > 0 ? offset : 0;
+        }
+
         const rows = await conn.query(
             `
             SELECT t.iuserId AS userId, u.vcfirstname, u.vclastname, u.vcemail,
                    SUM(t.amount) AS totalSpent, COUNT(*) AS orders
             FROM transactions t
             JOIN users u ON u.iIdUser = t.iuserId
-            WHERE t.status = 'approved'
+            ${whereClause}
             GROUP BY t.iuserId
             ORDER BY totalSpent DESC
-            LIMIT 10;
+            ${limitClause};
             `,
-            { type: QueryTypes.SELECT }
+            { type: QueryTypes.SELECT, replacements }
         );
         res.json({ ok: true, data: rows || null });
     } catch (error) {
@@ -271,6 +312,7 @@ export const inventoryByBrand = async (req: Request, res: Response) => {
                 COALESCE(p.istock, 0) * COALESCE(p.decprice3, 0) AS totalValue
             FROM products p
             LEFT JOIN companies c ON c.iIdCompany = p.iFIdCompany
+            WHERE p.producttype IS NULL OR p.producttype <> 'PACKAGE'
             ORDER BY companyName, productName;
             `,
             { type: QueryTypes.SELECT }
@@ -350,6 +392,26 @@ export const inventoryByBrand = async (req: Request, res: Response) => {
             (a, b) => b.inventoryValue - a.inventoryValue
         );
 
+        // Agregar una entrada "Todos" con el total global (sin productos tipo paquete)
+        const totalEntry = result.reduce(
+            (acc, brand) => {
+                acc.stockTotal += brand.stockTotal;
+                acc.productsCount += brand.productsCount;
+                acc.inventoryValue += brand.inventoryValue;
+                return acc;
+            },
+            {
+                companyId: "all",
+                companyName: "Todos",
+                stockTotal: 0,
+                productsCount: 0,
+                inventoryValue: 0,
+                products: [] as any[],
+            }
+        );
+
+        result.unshift(totalEntry);
+
         res.json({ ok: true, data: result });
     } catch (error) {
         console.error("Error en inventoryByBrand:", error);
@@ -359,4 +421,3 @@ export const inventoryByBrand = async (req: Request, res: Response) => {
         });
     }
 };
-

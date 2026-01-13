@@ -11,6 +11,7 @@ export const Products = () => {
   const [showModal, setShowModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState<string>("")
   const [products, SetProducts] = useState<Product[]>([]);
+  const [viewMode, setViewMode] = useState<"active" | "inactive">("active");
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [toastType, setToastType] = useState<"success" | "error" | null>(null);
   const [mode, setMode] = useState(0);
@@ -19,7 +20,8 @@ export const Products = () => {
 
   const fetchProducts = async () => {
     try {
-      const response = await api.get("/productos");
+      const endpoint = viewMode === "active" ? "/productos" : "/productos/inactivos";
+      const response = await api.get(endpoint);
       SetProducts(response.data);
     } catch (error) {
       console.error("Error fetching products:", error);
@@ -28,7 +30,7 @@ export const Products = () => {
 
   useEffect(() => {
     fetchProducts();
-  }, []);
+  }, [viewMode]);
 
   const filteredProducts = (products || []).filter((p) =>
     `${p.vcname} ${p.decprice1} ${p.decprice2} ${p.decprice3}`
@@ -83,8 +85,22 @@ export const Products = () => {
       <div className="py-12 px-5 h-full">
         <h1 className="text-3xl font-bold text-[#1d1d1b]">Productos</h1>
         <section className="mt-5 h-[620px]">
-          <div className="flex items-center justify-between bg-white shadow-sm w-full p-4 rounded-xl ">
-            <div>
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between bg-white shadow-sm w-full p-4 rounded-xl ">
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="inline-flex bg-gray-100 rounded-full p-1">
+                <button
+                  onClick={() => setViewMode("active")}
+                  className={`px-4 py-2 text-sm font-medium rounded-full transition ${viewMode === "active" ? "bg-[#1d1d1b] text-white shadow-sm" : "text-[#1d1d1b]"}`}
+                >
+                  Activos
+                </button>
+                <button
+                  onClick={() => setViewMode("inactive")}
+                  className={`px-4 py-2 text-sm font-medium rounded-full transition ${viewMode === "inactive" ? "bg-[#1d1d1b] text-white shadow-sm" : "text-[#1d1d1b]"}`}
+                >
+                  Inactivos
+                </button>
+              </div>
               <label className="mb-2 text-sm font-medium text-[#1d1d1b] sr-only dark:text-white">
                 Search
               </label>
@@ -117,28 +133,30 @@ export const Products = () => {
                 />
               </div>
             </div>
-            <div>
-              <button
-                data-modal-target="crud-modal"
-                onClick={handleCreateNewProduct}
-                data-modal-toggle="crud-modal"
-                type="button"
-                className=" text-white bg-[#1d1d1b] hover:bg-gray-900 focus:outline-none focus:ring-4 focus:ring-[#c9c9c6] font-medium rounded-xl text-sm px-5 py-2 me-2 mb-2"
-              >
-                Nuevo producto
-              </button>
-              {showModal && (
-                  <ModalProduct
-                    mode={mode}
-                    data={selectedProduct || []}
-                    show={showModal}
-                    onClose={(
-                      message: string,
-                      type: "success" | "error" | null,
-                    ) => handleModalClose(message, type)}
-                  />
-              )}
-            </div>
+            {viewMode === "active" && (
+              <div>
+                <button
+                  data-modal-target="crud-modal"
+                  onClick={handleCreateNewProduct}
+                  data-modal-toggle="crud-modal"
+                  type="button"
+                  className=" text-white bg-[#1d1d1b] hover:bg-gray-900 focus:outline-none focus:ring-4 focus:ring-[#c9c9c6] font-medium rounded-xl text-sm px-5 py-2 me-2 mb-2"
+                >
+                  Nuevo producto
+                </button>
+                {showModal && (
+                    <ModalProduct
+                      mode={mode}
+                      data={selectedProduct || []}
+                      show={showModal}
+                      onClose={(
+                        message: string,
+                        type: "success" | "error" | null,
+                      ) => handleModalClose(message, type)}
+                    />
+                )}
+              </div>
+            )}
           </div>
           <div className="mt-5 bg-white shadow-sm p-4 rounded-xl h-full w-full">
             <TableProducts
@@ -148,7 +166,8 @@ export const Products = () => {
               encabezados={HEADER_TABLE_PRODUCTS}
               data={filteredProducts}
               fetch={fetchProducts}
-              outofstock="No se tiene productos registrados"
+              outofstock={viewMode === "active" ? "No se tienen productos registrados" : "No hay productos inactivos"}
+              mode={viewMode}
             />
           </div>
         </section>

@@ -70,7 +70,12 @@ export const getProductsByUserId = async (req: Request, res: Response) => {
       Array.isArray(result) && Array.isArray(result[0]) ? result[0] :
         Array.isArray(result) ? result : [];
 
-    return res.json({ products: rows });
+    const filtered = rows.filter((r: any) => {
+      const val = r?.isactive;
+      return val === undefined || val === null || Number(val) === 1;
+    });
+
+    return res.json({ products: filtered });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: "No se pudieron obtener productos" });

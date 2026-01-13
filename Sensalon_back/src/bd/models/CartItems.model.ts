@@ -2,20 +2,21 @@ import { DataTypes, Model, Optional } from "sequelize";
 import { CartItemAttributes } from "../../interfaces/CartItems";
 import conn from "../config/config";
 
-interface CartItemsCreationAttributes extends Optional<CartItemAttributes, 'iIdCartItem'> { }
+interface CartItemsCreationAttributes extends Optional<CartItemAttributes, 'idCartItem'> { }
 
 export const CartItemsModel = conn.define<Model<CartItemAttributes, CartItemsCreationAttributes>>('cartItems', {
-    iIdCartItem: {
-        type: DataTypes.UUID,
-          defaultValue: DataTypes.UUIDV4,
+    idCartItem: {
+        type: DataTypes.CHAR(36),
+        allowNull: false,
         primaryKey: true,
+        defaultValue: DataTypes.UUIDV4,
     },
     iFIdCart: {
-        type: DataTypes.INTEGER.UNSIGNED,
+        type: DataTypes.CHAR(36),
         allowNull: false,
     },
     iFIdProduct: {
-        type: DataTypes.INTEGER.UNSIGNED,
+        type: DataTypes.CHAR(36),
         allowNull: false,
     },
     iquantity: {

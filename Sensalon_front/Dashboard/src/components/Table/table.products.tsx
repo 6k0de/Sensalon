@@ -1,15 +1,17 @@
 import { useState } from "react";
-import { FaPenToSquare, FaRegTrashCan } from "react-icons/fa6";
+import { FaPenToSquare, FaRegTrashCan, FaToggleOn } from "react-icons/fa6";
 import { Product } from "../../interfaces/products";
 import './table.css';
-import { deleteProduct } from "../../services/products/deleteProduct";
+import { activateProduct, deleteProduct } from "../../services/products/deleteProduct";
 import { SuccessToast } from "../Toast/successToast";
 import { ErrorToast } from "../Toast/errorToast";
 import { Spinner } from "../Spinner/spinner";
 import { ModalSuccesCancel } from "../Modals/modal.acceptcancel";
-import { BASE_URL_IMAGE_DEV } from "../../utils/axiosClients";
+import { BASE_URL_IMAGE_PROD } from "../../utils/axiosClients";
 
-export const TableProducts = ({ encabezados, data, fetch, outofstock, handleEdit }: { encabezados: string[], data: Product[] | any, fetch: { (): void } | null, outofstock: string | '', setShowModal: any, showModal: any, handleEdit: (product: Product) => void }) => {
+type Mode = "active" | "inactive";
+
+export const TableProducts = ({ encabezados, data, fetch, outofstock, handleEdit, mode = "active" }: { encabezados: string[], data: Product[] | any, fetch: { (): void } | null, outofstock: string | '', setShowModal: any, showModal: any, handleEdit: (product: Product) => void, mode?: Mode }) => {
     const [toastMessage, setToastMessage] = useState<string | null>(null);
     const [toastType, setToastType] = useState<"success" | "error" | null>(null);
     const [showToast, setShowToast] = useState(true);
@@ -31,8 +33,16 @@ export const TableProducts = ({ encabezados, data, fetch, outofstock, handleEdit
                 setToastType('error');
                 setShowToast(true)
             }
-        } catch (error) {
-            setToastMessage('Fallo al eliminar el producto');
+        } catch (error: any) {
+            const baseMsg = error?.message || 'Fallo al eliminar el producto';
+            const detalles = error?.detalles;
+            const detalleOrdenes = detalles?.ordenes?.length ? ` Órdenes pendientes: ${detalles.ordenes.join(", ")}` : "";
+            const detalleTx = detalles?.transacciones?.length
+                ? ` Transacciones: ${detalles.transacciones.map((t: any) => `${t.transactionId || 'N/A'} (orden ${t.orderId || 'N/A'})`).join(" | ")}`
+                : "";
+            const composed = `${baseMsg}${detalleOrdenes}${detalleTx}`;
+
+            setToastMessage(composed);
             setToastType('error');
             setShowToast(true)
         } finally {
@@ -47,6 +57,36 @@ export const TableProducts = ({ encabezados, data, fetch, outofstock, handleEdit
             setShowToast(false)
         }, 3000); // 3 segundos
     };
+
+    const handleActivateProduct = async (id: string) => {
+        setIsProcessing(true);
+        try {
+            const resultado = await activateProduct(id);
+            if (resultado.valor == 0) {
+                setToastMessage(resultado.message);
+                setToastType('success');
+                setShowToast(true)
+                fetch && fetch()
+            } else {
+                setToastMessage(resultado.message || 'No se pudo activar');
+                setToastType('error');
+                setShowToast(true)
+            }
+        } catch (error: any) {
+            const baseMsg = error?.message || 'Fallo al activar el producto';
+            setToastMessage(baseMsg);
+            setToastType('error');
+            setShowToast(true)
+        } finally {
+            setIsProcessing(false);
+        }
+
+        setTimeout(() => {
+            setToastMessage(null);
+            setToastType(null);
+            setShowToast(false)
+        }, 3000);
+    }
 
     return (
         <>
@@ -91,7 +131,7 @@ export const TableProducts = ({ encabezados, data, fetch, outofstock, handleEdit
                                     : null;
                                 // Construir la URL completa de la imagen
                                 const imageUrl = normalizedPath
-                                    ? `${BASE_URL_IMAGE_DEV}/${normalizedPath}`
+                                    ? `${BASE_URL_IMAGE_PROD}/${normalizedPath}`
                                     : 'ruta-imagen-por-defecto'; // Usa una imagen por defecto si vcphoto es nulo
                                 
                                 return (
@@ -125,21 +165,33 @@ export const TableProducts = ({ encabezados, data, fetch, outofstock, handleEdit
                                         {/* Botones de Acción */}
                                         <td className="px-6 py-4 align-middle">
                                             <div className="flex gap-3 justify-center">
-                                                <button
-                                                    onClick={() => handleEdit(product)}
-                                                    className="font-medium text-[#393936] dark:text-blue-500 hover:underline"
-                                                >
-                                                    <FaPenToSquare size={18} />
-                                                </button>
-                                                <button
-                                                    onClick={() => {
-                                                        setUserToDelete(product);
-                                                        setShowModal(true);
-                                                    }}
-                                                    className="font-medium text-red-600 dark:text-blue-500 hover:underline"
-                                                >
-                                                    <FaRegTrashCan size={18} />
-                                                </button>
+                                                {mode === "active" && (
+                                                    <>
+                                                        <button
+                                                            onClick={() => handleEdit(product)}
+                                                            className="font-medium text-[#393936] dark:text-blue-500 hover:underline"
+                                                        >
+                                                            <FaPenToSquare size={18} />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => {
+                                                                setUserToDelete(product);
+                                                                setShowModal(true);
+                                                            }}
+                                                            className="font-medium text-red-600 dark:text-blue-500 hover:underline"
+                                                        >
+                                                            <FaRegTrashCan size={18} />
+                                                        </button>
+                                                    </>
+                                                )}
+                                                {mode === "inactive" && (
+                                                    <button
+                                                        onClick={() => handleActivateProduct(product.iIdProduct)}
+                                                        className="font-medium text-green-600 hover:underline"
+                                                    >
+                                                        <FaToggleOn size={20} />
+                                                    </button>
+                                                )}
                                             </div>
                                         </td>
                                     </tr>
@@ -157,19 +209,21 @@ export const TableProducts = ({ encabezados, data, fetch, outofstock, handleEdit
 
                 </table>
             </div>
-            <ModalSuccesCancel
-                show={showModal}
-                message={
-                    <>
-                        ¿Seguro que deseas eliminar el Producto{" "}
-                        <strong>{userToDelete?.vcname}</strong>?
-                    </>
-                }
-                confirmLabel="Eliminar"
-                cancelLabel="Cancelar"
-                onConfirm={() => handleDeleteProduct(userToDelete.iIdProduct)}
-                onCancel={() => setShowModal(false)}
-            />
+            {mode === "active" && (
+                <ModalSuccesCancel
+                    show={showModal}
+                    message={
+                        <>
+                            ¿Seguro que deseas eliminar el Producto{" "}
+                            <strong>{userToDelete?.vcname}</strong>?
+                        </>
+                    }
+                    confirmLabel="Eliminar"
+                    cancelLabel="Cancelar"
+                    onConfirm={() => handleDeleteProduct(userToDelete.iIdProduct)}
+                    onCancel={() => setShowModal(false)}
+                />
+            )}
         </>
     );
 };

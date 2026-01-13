@@ -39,6 +39,11 @@ export const Products = conn.define<Model<Product, ProductCreation>>('products',
         type: DataTypes.STRING(60),
         allowNull: true
     },
+    isactive: {
+        type: DataTypes.TINYINT,
+        allowNull: false,
+        defaultValue: 1
+    },
     vcweight: {
         type: DataTypes.STRING(128),
         allowNull: false,

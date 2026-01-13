@@ -16,17 +16,88 @@ type Store = {
   _timerId: number | null;
 };
 
+const CACHE_PREFIX = "products:byUser:v2";
+const LEGACY_CACHE_KEY = "products:byUser";
+const CACHE_TTL_MS = 10 * 60 * 1000; // 10 min
+
 const readUser = () => {
   try { return JSON.parse(localStorage.getItem("user") || "null"); }
   catch { return null; }
 };
 
-const readCache = (): Product[] => {
-  try { return JSON.parse(localStorage.getItem("products:byUser") || "[]"); }
-  catch { return []; }
+const getUserIdentity = () => {
+  const u = readUser();
+  if (!u) {
+    return { userId: "guest", roleId: "guest", isGuest: true };
+  }
+
+  const userId =
+    u?.user?.iIdUser ||
+    u?.user?.id ||
+    u?.iIdUser ||
+    u?.id ||
+    "unknown";
+  const roleId =
+    u?.user?.iFIdRole ||
+    u?.user?.roleId ||
+    u?.iFIdRole ||
+    u?.roleId ||
+    "unknown";
+
+  return { userId: String(userId), roleId: String(roleId), isGuest: false };
 };
+
+const getCacheKey = () => {
+  const identity = getUserIdentity();
+  if (identity.isGuest) return `${CACHE_PREFIX}:guest`;
+  return `${CACHE_PREFIX}:${identity.userId}:${identity.roleId}`;
+};
+
+const purgeOtherCaches = (keepKey: string) => {
+  try {
+    localStorage.removeItem(LEGACY_CACHE_KEY);
+    Object.keys(localStorage).forEach((key) => {
+      if (key.startsWith(CACHE_PREFIX) && key !== keepKey) {
+        localStorage.removeItem(key);
+      }
+    });
+  } catch { }
+};
+
+const readCache = (): Product[] => {
+  try {
+    const key = getCacheKey();
+    purgeOtherCaches(key);
+    const raw = localStorage.getItem(key);
+    if (!raw) return [];
+
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) return parsed;
+
+    const ts = Number(parsed?.ts || 0);
+    const items = parsed?.items;
+
+    if (!Array.isArray(items)) return [];
+    if (ts && Date.now() - ts > CACHE_TTL_MS) {
+      localStorage.removeItem(key);
+      return [];
+    }
+    return items;
+  } catch {
+    return [];
+  }
+};
+
 const writeCache = (products: Product[]) => {
-  localStorage.setItem("products:byUser", JSON.stringify(products));
+  try {
+    const key = getCacheKey();
+    purgeOtherCaches(key);
+    const payload = {
+      ts: Date.now(),
+      items: products,
+    };
+    localStorage.setItem(key, JSON.stringify(payload));
+  } catch { }
 };
 
 export const useProductStore = create<Store>((set, get) => ({

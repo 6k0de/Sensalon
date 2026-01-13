@@ -1,7 +1,11 @@
 import { Request, Response } from "express";
+import { Op } from "sequelize";
 import conn from "../../bd/config/config";
 import { Products } from "../../bd/models/Products.model";
 import { ProductPakcageItemsModel } from "../../bd/models/ProductsPackageitemst.model";
+import { InventoryReservationModel } from "../../bd/models/InventoryReservation.model";
+import { TransactionModel } from "../../bd/models/Transaction.model";
+import { CartItemsModel } from "../../bd/models/CartItems.model";
 
 export const insertProduct = (req: Request, res: Response) => {
     const {
@@ -114,6 +118,7 @@ export const getAllProducts = async (_: Request, res: Response) => {
     try {
         // 1) Traer todos los productos con items de paquete
         const productos = await Products.findAll({
+            where: { isactive: 1 },
             include: [
                 {
                     model: ProductPakcageItemsModel,
@@ -126,6 +131,7 @@ export const getAllProducts = async (_: Request, res: Response) => {
 
         const plainProducts = productos.map((p: any) => p.toJSON());
 
+        console.log(productos)
         // 2) Juntar TODOS los productId hijos de todos los paquetes
         const allPackageItemIds = new Set<string>();
 
@@ -187,11 +193,32 @@ export const getAllProducts = async (_: Request, res: Response) => {
 
             return p;
         });
-
+        
         res.json(productosConHijos);
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: "Error al obtener productos" });
+    }
+};
+
+export const getInactiveProducts = async (_: Request, res: Response) => {
+    try {
+        const productos = await Products.findAll({
+            where: { isactive: 0 },
+            include: [
+                {
+                    model: ProductPakcageItemsModel,
+                    as: "packageItems",
+                    required: false,
+                },
+            ],
+            order: [["dtupdate", "DESC"]],
+        });
+
+        res.json(productos.map((p: any) => p.toJSON()));
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Error al obtener productos inactivos" });
     }
 };
 
@@ -210,7 +237,8 @@ export const getProductsByCompany = async (req: Request, res: Response) => {
 
         const products = await Products.findAll({
             where: {
-                iFIdCompany: id
+                iFIdCompany: id,
+                isactive: 1
             },
             order: [["vcname", "ASC"]],
         });
@@ -350,16 +378,91 @@ export const deleteProduct = async (req: Request, res: Response) => {
     const id = req.params.id;
 
     try {
-        const productoEliminado = await Products.destroy({ where: { iIdProduct: id } });
+        let txInfo: any[] | undefined;
+        // Revisar reservaciones antes de borrar: liberar las pendientes y bloquear las comprometidas
+        const reservations = await InventoryReservationModel.findAll({
+            where: { productId: id },
+            attributes: ["orderId", "status", "expiresAt"],
+        });
 
-        if (productoEliminado) {
-            console.log(`Producto con ID ${id} eliminado`);
-            res.status(200).json({ valor: 0, message: 'Producto eliminado correctamente' });
+        if (reservations.length > 0) {
+            const reservedOrders = reservations
+                .filter((r) => r.getDataValue("status") === "reserved")
+                .map((r) => r.getDataValue("orderId"));
+
+            const committedOrders = reservations
+                .filter((r) => r.getDataValue("status") === "committed")
+                .map((r) => r.getDataValue("orderId"));
+
+            const orderIds = Array.from(new Set([...reservedOrders, ...committedOrders]));
+
+            const transactions = await TransactionModel.findAll({
+                where: { iOrderPendingId: { [Op.in]: orderIds } },
+                attributes: ["iIdTransaction", "iOrderPendingId", "status"],
+            });
+
+            txInfo = transactions.map((t) => ({
+                transactionId: t.getDataValue("iIdTransaction"),
+                orderId: t.getDataValue("iOrderPendingId"),
+                status: t.getDataValue("status"),
+            }));
+
+            // Liberar y eliminar reservas pendientes (reserved), incluso si están vencidas
+            if (reservedOrders.length > 0) {
+                await InventoryReservationModel.update(
+                    { status: "released" },
+                    { where: { productId: id, status: "reserved" } }
+                );
+                await InventoryReservationModel.destroy({
+                    where: { productId: id, status: "released" },
+                });
+            }
+        }
+
+        const [updated] = await Products.update(
+            { isactive: 0, dtupdate: new Date() },
+            { where: { iIdProduct: id } }
+        );
+
+        // Quitar el producto de todos los carritos para evitar compras con items inactivos
+        try {
+            await CartItemsModel.destroy({ where: { iFIdProduct: id } });
+        } catch (err) {
+            console.error('No se pudieron limpiar los carritos para el producto inactivado:', err);
+        }
+
+        if (updated) {
+            console.log(`Producto con ID ${id} marcado como inactivo`);
+            res.status(200).json({
+                valor: 0,
+                message: 'Producto inactivado correctamente',
+                infoTransacciones: txInfo || undefined
+            });
         } else {
             res.status(404).json({ message: 'Producto no encontrado' });
         }
     } catch (error) {
         console.error('Error eliminando el producto:', error);
         res.status(500).json({ valor: 1, message: 'Error al eliminar el producto', error });
+    }
+};
+
+export const activateProduct = async (req: Request, res: Response) => {
+    const { id } = req.params;
+
+    try {
+        const [updated] = await Products.update(
+            { isactive: 1, dtupdate: new Date() },
+            { where: { iIdProduct: id } }
+        );
+
+        if (updated) {
+            return res.status(200).json({ valor: 0, message: 'Producto activado correctamente' });
+        }
+
+        return res.status(404).json({ valor: 1, message: 'Producto no encontrado' });
+    } catch (error) {
+        console.error('Error activando el producto:', error);
+        return res.status(500).json({ valor: 1, message: 'Error al activar el producto', error });
     }
 };

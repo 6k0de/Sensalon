@@ -7,6 +7,7 @@ import { Users } from "../pages/Users";
 import { ProtectedRoute } from "./ProtectedRoute"; // Importar el componente de ruta protegida
 import { LoginAuth } from "../pages/Auth";
 import { Transactions } from "../pages/Transactions";
+import { OrdersPending } from "../pages/OrdersPending";
 import { Slider } from "../pages/Slider";
 import { BankConfiguration } from "../pages/BankConfiguration";
 import { Suppliers } from "../pages/Suppliers";
@@ -36,6 +37,16 @@ export const AppRoutes = () => {
             <ProtectedRoute>
               <Layout>
                 <Transactions />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/ordenespendientes"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <OrdersPending />
               </Layout>
             </ProtectedRoute>
           }

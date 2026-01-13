@@ -69,7 +69,7 @@ export const SalonCard: React.FC<SalonCardProps> = ({ salon }) => {
                     <div className="flex items-center">
                         <ClockIcon className="w-5 h-5 text-primary-500 mr-3 flex-shrink-0" />
                         <p className="text-sm">
-                            <span className="font-medium">Horario:</span> {`${horaApertura.substring(0, 5)} - ${horaCierre.substring(0, 5)}`}
+                            <span className="font-medium">Horario:</span> {`${horaApertura?.substring(0, 5)} - ${horaCierre?.substring(0, 5)}`}
                         </p>
                     </div>
                 </div>

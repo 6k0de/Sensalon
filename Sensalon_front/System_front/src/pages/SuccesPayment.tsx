@@ -1,9 +1,12 @@
 import React, { useEffect } from "react"
 import { useSearchParams } from "react-router-dom"
 import { CheckCircle, Copy} from "lucide-react"
+import { useCartStore } from "../hooks/useCartStore"
 
 export const PaymentSuccessPage: React.FC = () => {
     const [searchParams] = useSearchParams()
+   const clearCart = useCartStore((s: any) => s.clearCart);
+     const syncCartToBackend = useCartStore((s: any) => s.syncCartToBackend);
 
     // Recuperar parámetros enviados por el backend
     const transactionId = searchParams.get("orderNumber") || "N/A"
@@ -20,9 +23,14 @@ export const PaymentSuccessPage: React.FC = () => {
         alert("ID copiado al portapapeles")
     }
 
-   useEffect(() => {
-       localStorage.removeItem("cart-storage");
-     }, []);
+    useEffect(() => {
+        clearCart()
+        const cartId = localStorage.getItem("cartId")
+        if (cartId) {
+            syncCartToBackend(cartId)
+        }
+        localStorage.removeItem("cart-storage")
+    }, [clearCart, syncCartToBackend])
 
     return (
         <div className="bg">

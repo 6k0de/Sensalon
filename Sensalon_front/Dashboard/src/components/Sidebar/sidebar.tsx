@@ -10,10 +10,14 @@ import {
   FaSliders,
   FaTruck,
   FaWarehouse,
-  FaTag
+  FaTag,
+  FaFilePen
 } from "react-icons/fa6";
 
 export const Sidebar = () => {
+  const iconClassName =
+    "w-5 h-5 shrink-0 text-gray-500 transition duration-75 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white";
+
   return (
     <aside
       className="fixed top-0 left-0 z-40 w-64 h-screen pt-20 transition-transform -translate-x-full bg-white sm:translate-x-0 dark:bg-gray-800"
@@ -27,7 +31,7 @@ export const Sidebar = () => {
               className="flex items-center p-2 text-[#1d1d1b] rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group"
             >
               <FaHouse
-                className="w-5 h-5 text-gray-500 transition duration-75 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white"
+                className={iconClassName}
                 aria-hidden="true"
               />
               <span className="flex-1 ms-3 whitespace-nowrap text-lg">
@@ -41,7 +45,7 @@ export const Sidebar = () => {
               className="flex items-center p-2 text-[#1d1d1b] rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group"
             >
               <FaMoneyBillTransfer
-                className="w-6 h-6 text-gray-500 transition duration-75 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white"
+                className={iconClassName}
                 aria-hidden="true"
               />
               <span className="flex-1 ms-3 whitespace-nowrap text-lg">
@@ -51,11 +55,25 @@ export const Sidebar = () => {
           </li>
           <li>
             <Link
+              to="/ordenespendientes"
+              className="flex items-center p-2 text-[#1d1d1b] rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group"
+            >
+              <FaFilePen
+                className={iconClassName}
+                aria-hidden="true"
+              />
+              <span className="flex-1 ms-3 whitespace-nowrap text-lg">
+                Ordenes sin transaccion
+              </span>
+            </Link>
+          </li>
+          <li>
+            <Link
               to="/almacen"
               className="flex items-center p-2 text-[#1d1d1b] rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group"
             >
               <FaWarehouse
-                className="w-5 h-5 text-gray-500 transition duration-75 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white"
+                className={iconClassName}
                 aria-hidden="true"
               />
               <span className="flex-1 ms-3 whitespace-nowrap text-lg">
@@ -69,7 +87,7 @@ export const Sidebar = () => {
               className="flex items-center p-2 text-[#1d1d1b] rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group"
             >
               <FaTag
-                className="w-5 h-5 text-gray-500 transition duration-75 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white"
+                className={iconClassName}
                 aria-hidden="true"
               />
               <span className="flex-1 ms-3 whitespace-nowrap text-lg">
@@ -83,7 +101,7 @@ export const Sidebar = () => {
               className="flex items-center p-2 text-[#1d1d1b] rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group"
             >
               <FaTags
-                className="w-5 h-5 text-gray-500 transition duration-75 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white"
+                className={iconClassName}
                 aria-hidden="true"
               />
               <span className="flex-1 ms-3 whitespace-nowrap text-lg">
@@ -97,7 +115,7 @@ export const Sidebar = () => {
               className="flex items-center p-2 text-[#1d1d1b] rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group"
             >
               <FaBuilding
-                className="w-5 h-5 text-gray-500 transition duration-75 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white"
+                className={iconClassName}
                 aria-hidden="true"
               />
               <span className="flex-1 ms-3 whitespace-nowrap text-lg">
@@ -111,7 +129,7 @@ export const Sidebar = () => {
               className="flex items-center p-2 text-[#1d1d1b] rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group"
             >
               <FaUser
-                className="w-5 h-5 text-gray-500 transition duration-75 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white"
+                className={iconClassName}
                 aria-hidden="true"
               />
               <span className="flex-1 ms-3 whitespace-nowrap text-lg">
@@ -125,7 +143,7 @@ export const Sidebar = () => {
               className="flex items-center p-2 text-[#1d1d1b] rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group"
             >
               <FaTruck
-                className="w-5 h-5 text-gray-500 transition duration-75 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white"
+                className={iconClassName}
                 aria-hidden="true"
               />
               <span className="flex-1 ms-3 whitespace-nowrap text-lg">
@@ -140,7 +158,7 @@ export const Sidebar = () => {
               className="flex items-center p-2 text-[#1d1d1b] rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group"
             >
               <FaLayerGroup
-                className="w-5 h-5 text-gray-500 transition duration-75 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white"
+                className={iconClassName}
                 aria-hidden="true"
               />
               <span className="flex-1 ms-3 whitespace-nowrap text-lg">
@@ -154,7 +172,7 @@ export const Sidebar = () => {
               className="flex items-center p-2 text-[#1d1d1b] rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group"
             >
               <FaImages
-                className="w-5 h-5 text-gray-500 transition duration-75 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white"
+                className={iconClassName}
                 aria-hidden="true"
               />
               <span className="flex-1 ms-3 whitespace-nowrap text-lg">
@@ -168,7 +186,7 @@ export const Sidebar = () => {
               className="flex items-center p-2 text-[#1d1d1b] rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group"
             >
               <FaSliders
-                className="w-5 h-5 text-gray-500 transition duration-75 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white"
+                className={iconClassName}
                 aria-hidden="true"
               />
               <span className="flex-1 ms-3 whitespace-nowrap text-lg">
