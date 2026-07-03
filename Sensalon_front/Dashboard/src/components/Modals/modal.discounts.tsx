@@ -449,7 +449,7 @@ export const DiscountCodeModal: React.FC<DiscountCodeModalProps> = ({
                                                     const normalizedPath = p.vcphoto
                                                         .replace(/\\/g, "/")
                                                         .split("/imagenes/")[1];
-                                                    imageUrl = `https://api.sensalon.com.mx/imagenes/${normalizedPath}`;
+                                                    imageUrl = `http://localhost:3000/imagenes/${normalizedPath}`;
                                                 }
 
                                                 return (

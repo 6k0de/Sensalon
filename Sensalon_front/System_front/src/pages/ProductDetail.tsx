@@ -131,7 +131,7 @@ export const ProductDetail = () => {
                         <>
                             {displayProduct.vcphoto.split(',').map((path: string, index: number) => {
                                 const normalizedPath = path.replace(/\\/g, '/').split('/imagenes/')[1];
-                                const imageUrl = `https://api.sensalon.com.mx/imagenes/${normalizedPath}`;
+                                const imageUrl = `http://localhost:3000/imagenes/${normalizedPath}`;
 
 
                                 return (
@@ -261,7 +261,7 @@ export const ProductDetail = () => {
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                     {productosSimilares?.map((product) => {
                         const normalizedPath = product?.vcphoto.replace(/\\/g, "/").split("/imagenes/")[1];
-                        const imageUrl = `https://api.sensalon.com.mx/imagenes/${normalizedPath}`;
+                        const imageUrl = `http://localhost:3000/imagenes/${normalizedPath}`;
                         let userPrice = product.decprice3; // default
                         if (isGuestUser(user)) {
                             userPrice = product.decprice3; // invitado => 3

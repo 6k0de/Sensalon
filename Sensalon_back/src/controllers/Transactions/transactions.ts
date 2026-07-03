@@ -207,6 +207,12 @@ export const updateOrderPendingStatus = async (req: Request, res: Response) => {
             if (normalizeValue(existingTransaction.getDataValue("status")) !== "approved") {
                 await existingTransaction.update({ status: "approved" });
             }
+            if (currentStatus !== "completed") {
+                const approval = await approveOrderById(String(orderId));
+                if (!approval.ok && approval.message !== "No hay reservas activas para esta orden") {
+                    throw new Error(approval.message || "No se pudo descontar stock.");
+                }
+            }
             await preOrder.update({ status: "completed" });
             return res.status(200).json({
                 message: "Orden actualizada; transacción existente aprobada",

@@ -7,27 +7,27 @@ export const normalizeImageUrl = (input?: string | null): string => {
     // si ya es http(s), la regresamos tal cual
     if (/^https?:\/\//i.test(raw)) return raw;
 
-    const HOST = "api.sensalon.com.mx";
+    const HOST = "localhost:3000";
 
-    // si la ruta contiene .../api.sensalon.com.mx/...
+    // si la ruta contiene .../localhost:3000/...
     const idx = raw.indexOf(HOST);
     if (idx !== -1) {
         const tail = raw.slice(idx + HOST.length);
-        return `https://${HOST}${tail.startsWith("/") ? tail : `/${tail}`}`;
+        return `http://${HOST}${tail.startsWith("/") ? tail : `/${tail}`}`;
     }
 
     // si ya viene como ruta del api (ej. /assets/imagenes/xxx.jpg)
     if (raw.startsWith("/assets/")) {
-        return `https://${HOST}${raw}`;
+        return `http://${HOST}${raw}`;
     }
 
     // si viene una ruta absoluta de servidor con /imagenes/ al final
     const imgIdx = raw.indexOf("/assets/imagenes/");
     if (imgIdx !== -1) {
         const tail = raw.slice(imgIdx); // incluye /assets/imagenes/...
-        return `https://${HOST}${tail}`;
+        return `http://${HOST}${tail}`;
     }
 
     // último recurso: intentar pegar directo al host
-    return `https://${HOST}${raw.startsWith("/") ? raw : `/${raw}`}`;
+    return `http://${HOST}${raw.startsWith("/") ? raw : `/${raw}`}`;
 }

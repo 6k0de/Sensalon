@@ -9,8 +9,8 @@ export const normalizeImageUrl = (
   input?: string | null,
   opts: NormalizeOpts = {}
 ): string => {
-  const defaultHost = (opts.defaultHost ?? 'api.sensalon.com.mx').trim();
-  const proto = opts.protocol ?? 'https';
+  const defaultHost = (opts.defaultHost ?? 'localhost:3000').trim();
+  const proto = opts.protocol ?? 'http';
 
   if (!input || typeof input !== 'string') return '';
   let raw = input.trim();

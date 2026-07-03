@@ -6,7 +6,7 @@ import { Categorie } from "../../interfaces/categories";
 import { InsertProducts } from "../../services/products/InsertProducts";
 import { Product, ProductType } from "../../interfaces/products";
 import { UpdateProduct } from "../../services/products/updateProduct";
-import { api, BASE_URL_IMAGE_PROD,   } from "../../utils/axiosClients";
+import { api, BASE_URL_IMAGE_PROD, } from "../../utils/axiosClients";
 import { ErrorToast } from "../Toast/errorToast";
 import { ProductAutocomplete } from "../Autocomplete";
 import { ColorPickerField } from "../ColorPicker";
@@ -629,7 +629,7 @@ export const ModalProduct = ({ show, onClose, data, mode }: { show: boolean, onC
                                     value={existencia}
                                     onChange={(e) => setExistencia(e.target.value)}
                                     type="number"
-                                    className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-xl w-full p-2.5 "  
+                                    className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-xl w-full p-2.5 "
                                 />
                             </div>
 

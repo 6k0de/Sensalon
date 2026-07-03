@@ -101,7 +101,7 @@ export const Home = () => {
                                     const normalizedPath = product?.vcphoto
                                         ?.replace(/\\/g, "/")
                                         .split("/imagenes/")[1];
-                                    const imageUrl = `https://api.sensalon.com.mx/imagenes/${normalizedPath}`;
+                                    const imageUrl = `http://localhost:3000/imagenes/${normalizedPath}`;
 
                                     return (
                                         <ProductCard
@@ -137,7 +137,7 @@ export const Home = () => {
                                     const normalizedPath = product?.vcphoto
                                         ?.replace(/\\/g, "/")
                                         .split("/imagenes/")[1];
-                                    const imageUrl = `https://api.sensalon.com.mx/imagenes/${normalizedPath}`;
+                                    const imageUrl = `http://localhost:3000/imagenes/${normalizedPath}`;
 
                                     return (
                                         <ProductCard

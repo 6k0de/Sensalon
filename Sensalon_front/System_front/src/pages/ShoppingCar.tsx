@@ -806,7 +806,7 @@ export const ShoppingCar = () => {
                                             const normalizedPath = product?.vcphoto
                                                 ?.replace(/\\/g, "/")
                                                 .split("/imagenes/")[1];
-                                            const imageUrl = `https://api.sensalon.com.mx/imagenes/${normalizedPath}`;
+                                            const imageUrl = `http://localhost:3000/imagenes/${normalizedPath}`;
                                             console.log(product)
                                             //const user = readUser();
                                             const lineTotal = getLinePrice({ product, quantity, variantId });

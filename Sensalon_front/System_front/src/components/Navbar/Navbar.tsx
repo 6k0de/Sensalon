@@ -196,7 +196,7 @@ export const Navbar = () => {
               >
                 {filteredProducts.map((product: Product) => {
                   const normalizedPath = product.vcphoto.replace(/\\/g, '/').split('/imagenes/')[1];
-                  const imageUrl = `https://api.sensalon.com.mx/imagenes/${normalizedPath}`;
+                  const imageUrl = `http://localhost:3000/imagenes/${normalizedPath}`;
                   const user = readUser();
                   let userPrice = product.decprice3; // default
                   if (isGuestUser(user)) {
@@ -263,7 +263,7 @@ export const Navbar = () => {
                     <div className="overflow-y-auto max-h-64 custom-scrollbar">
                       {cart.map(({ product, quantity, variantId, variantLabel }) => {
                         const normalizedPath = product?.vcphoto?.replace(/\\/g, '/').split('/imagenes/')[1];
-                        const imageUrl = `https://api.sensalon.com.mx/imagenes/${normalizedPath}`;
+                        const imageUrl = `http://localhost:3000/imagenes/${normalizedPath}`;
                         //const user = readUser();
                        /*  let userPrice = product?.decprice3; // default
 
@@ -408,7 +408,7 @@ export const Navbar = () => {
                     >
                       {filteredProducts.map((product: Product) => {
                         const normalizedPath = product.vcphoto.replace(/\\/g, '/').split('/imagenes/')[1];
-                        const imageUrl = `https://api.sensalon.com.mx/imagenes/${normalizedPath}`;
+                        const imageUrl = `http://localhost:3000/imagenes/${normalizedPath}`;
 
                         return (
                           <div

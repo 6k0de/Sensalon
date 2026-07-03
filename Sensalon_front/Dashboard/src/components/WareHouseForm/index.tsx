@@ -417,7 +417,7 @@ export const WareHouseForm = () => {
                                             console.log(item)
                                             const rowTotal = (item.quantity || 0) * (item.unitPrice || 0);
                                             const normalizedPath = item?.vcphoto?.replace(/\\/g, '/').split('/imagenes/')[1];
-                                            const imageUrl = `https://api.sensalon.com.mx/imagenes/${normalizedPath}`
+                                            const imageUrl = `http://localhost:3000/imagenes/${normalizedPath}`
                                             return (
                                                 <tr key={item.productId} className="align-middle hover:bg-gray-50/60">
                                                     {/* Producto + SKU */}
@@ -628,7 +628,7 @@ export const WareHouseForm = () => {
                                             {productsByBrand.map((prod) => {
                                                 const isChecked = selectedProductIds.includes(prod.iIdProduct);
                                                 const normalizedPath = prod?.vcphoto?.replace(/\\/g, '/').split('/imagenes/')[1];
-                                                const imageUrl = `https://api.sensalon.com.mx/imagenes/${normalizedPath}`
+                                                const imageUrl = `http://localhost:3000/imagenes/${normalizedPath}`
                                                 return (
                                                     <button
                                                         key={prod.iIdProduct}

@@ -187,9 +187,9 @@ const sendLowStockAlert = async (items: LowStockItem[]) => {
 };
 
 export const createOrderMercadoPago = async (req: Request, res: Response) => {
-    const BASE_URL_BACK_PROD = 'api.sensalon.com.mx/payments'
+    //const BASE_URL_BACK_PROD = 'api.sensalon.com.mx/payments'
     //const BASE_URL_BACK_PREPROD = 'test-api.sensalon.com.mx/payments'
-    /* const BASE_URL_BACK_DEV = '' */
+    const BASE_URL_BACK_PROD = 'localhost:3000/payments' // DEV (nota: MercadoPago no puede redirigir a localhost)
     const t = await conn.transaction();
     try {
         const {
@@ -632,7 +632,7 @@ export const createOrderTransfer = async (req: Request, res: Response) => {
             // Si es limitado, verificar usos restantes
             if (discountRow.getDataValue('usageLimitType') === "limited") {
                 const currentCount = discountRow.getDataValue('usageCount') || 0;
-                const maxUses = discountRow.getDataValue('usageCount') ?? null;
+                const maxUses = discountRow.getDataValue('usageLimit') ?? null;
 
                 if (maxUses !== null && currentCount >= maxUses) {
                     await t.rollback();
