@@ -1,6 +1,4 @@
 import conn from "./config/config";
-import { Users } from "./models/Users.model";
-import { Roles } from "./models/Roles.model";
 import { AssociationsRolesUsers } from "./associations/AssociationsRolesUsers";
 
 

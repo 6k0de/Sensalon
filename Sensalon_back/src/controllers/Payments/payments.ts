@@ -304,10 +304,19 @@ export const createOrderMercadoPago = async (req: Request, res: Response) => {
         const preOrderGenerateId = preOrder.getDataValue('iIdOrderPending')
 
         const productdIds = products.map((p: any) => p.product.iIdProduct)
-        const packageIds = products
-            .filter((p: any) => p?.product?.producttype === "PACKAGE")
-            .map((p: any) => p?.product?.iIdProduct)
-            .filter(Boolean);
+
+        // Determinar los paquetes desde la BD (no confiar en el producttype que manda el cliente)
+        const lineProductsBD = await Products.findAll({
+            where: { iIdProduct: { [Op.in]: productdIds }, isactive: 1 },
+            transaction: t
+        })
+
+        const packageIdSet = new Set<string>(
+            lineProductsBD
+                .filter((p: any) => p.getDataValue('producttype') === "PACKAGE")
+                .map((p: any) => String(p.getDataValue('iIdProduct')))
+        );
+        const packageIds = Array.from(packageIdSet);
 
         const packageItems = packageIds.length
             ? await ProductPakcageItemsModel.findAll({
@@ -373,7 +382,7 @@ export const createOrderMercadoPago = async (req: Request, res: Response) => {
                 return res.status(417).json({ message: `Producto inexistente: ${line?.product?.vcname || productId}` });
             }
 
-            if (line?.product?.producttype === "PACKAGE") {
+            if (packageIdSet.has(productId)) {
                 const components = packageItemsByPackage[productId] || [];
                 if (!components.length) {
                     await t.rollback();
@@ -429,7 +438,7 @@ export const createOrderMercadoPago = async (req: Request, res: Response) => {
             const requestedQty = Number(line?.quantity) || 0;
             if (!productId || requestedQty <= 0) continue;
 
-            if (line?.product?.producttype === "PACKAGE") {
+            if (packageIdSet.has(productId)) {
                 const components = packageItemsByPackage[productId] || [];
                 components.forEach((item) => {
                     const perPackageQty = item.quantity > 0 ? item.quantity : 1;
@@ -500,10 +509,24 @@ export const createOrderMercadoPago = async (req: Request, res: Response) => {
             preferenceId: response.id
         })
 
-    } catch (error) {
+    } catch (error: any) {
         await t.rollback();
         console.error("Error al crear la orden:", error);
-        return res.status(500).json({ error: "Hubo un error al procesar el pago" });
+
+        // Errores controlados (validaciones propias): devolver el mensaje real como 400
+        const knownMessage =
+            typeof error?.message === 'string' && error.message.startsWith('Producto inválido')
+                ? error.message
+                : null;
+
+        if (knownMessage) {
+            return res.status(400).json({ error: knownMessage, message: knownMessage });
+        }
+
+        return res.status(500).json({
+            error: "Hubo un error al procesar el pago",
+            message: "Hubo un error al procesar el pago. Intenta de nuevo; si persiste, contacta a soporte.",
+        });
     }
 }
 
@@ -659,7 +682,7 @@ export const createOrderTransfer = async (req: Request, res: Response) => {
             credit: creditValue,
             total: totalParsed,
             status: "pending"
-        })
+        }, { transaction: t })
 
         const preOrderGenerateId = preOrder.getDataValue('iIdOrderPending')
         console.log(preOrderGenerateId)
@@ -667,10 +690,18 @@ export const createOrderTransfer = async (req: Request, res: Response) => {
         console.log(productsArr)
         const productdIds = productsArr.map((p: any) => p.product.iIdProduct)
 
-        const packageIds = productsArr
-            .filter((p: any) => p?.product?.producttype === "PACKAGE")
-            .map((p: any) => p?.product?.iIdProduct)
-            .filter(Boolean);
+        // Determinar los paquetes desde la BD (no confiar en el producttype que manda el cliente)
+        const lineProductsBD = await Products.findAll({
+            where: { iIdProduct: { [Op.in]: productdIds }, isactive: 1 },
+            transaction: t
+        })
+
+        const packageIdSet = new Set<string>(
+            lineProductsBD
+                .filter((p: any) => p.getDataValue('producttype') === "PACKAGE")
+                .map((p: any) => String(p.getDataValue('iIdProduct')))
+        );
+        const packageIds = Array.from(packageIdSet);
 
         const packageItems = packageIds.length
             ? await ProductPakcageItemsModel.findAll({
@@ -736,7 +767,7 @@ export const createOrderTransfer = async (req: Request, res: Response) => {
                 return res.status(417).json({ message: `Producto inexistente: ${line?.product?.vcname || productId}` });
             }
 
-            if (line?.product?.producttype === "PACKAGE") {
+            if (packageIdSet.has(productId)) {
                 const components = packageItemsByPackage[productId] || [];
                 if (!components.length) {
                     await t.rollback();
@@ -793,7 +824,7 @@ export const createOrderTransfer = async (req: Request, res: Response) => {
             const requestedQty = Number(line?.quantity) || 0;
             if (!productId || requestedQty <= 0) continue;
 
-            if (line?.product?.producttype === "PACKAGE") {
+            if (packageIdSet.has(productId)) {
                 const components = packageItemsByPackage[productId] || [];
                 components.forEach((item) => {
                     const perPackageQty = item.quantity > 0 ? item.quantity : 1;
@@ -849,7 +880,7 @@ export const createOrderTransfer = async (req: Request, res: Response) => {
             paymentMethod: "Transferencia Bancaria",
             products: productsPayload,
             urltransferrecipt: receiptPaths,
-        });
+        }, { transaction: t });
 
         // 6️⃣ Actualizar crédito y cashback
         if (addCredit && creditValue > 0) await Credit.update({ state: 1, totalpayamount: creditValue }, { where: { iFIdUser: idUser } });
@@ -887,7 +918,10 @@ export const createOrderTransfer = async (req: Request, res: Response) => {
             errorMessage: error.message,
             errorStack: error.stack,
         });
-        return res.status(500).json({ error: "Error al crear la orden" });
+        return res.status(500).json({
+            error: "Error al crear la orden",
+            message: "No se pudo crear la orden. No se realizó ningún cargo; intenta de nuevo o contacta a soporte.",
+        });
     }
 
 }

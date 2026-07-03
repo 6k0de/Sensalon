@@ -184,6 +184,22 @@ export const ModalProduct = ({ show, onClose, data, mode }: { show: boolean, onC
         if (!existenciaMinima) { setToastMessage("Ingrese la existencia mínima"); setToastType("error"); setShowToast(true); setTimeout(() => { setShowToast(false); setToastType(null); setToastMessage(null) }, 3000); return };
         if (mode === 0 && !selectedFile) { setToastMessage("Debe seleccionar una imagen del producto"); setToastType("error"); setShowToast(true); setTimeout(() => { setShowToast(false); setToastType(null); setToastMessage(null) }, 3000); return };
 
+        // Validación de stock para paquetes: ninguna cantidad puede superar el stock disponible
+        if (tipoProducto === 'PACKAGE') {
+            if (packageItems.length === 0) {
+                setToastMessage("Agrega al menos un producto al paquete"); setToastType("error"); setShowToast(true); setTimeout(() => { setShowToast(false); setToastType(null); setToastMessage(null) }, 3000); return;
+            }
+            for (const item of packageItems) {
+                if (!item.quantity || item.quantity <= 0) {
+                    setToastMessage(`Ingresa una cantidad válida para ${item.product_name}`); setToastType("error"); setShowToast(true); setTimeout(() => { setShowToast(false); setToastType(null); setToastMessage(null) }, 3000); return;
+                }
+                const stock = getAvailableStock(item.product_id);
+                if (item.quantity > stock) {
+                    setToastMessage(`La cantidad de ${item.product_name} (${item.quantity}) supera el stock disponible (${stock})`); setToastType("error"); setShowToast(true); setTimeout(() => { setShowToast(false); setToastType(null); setToastMessage(null) }, 3000); return;
+                }
+            }
+        }
+
         const formData = new FormData()
         //console.log(empresa.value, nombre.value, peso.value + unidades.value, precio1.value, precio2.value, precio3.value, JSON.stringify(selectedCategories), existencia.value, existenciaminima.value)
         if (tipoProducto === "PACKAGE" && !empresa) {
@@ -298,10 +314,36 @@ export const ModalProduct = ({ show, onClose, data, mode }: { show: boolean, onC
     }, [data, mode]);
 
 
+    const showValidationError = (msg: string) => {
+        setToastMessage(msg);
+        setToastType("error");
+        setShowToast(true);
+        setTimeout(() => { setShowToast(false); setToastType(null); setToastMessage(null) }, 3000);
+    };
+
+    // Stock actual disponible del producto (según la lista cargada del backend)
+    const getAvailableStock = (productId: string): number => {
+        const product = products.find(p => p.iIdProduct === productId);
+        return Number(product?.istock) || 0;
+    };
+
     const addProductToPackage = () => {
         if (!selectedProduct) return;
         const product = products.find(p => p.iIdProduct === selectedProduct);
         if (!product) return;
+        if (packageItems.some(item => item.product_id === product.iIdProduct)) {
+            showValidationError(`${product.vcname} ya está en el paquete, edita su cantidad en la tabla.`);
+            return;
+        }
+        const stock = Number(product.istock) || 0;
+        if (!Number.isFinite(packageQty) || packageQty <= 0) {
+            showValidationError("Ingresa una cantidad válida mayor a 0.");
+            return;
+        }
+        if (packageQty > stock) {
+            showValidationError(`La cantidad (${packageQty}) supera el stock disponible de ${product.vcname} (${stock}).`);
+            return;
+        }
         setPackageItems(prev => [...prev, { product_id: product.iIdProduct, product_name: product.vcname, quantity: packageQty }]);
         setSelectedProduct('');
         setPackageQty(1);
@@ -312,8 +354,14 @@ export const ModalProduct = ({ show, onClose, data, mode }: { show: boolean, onC
     };
 
     const updatePackageQty = (id: string, qty: number) => {
+        // No permitir que la cantidad supere el stock disponible del producto
+        const stock = getAvailableStock(id);
+        const capped = Number.isFinite(qty) ? Math.min(qty, stock) : 0;
+        if (Number.isFinite(qty) && qty > stock) {
+            showValidationError(`La cantidad supera el stock disponible (${stock}).`);
+        }
         setPackageItems(prev =>
-            prev.map(p => (p.product_id === id ? { ...p, quantity: qty } : p))
+            prev.map(p => (p.product_id === id ? { ...p, quantity: capped } : p))
         );
     };
     return (
@@ -529,39 +577,48 @@ export const ModalProduct = ({ show, onClose, data, mode }: { show: boolean, onC
                                                 <tr>
                                                     <th className="p-2 text-left">Producto</th>
                                                     <th className="p-2 text-center">Cantidad</th>
+                                                    <th className="p-2 text-center">Stock disp.</th>
                                                     <th className="p-2 text-center">Acción</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
                                                 {packageItems.length > 0 ? (
-                                                    packageItems.map((item) => (
-                                                        <tr key={item.product_id} className="border-t dark:border-gray-600">
-                                                            <td className="p-2">{item.product_name}</td>
-                                                            <td className="p-2 text-center">
-                                                                <input
-                                                                    type="number"
-                                                                    min={1}
-                                                                    value={item.quantity}
-                                                                    onChange={(e) =>
-                                                                        updatePackageQty(item.product_id, Number(e.target.value))
-                                                                    }
-                                                                    className="w-16 text-center border rounded-lg p-1 dark:bg-gray-700 dark:text-white"
-                                                                />
-                                                            </td>
-                                                            <td className="p-2 text-center">
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => removePackageItem(item.product_id)}
-                                                                    className="text-red-500 hover:underline"
-                                                                >
-                                                                    Eliminar
-                                                                </button>
-                                                            </td>
-                                                        </tr>
-                                                    ))
+                                                    packageItems.map((item) => {
+                                                        const availableStock = getAvailableStock(item.product_id);
+                                                        const exceedsStock = item.quantity > availableStock;
+                                                        return (
+                                                            <tr key={item.product_id} className="border-t dark:border-gray-600">
+                                                                <td className="p-2">{item.product_name}</td>
+                                                                <td className="p-2 text-center">
+                                                                    <input
+                                                                        type="number"
+                                                                        min={1}
+                                                                        max={availableStock}
+                                                                        value={item.quantity}
+                                                                        onChange={(e) =>
+                                                                            updatePackageQty(item.product_id, Number(e.target.value))
+                                                                        }
+                                                                        className={`w-16 text-center border rounded-lg p-1 dark:bg-gray-700 dark:text-white ${exceedsStock ? 'border-red-500 text-red-600' : ''}`}
+                                                                    />
+                                                                </td>
+                                                                <td className={`p-2 text-center ${exceedsStock ? 'text-red-600 font-semibold' : 'text-gray-500'}`}>
+                                                                    {availableStock}
+                                                                </td>
+                                                                <td className="p-2 text-center">
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => removePackageItem(item.product_id)}
+                                                                        className="text-red-500 hover:underline"
+                                                                    >
+                                                                        Eliminar
+                                                                    </button>
+                                                                </td>
+                                                            </tr>
+                                                        );
+                                                    })
                                                 ) : (
                                                     <tr>
-                                                        <td colSpan={3} className="text-center text-gray-400 p-2">
+                                                        <td colSpan={4} className="text-center text-gray-400 p-2">
                                                             No hay productos añadidos aún
                                                         </td>
                                                     </tr>

@@ -23,6 +23,26 @@ export const ShoppingCar = () => {
     const [toastMessage, setToastMessage] = useState<string | null>(null);
     const [toastType, setToastType] = useState<"success" | "error" | null>(null);
     const [showToast, setShowToast] = useState(true);
+
+    const dismissToast = () => {
+        setToastMessage(null);
+        setToastType(null);
+        setShowToast(false);
+    };
+
+    // Auto-ocultar el toast: sin esto, los mensajes sin setTimeout se quedaban para siempre
+    useEffect(() => {
+        if (!toastMessage) return;
+        const timer = window.setTimeout(dismissToast, 5000);
+        return () => window.clearTimeout(timer);
+    }, [toastMessage, toastType]);
+
+    // Rescata el mensaje real que manda el backend (viene como `message` o `error` según el endpoint)
+    const getBackendErrorMessage = (error: any, fallback: string): string =>
+        error?.response?.data?.message ||
+        error?.response?.data?.error ||
+        error?.message ||
+        fallback;
     const [shippingData, setShippingData] = useState([])
     const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
     const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -617,9 +637,9 @@ export const ShoppingCar = () => {
             } else {
                 throw new Error("No se recibió init_point");
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error("Error al iniciar pago:", error);
-            setToastMessage("Error al procesar el pago");
+            setToastMessage(getBackendErrorMessage(error, "Error al procesar el pago. Intenta de nuevo."));
             setToastType("error");
             setShowToast(true);
         } finally {
@@ -707,13 +727,7 @@ export const ShoppingCar = () => {
             }
         } catch (error: any) {
             console.error("Error al confirmar la compra:", error);
-            // intentar rescatar mensaje del backend si viene en el error de axios
-            const backendMsg =
-                error?.response?.data?.message ||
-                error?.message ||
-                "Error al confirmar la compra";
-
-            setToastMessage(backendMsg);
+            setToastMessage(getBackendErrorMessage(error, "Error al confirmar la compra"));
             setToastType("error");
             setShowToast(true);
         } finally {
@@ -730,7 +744,7 @@ export const ShoppingCar = () => {
                     <SuccessToast message={toastMessage} showToast={showToast} />
                 )}
                 {toastMessage && toastType === "error" && (
-                    <ErrorToast message={toastMessage} showToast={showToast} />
+                    <ErrorToast message={toastMessage} showToast={showToast} onClose={dismissToast} />
                 )}
             </div>
 

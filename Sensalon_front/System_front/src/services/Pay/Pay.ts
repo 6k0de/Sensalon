@@ -14,10 +14,16 @@ export const createOrderTransfer = async (formData: FormData) => {
         } else {
             return { data: insertOrderTransfer.data.data, message: insertOrderTransfer.data.message, orderNumber: insertOrderTransfer.data.orderNumber }
         }
-    } catch (error:any) {
+    } catch (error: any) {
         console.error('Error al crear la orden de transferencia:', error);
 
-        const backendMessage = error.response?.data?.message || 'Error en el servidor';
+        // El backend responde a veces con `message` (guards de stock) y a veces con `error` (validaciones)
+        const backendMessage =
+            error.response?.data?.message ||
+            error.response?.data?.error ||
+            (error.response
+                ? `Error del servidor (${error.response.status}). Intenta de nuevo.`
+                : 'No se pudo conectar con el servidor. Revisa tu conexión.');
         return { data: 0, message: backendMessage };
     }
 }   

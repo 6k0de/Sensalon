@@ -7,7 +7,54 @@ import { InventoryReservationModel } from "../../bd/models/InventoryReservation.
 import { TransactionModel } from "../../bd/models/Transaction.model";
 import { CartItemsModel } from "../../bd/models/CartItems.model";
 
-export const insertProduct = (req: Request, res: Response) => {
+// Valida que las cantidades de los componentes de un paquete no superen su stock actual.
+// Devuelve null si todo es válido, o un mensaje de error para responder al cliente.
+const validatePackageStock = async (producttype: any, productsPackage: any): Promise<string | null> => {
+    if (producttype !== 'PACKAGE') return null;
+
+    let items: any[] = [];
+    try {
+        items = typeof productsPackage === 'string' ? JSON.parse(productsPackage) : (productsPackage || []);
+    } catch {
+        return 'Formato inválido en los productos del paquete.';
+    }
+
+    if (!Array.isArray(items) || items.length === 0) {
+        return 'El paquete debe incluir al menos un producto.';
+    }
+
+    // Acumular cantidades por producto (por si el mismo producto viene repetido)
+    const totals = new Map<string, number>();
+    for (const item of items) {
+        const productId = String(item?.product_id ?? item?.productId ?? '');
+        const qty = Number(item?.quantity);
+        if (!productId || !Number.isFinite(qty) || qty <= 0) {
+            return 'Cada producto del paquete debe tener una cantidad válida mayor a 0.';
+        }
+        totals.set(productId, (totals.get(productId) || 0) + qty);
+    }
+
+    const rows = await Products.findAll({
+        where: { iIdProduct: { [Op.in]: Array.from(totals.keys()) }, isactive: 1 },
+    });
+    const rowMap = new Map<string, any>();
+    rows.forEach((r: any) => rowMap.set(String(r.getDataValue('iIdProduct')), r));
+
+    for (const [productId, qty] of totals) {
+        const row = rowMap.get(productId);
+        if (!row) return 'Uno de los productos del paquete no existe o está inactivo.';
+        if (row.getDataValue('producttype') === 'PACKAGE') {
+            return `Un paquete no puede contener otro paquete (${row.getDataValue('vcname')}).`;
+        }
+        const stock = Number(row.getDataValue('istock')) || 0;
+        if (qty > stock) {
+            return `La cantidad para "${row.getDataValue('vcname')}" (${qty}) supera el stock disponible (${stock}).`;
+        }
+    }
+    return null;
+};
+
+export const insertProduct = async (req: Request, res: Response) => {
     const {
         iFIdCompany,
         vccategories,
@@ -45,6 +92,17 @@ export const insertProduct = (req: Request, res: Response) => {
     });
 
     const urlPhoto = req.file ? req.file.path : null;
+
+    // Guard: en paquetes, ninguna cantidad puede superar el stock actual del componente
+    try {
+        const stockError = await validatePackageStock(producttype, productsPackage);
+        if (stockError) {
+            return res.send({ valor: 1, message: stockError });
+        }
+    } catch (validationError) {
+        console.error('Error validando stock del paquete:', validationError);
+        return res.status(500).send({ valor: 1, message: 'Error al validar el stock del paquete' });
+    }
 
     // Asegurar que los JSON vengan en formato correcto
     const parsedCategories = typeof vccategories === 'string' ? vccategories : JSON.stringify(vccategories);
@@ -326,6 +384,18 @@ export const updateProduct = async (req: Request, res: Response) => {
     })
 
     console.log(req.file || vcphoto)
+
+    // Guard: en paquetes, ninguna cantidad puede superar el stock actual del componente
+    try {
+        const stockError = await validatePackageStock(producttype, productsPackage);
+        if (stockError) {
+            return res.send({ valor: 1, message: stockError });
+        }
+    } catch (validationError) {
+        console.error('Error validando stock del paquete:', validationError);
+        return res.status(500).send({ valor: 1, message: 'Error al validar el stock del paquete' });
+    }
+
     if (req.file || vcphoto) {
         const urlPhoto = req?.file?.path ?? null
         console.log(urlPhoto)
